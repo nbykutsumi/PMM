@@ -1,0 +1,395 @@
+from numpy import *
+from tag_func import *
+import ctrack_func, tag_func, pmm_func
+import ctrack_para, pmm_para
+import ctrack_fig
+
+calcflag = True
+#calcflag = False
+#figflag  = True
+figflag  = False
+#lseason = ["DJF","JJA"]
+#lseason = ["SON"]
+#lseason = ["MAM","DJF","JJA","SON","ALL"]
+lseason = [1,2,3,4,5,6,7,8,9,10,11,12]
+#lseason = [1]
+iY, eY = 2002, 2009
+#iY, eY = 2002, 2002
+lY     = range(iY, eY+1)
+
+prtype1 = "GSMaP.v5"
+prtype2 = "PR.2A25"
+miss    = -9999.
+
+para_tag = pmm_para.Para_tag()
+ny,nx    = pmm_para.ret_nynx(prtype1)
+
+para_tag.thpr = 0.0
+para_tag.ny   = ny
+para_tag.nx   = nx
+para_tag.wnflag = False
+if para_tag.wnflag == False:
+  #----------
+  ltag      = ["plain","tc","c","fbc","te","tf","ef","tef","ot"]
+#  ltag      = ["plain"]
+  ltag_comb = ["tc.comb","cf.comb"]
+
+def ret_la2dat(Y,M,prtype1,prtype2, tag):
+  sdir_root, sdir, sumname1, sumname2, numname \
+      =tag_func.ret_name_tagthpr_match_sumnum_mon\
+      (\
+         prtype1, prtype2, tag, para_tag, Y, M\
+      )
+  a2sum1 = fromfile(sumname1, float32).reshape(ny,nx) 
+  a2sum2 = fromfile(sumname2, float32).reshape(ny,nx) 
+  a2num  = fromfile(numname,  float32).reshape(ny,nx) 
+  return a2sum1, a2sum2, a2num
+
+def ret_name_clim(prtype1,prtype2,tag,para_tag,iY,eY,season):
+  lname = tag_func.ret_name_tagthpr_match_sumnum_clim\
+          (\
+           prtype1, prtype2, tag, para_tag, iY, eY, season\
+          )
+
+  sdir_root, sdir, amtname1, amtname2, ratname1, ratname2, sumname1, sumname2, numname\
+        = lname
+  return sdir_root, sdir, amtname1, amtname2, ratname1, ratname2, sumname1, sumname2, numname
+
+def ret_la2clim(tag,sumnum):
+  sdir_root, sdir, amtname1, amtname2, ratname1, ratname2, sumname1, sumname2, numname\
+     =(\
+       ret_name_clim(prtype1,prtype2,tag,para_tag,iY,eY,season)\
+      ) 
+  if sumnum=="amt":
+    a2dat1  = fromfile(amtname1, float32).reshape(ny,nx)
+    a2dat2  = fromfile(amtname2, float32).reshape(ny,nx)
+    return a2dat1, a2dat2
+
+  elif sumnum=="rat":
+    a2dat1  = fromfile(ratname1, float32).reshape(ny,nx)
+    a2dat2  = fromfile(ratname2, float32).reshape(ny,nx)
+    return a2dat1, a2dat2
+
+  elif sumnum=="sum":
+    a2dat1  = fromfile(sumname1, float32).reshape(ny,nx)
+    a2dat2  = fromfile(sumname2, float32).reshape(ny,nx)
+    return a2dat1, a2dat2
+
+  elif sumnum=="num":
+    a2dat  = fromfile(numname, float32).reshape(ny,nx)
+    return a2dat
+
+def mk_la2comb(tag_comb):
+  if tag_comb == "tc.comb":
+    a2sum_tc1, a2sum_tc2 = ret_la2clim("tc","sum")
+    a2sum_te1, a2sum_te2 = ret_la2clim("te","sum")
+    a2sum_tf1, a2sum_tf2 = ret_la2clim("tf","sum")
+    a2sum_tef1, a2sum_tef2 = ret_la2clim("tef","sum")
+
+    a2num_tc   = ret_la2clim("tc","num")
+    a2num_te   = ret_la2clim("te","num")
+    a2num_tf   = ret_la2clim("tf","num")
+    a2num_tef  = ret_la2clim("tef","num")
+    a2num_pln  = ret_la2clim("plain","num")
+
+    a2sum1 = a2sum_tc1 + a2sum_te1*0.5 + a2sum_tf1*0.5 + a2sum_tef1*(1./3.)
+    a2sum2 = a2sum_tc2 + a2sum_te2*0.5 + a2sum_tf2*0.5 + a2sum_tef2*(1./3.)
+
+    a2num_tag  = a2num_tc + a2num_te + a2num_tf + a2num_tef
+
+
+    a2amt1  = (ma.masked_where(a2num_pln==0., a2sum1)/a2num_pln).filled(miss)
+    a2amt2  = (ma.masked_where(a2num_pln==0., a2sum2)/a2num_pln).filled(miss)
+
+    a2rat1  = (ma.masked_where(a2num_tag==0., a2sum1)/a2num_tag).filled(miss)
+    a2rat2  = (ma.masked_where(a2num_tag==0., a2sum2)/a2num_tag).filled(miss)
+  elif tag_comb == "cf.comb":
+    a2sum_c1, a2sum_c2 = ret_la2clim("c","sum")
+    a2sum_fbc1, a2sum_fbc2 = ret_la2clim("fbc","sum")
+    a2sum_ef1, a2sum_ef2 = ret_la2clim("ef","sum")
+    a2sum_te1, a2sum_te2 = ret_la2clim("te","sum")
+    a2sum_tf1, a2sum_tf2 = ret_la2clim("tf","sum")
+    a2sum_tef1, a2sum_tef2 = ret_la2clim("tef","sum")
+
+    a2num_c   = ret_la2clim("c","num")
+    a2num_fbc = ret_la2clim("fbc","num")
+    a2num_ef  = ret_la2clim("ef","num")
+    a2num_te  = ret_la2clim("te","num")
+    a2num_tf  = ret_la2clim("tf","num")
+    a2num_tef = ret_la2clim("tef","num")
+    a2num_pln = ret_la2clim("plain","num")
+
+    a2sum1 = a2sum_c1 + a2sum_fbc1 + a2sum_ef1\
+            +a2sum_te1*0.5+ a2sum_tf1*0.5 + a2sum_tef1*(1./3.) 
+
+    a2sum2 = a2sum_c2 + a2sum_fbc2 + a2sum_ef2\
+            +a2sum_te2*0.5+ a2sum_tf2*0.5 + a2sum_tef2*(1./3.) 
+
+    a2num_tag = a2num_c + a2num_fbc + a2num_ef\
+               +a2num_te + a2num_tf + a2num_tef
+
+    a2amt1  = (ma.masked_where(a2num_pln==0., a2sum1)/a2num_pln).filled(miss)
+    a2amt2  = (ma.masked_where(a2num_pln==0., a2sum2)/a2num_pln).filled(miss)
+
+    a2rat1  = (ma.masked_where(a2num_tag==0., a2sum1)/a2num_tag).filled(miss)
+    a2rat2  = (ma.masked_where(a2num_tag==0., a2sum2)/a2num_tag).filled(miss)
+
+  return a2amt1, a2amt2, a2rat1, a2rat2, a2sum1, a2sum2, a2num_tag
+
+#***************************************************
+if calcflag == True:
+  for season in lseason:
+    lM = ctrack_para.ret_lmon(season)
+    #---- num plain ---------
+    tag = "plain"
+    a2num_pln   = zeros([ny,nx],float32)
+    for Y,M in [[Y,M] for Y in lY for M in lM]:
+      a2num_pln_tmp = ret_la2dat(Y,M,prtype1,prtype2,"plain")[2]
+      a2num_pln     = a2num_pln + a2num_pln_tmp
+    #---- calc precip (mean amount and rate) --
+    for tag in ltag:
+      a2sum1  = zeros([ny,nx],float32)
+      a2sum2  = zeros([ny,nx],float32)
+      a2num_tag   = zeros([ny,nx],float32)
+
+      a2ratrat1  = zeros([ny,nx],float32)
+      a2ratrat2  = zeros([ny,nx],float32)
+      a2amtamt1  = zeros([ny,nx],float32)
+      a2amtamt2  = zeros([ny,nx],float32)
+
+      for Y,M in [[Y,M] for Y in lY for M in lM]:
+  #      print Y,M,tag
+        a2sum_tmp1, a2sum_tmp2, a2num_tmp = ret_la2dat(Y,M,prtype1,prtype2,tag)
+        a2sum1 = a2sum1 + a2sum_tmp1
+        a2sum2 = a2sum2 + a2sum_tmp2
+        a2num_tag  = a2num_tag  + a2num_tmp
+
+        a2amtamt1 = a2amtamt1 + (ma.masked_where(a2num_pln_tmp==0., a2sum_tmp1)/a2num_pln_tmp).filled(0.0)**2.0
+        a2amtamt2 = a2amtamt2 + (ma.masked_where(a2num_pln_tmp==0., a2sum_tmp2)/a2num_pln_tmp).filled(0.0)**2.0
+
+
+        a2ratrat1 = (ma.masked_where(a2num_tmp==0., a2sum_tmp1)/a2num_tmp).filled(0.0)**2.0
+        a2ratrat2 = (ma.masked_where(a2num_tmp==0., a2sum_tmp2)/a2num_tmp).filled(0.0)**2.0
+        
+        print Y,M,tag, a2sum_tmp1.mean(), a2sum_tmp2.mean()
+      #-------------
+      a2amt1 = (ma.masked_where(a2num_pln==0., a2sum1)/a2num_pln).filled(miss)
+      a2amt2 = (ma.masked_where(a2num_pln==0., a2sum2)/a2num_pln).filled(miss)
+
+      a2rat1 = (ma.masked_where(a2num_tag==0., a2sum1)/a2num_tag).filled(miss)
+      a2rat2 = (ma.masked_where(a2num_tag==0., a2sum2)/a2num_tag).filled(miss)
+
+      #-- for sigma --
+      a2amtamt1 = ma.masked_where(a2num_pln==0., a2amtamt1).filled(miss)
+      a2amtamt2 = ma.masked_where(a2num_pln==0., a2amtamt2).filled(miss)
+
+      a2ratrat1 = ma.masked_where(a2num_pln==0., a2ratrat1).filled(miss)
+      a2ratrat2 = ma.masked_where(a2num_pln==0., a2ratrat2).filled(miss)
+ 
+      #-- write ----
+      sdir_root, sdir, amtname1, amtname2, ratname1, ratname2, sumname1, sumname2, numname\
+            = ret_name_clim\
+              (\
+               prtype1,prtype2,tag,para_tag,iY,eY,season\
+              )
+  
+      ctrack_func.mk_dir(sdir)
+      a2amt1.tofile(amtname1)
+      a2amt2.tofile(amtname2)
+      a2rat1.tofile(ratname1)
+      a2rat2.tofile(ratname2)
+      a2sum1.tofile(sumname1)
+      a2sum2.tofile(sumname2)
+      a2num_tag.tofile(numname)
+      print numname
+
+      #-- write sigma ---
+      amtamtname1 = sdir + "/" + "sqrt."+amtname1.split("/")[-1]
+      amtamtname2 = sdir + "/" + "sqrt."+amtname2.split("/")[-1]
+      ratratname1 = sdir + "/" + "sqrt."+ratname1.split("/")[-1]
+      ratratname2 = sdir + "/" + "sqrt."+ratname2.split("/")[-1]
+
+      a2amtamt1.tofile(amtamtname1)
+      a2amtamt2.tofile(amtamtname2)
+      a2ratrat1.tofile(ratratname1)
+      a2ratrat2.tofile(ratratname2)
+
+  
+    #-- tag.comb -----
+    if len(ltag_comb) ==0:
+      continue
+    for tag_comb in ltag_comb:
+      a2amt1, a2amt2, a2rat1, a2rat2, a2sum1, a2sum2, a2num_tag = mk_la2comb(tag_comb)
+  
+      sdir_root, sdir, amtname1, amtname2, ratname1, ratname2, sumname1, sumname2, numname\
+      = ret_name_clim\
+        (\
+         prtype1, prtype2, tag_comb, para_tag, iY, eY, season\
+        )
+
+      a2amt1.tofile(amtname1)
+      a2amt2.tofile(amtname2)
+      a2rat1.tofile(ratname1)
+      a2rat2.tofile(ratname2)
+      a2sum1.tofile(sumname1)
+      a2sum2.tofile(sumname2)
+      a2num_tag.tofile(numname)
+      print numname
+
+
+      a2amtamt1   = 
+      amtamtname1 = sdir + "/" + "sqrt."+amtname1.split("/")[-1]
+      amtamtname2 = sdir + "/" + "sqrt."+amtname2.split("/")[-1]
+      ratratname1 = sdir + "/" + "sqrt."+ratname1.split("/")[-1]
+      ratratname2 = sdir + "/" + "sqrt."+ratname2.split("/")[-1]
+
+      a2amtamt1.tofile(amtamtname1)
+      a2amtamt2.tofile(amtamtname2)
+      a2ratrat1.tofile(ratratname1)
+      a2ratrat2.tofile(ratratname2)
+
+
+
+
+ 
+#--------- Figures -----------
+if figflag == True:
+  for season in lseason:
+    for tag in ["plain","ot"] + ltag_comb:
+      #for sumnum in ["amt","rat"]:
+      for sumnum in ["amt","rat"]:
+        #-- names --
+        sdir_root, sdir, amtname1, amtname2, ratname1, ratname2, sumname1, sumname2, numname\
+           = ret_name_clim\
+             (\
+              prtype1,prtype2,tag,para_tag,iY,eY,season\
+             )
+  
+        if sumnum == "amt":
+          iname1 = amtname1 
+          iname2 = amtname2
+        elif sumnum == "rat":
+          iname1 = ratname1
+          iname2 = ratname2
+        elif sumnum == "num":
+          iname1 = numname
+          iname2 = numname
+        elif sumnum == "sum":
+          iname1 = sumname
+          iname2 = sumname
+ 
+
+ 
+        figdir  = sdir + "/pict"
+        ctrack_func.mk_dir(figdir)
+        figname1= figdir + "/" +  iname1.split("/")[-1] + ".png"
+        figname2= figdir + "/" +  iname2.split("/")[-1] + ".png"
+        cbarname= figdir + "/" +  "cbar.%s.png"%(sumnum)
+        #-- load ---
+        a2dat1 = fromfile(iname1, float32).reshape(ny,nx)
+        a2dat2 = fromfile(iname2, float32).reshape(ny,nx)
+    
+        a2dat1 = a2dat1[200:1000]  # 60S-60N -> 40S-40N
+        a2dat2 = a2dat2[200:1000]
+        #-- mask ---
+        a2shade= a2dat1
+        #-- lat lon --
+        lllon  = 0.05
+        urlon  = 359.95
+        lllat  = -39.95
+        urlat  = 39.95
+
+        if sumnum == "amt":
+          coef = 60.*60.*24*30.
+          bnd  = [0,10,30,50,70,100,200,300] 
+        elif sumnum == "rat":
+          coef = 60.*60.
+          bnd  = [0.0,0.1,0.2,0.3,0.5,0.7,1,2] 
+        elif sumnum == "num":
+          coef = 1.
+          bnd  = False
+        elif sumnum == "num":
+          coef = 1.
+          bnd  = [1,10,30,50,70,100,200,300] 
+          
+        #---- title ----
+        stitle1 = "%s %s %04d-%04d %s"%(prtype1, tag, iY, eY, season) 
+        stitle2 = "%s %s %04d-%04d %s"%(prtype2, tag, iY, eY, season) 
+        ctrack_fig.mk_map(a2dat1,bnd=bnd, mycm="jet",soname=figname1, stitle=stitle1, cbarname=cbarname, miss=miss, lllat=lllat, lllon=lllon, urlat=urlat, urlon=urlon, a2shade=a2shade, coef=coef)
+        ctrack_fig.mk_map(a2dat2,bnd=bnd, mycm="jet",soname=figname2, stitle=stitle2, cbarname=cbarname, miss=miss, lllat=lllat, lllon=lllon, urlat=urlat, urlon=urlon, a2shade=a2shade, coef=coef)
+        print figname2
+#  
+
+#---- test: check data: clim ----------
+season = 1
+a2tot1 = zeros([ny,nx],float32)
+a2tot2 = zeros([ny,nx],float32)
+
+for tag in ["tc.comb","cf.comb","ot","plain"]:
+#for tag in ["plain","tc","c","fbc","te","tf","ef","tef","ot"]:
+#for tag in ltag:
+  a2dat1, a2dat2 = ret_la2clim(tag,"amt")
+  a2dat1  = ma.masked_equal(a2dat1, miss).filled(0.0)
+  a2dat2  = ma.masked_equal(a2dat2, miss).filled(0.0)
+
+  print tag,a2dat1.sum(), a2dat2.sum()
+  if tag !="plain":
+    a2tot1 = a2tot1 + a2dat1
+    a2tot2 = a2tot2 + a2dat2
+  else:
+    a2plain1 = a2dat1
+    a2plain2 = a2dat2
+
+a2d1  = a2tot1 - a2plain1
+a2d2  = a2tot2 - a2plain2
+
+print "-- a2d.mean, a2d.min, a2d,max --"
+print a2d1.min(), a2d1.mean(), a2d1.max()
+print a2d2.min(), a2d2.mean(), a2d2.max()
+
+
+
+##---- test: check data: mon -----------
+#Y = 2002
+##lM   = [6,7,8]
+#lM   = [6]
+#for M in lM:
+#  tot1 = 0.
+#  tot2 = 0.
+#  totnum  = 0.
+#  a2tot1 = zeros([ny,nx],float32)
+#  a2tot2 = zeros([ny,nx],float32)
+#  a2totnum = zeros([ny,nx],float32)
+#  
+#  for tag in ltag:
+#    a2sum1, a2sum2, a2num = ret_la2dat(Y,M,prtype1,prtype2, tag)
+#    if tag != "plain":
+#      tot1 = tot1 + a2sum1.sum()
+#      tot2 = tot2 + a2sum2.sum()
+#      totnum  = totnum + a2num.sum()
+#  
+#      a2tot1 = a2tot1 + a2sum1
+#      a2tot2 = a2tot2 + a2sum2
+#      a2totnum  = a2totnum  + a2num
+# 
+#    elif tag == "plain":
+#      plain1 = a2sum1.sum()
+#      plain2 = a2sum2.sum()
+#  
+#      a2plain1 = a2sum1
+#      a2plain2 = a2sum2
+#      a2plainnum = a2num
+#  #print "tot, plain"
+#  #print tot1, plain1
+#  #print tot2, plain2
+#  
+#  a2d1  = a2tot1 - a2plain1
+#  a2d2  = a2tot2 - a2plain2
+#  a2dnum= a2totnum - a2plainnum
+#  print "---------------"
+#  print "Mon=",M
+#  print "d.mean(), d.min(), dmax()"
+#  print a2d1.mean(), a2d1.min(), a2d1.max()
+#  print a2d2.mean(), a2d2.min(), a2d2.max()
+#  print a2dnum.mean(), a2dnum.min(), a2dnum.max() 
+# 

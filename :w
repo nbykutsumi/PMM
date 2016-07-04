@@ -1,0 +1,54 @@
+from numpy import
+import matplotlib.pyplot as plt
+import ioPMM
+
+iYear = 2014
+eYear = 2014
+lMon  = [4,5,6]
+
+ltag  = ["c"]
+prtype1 = "RA"
+prtype2 = "GPM.KuPR"
+IO    = ioPMM.ioRAdom()
+ny,nx = IO.ny, IO.nx
+
+def ret_monPath(prtype, tag, Year,Mon):
+  sDir     = os.path.join(baseDir, "%04d"%(Year))
+  sumPath  = os.path.join(sDir, "sum.%s.%s.%04d%02d.%dx%d"%(prtype,tag,Year,Mon,ny,nx))
+  numPath  = os.path.join(sDir, "num.%s.%04d%02d.%dx%d"%(tag,Year,Mon,ny,nx))
+  return sDir, sumPath, numPath
+
+def ret_monSum(prtype, tag, Year,Mon,tag):
+  sDir     = ret_oPath(prtype,tag,Year,Mon)[0]
+  sumPath1 = ret_oPath(prtype,tag,Year,Mon)[1]
+  sumPath2 = ret_oPath(prtype,tag,Year,Mon)[2]
+  numPath  = ret_oPath(prtype,tag,Year,Mon)[3]  
+  a2sum1   = fromfile(sumPath1, float32).reshape(ny,nx)
+  a2sum2   = fromfile(sumPath2, float32).reshape(ny,nx)
+  return   = a2sum1, a2sum2
+
+def ret_monNum(Year,Mon,tag):
+  sDir     = ret_oPath(Year,Mon,tag)[0]
+  sumPath1 = ret_oPath(Year,Mon,tag)[1]
+  sumPath2 = ret_oPath(Year,Mon,tag)[2]
+  numPath  = ret_oPath(Year,Mon,tag)[3]  
+  a2num    = fromfile(numPath, float32).reshape(ny,nx)
+  return   = a2num
+
+def ret_monAve(Year,Mon,tag):
+  sDir     = ret_oPath(Year,Mon,tag)[0]
+  sumPath1 = ret_oPath(Year,Mon,tag)[1]
+  sumPath2 = ret_oPath(Year,Mon,tag)[2]
+  numPath  = ret_oPath(Year,Mon,tag)[3]  
+  a2sum1   = fromfile(sumPath1, float32).reshape(ny,nx)
+  a2sum2   = fromfile(sumPath2, float32).reshape(ny,nx)
+  a2num    = fromfile(numPath,  float32).reshape(ny,nx)
+
+  a2ave1   = ( ma.masked_where(a2num==0.0, a2sum1)/a2num )
+  a2ave2   = ( ma.masked_where(a2num==0.0, a2sum2)/a2num )
+  return   = a2ave1, a2ave2
+#********* main ********************************
+for Year,Mon in [[Year,Mon] for Year in lYear for Mon in lMon]:
+  
+
+
