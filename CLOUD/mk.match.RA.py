@@ -1,20 +1,23 @@
 from numpy import *
 from datetime import datetime, timedelta
 from myfunc.regrid import Regrid
+from collections import deque
 import myfunc.IO.CLOUDTYPE as CLOUDTYPE
+import myfunc.IO.RadarAMeDAS as RadarAMeDAS
 import myfunc.util as util
 import calendar
 import sys
 
 from mpl_toolkits.basemap import Basemap
- 
+
 
 iYM    = [2014,4]
-eYM    = [2015,6]
-#eYM    = [2014,12]
+#eYM    = [2014,4]
+eYM    = [2014,11]
 lYM    = util.ret_lYM(iYM, eYM)
-#ldattype = ["RA","KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
-ldattype = ["GSMaP.MW"]
+#ldattype = ["RA","KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG"]
+#ldattype = ["GSMaP","GSMaP.IR","GSMaP.MW","IMERG"]
+ldattype = ["IMERG.IR","IMERG.MW"]
 
 #dattype= "RA"
 #dattype= "GSMaP"
@@ -28,20 +31,32 @@ BBox    = [[-0.1, 113.875],[52.1, 180.125]]
 ny,nx   = 261, 265
 miss    = -9999.
 
-#lbinPr  = [0.5,1,2,3,4,5,6,7,8,9,10,12,14,16,18,20,25,30,35,40,45,50,999]  # Maxs of bin range
-lbinPr  = [0.0, 0.1, 0.3, 0.5, 0.7] + range(1,9+1,1) + range(10,50+1,2) +[999]  # Maxs of bin range
-#lbinPr  = [0.0, 0.1, 0.3, 0.5, 0.7]
-#lbinPr  = [3,5,7,9]  # Maxs of bin range
-#lbinPr  = [22,24,26,28,32,34,36,38,42,44,46,48,50]  # Maxs of bin range
-nbinPr  = len(lbinPr)
+vmin    = 0.1
+
 lcltype = range(0,7+1)
 ncltype = len(lcltype)
 dclid   = {0:0, 1:1, 2:201, 3:202, 4:4, 5:3, 6:204, 7:200}
+dclName ={0:"Clear Sky",   1:"Cumulonimbus(Cb)",  2:"High Cloud",3:"Mid Cloud"
+         ,4:"Cumulus(Cu)", 5:"Stratocumulus(Sc)", 6:"Fog/St"    ,7:"Cloudy", 99:"All"}
+
+dclShortName={0:"no", 1:"Cb",  2:"hi",3:"md"
+             ,4:"Cu", 5:"Sc",  6:"St",7:"cw", 99:"All"}
 
 # Cloud Type
 cl    = CLOUDTYPE.CloudWNP()
 LatUp = cl.Lat
 LonUp = cl.Lon
+
+# RadarAMeDAS
+ra    = RadarAMeDAS.RadarAMeDAS(prj="ra_0.01")
+LatOrgRA = ra.Lat
+LonOrgRA = ra.Lon
+usRa  = Regrid.UpScale()
+usRa(LatOrgRA, LonOrgRA, LatUp, LonUp, globflag=False)
+
+maskPath  = "/tank/utsumi/data/RadarAMeDAS/mask/RAmask.kubota.0.20x0.25WNP.261x265" 
+a2ramask  = fromfile(maskPath, float32).reshape(261,265)
+a2ramask  = ma.masked_equal(a2ramask, -9999.)
 
 # Init Precip
 #*****************
@@ -54,7 +69,9 @@ def ret_dDTime(dattype):
     return timedelta(hours=1)
   elif dattype == "RA":
     return timedelta(hours=1)
-  elif dattype in ["IMERG","IMERG.IR","IMERG.MW","KuPR","GMI"]:
+  elif dattype.split(".")[0]=="IMERG":
+    return timedelta(minutes=30)
+  elif dattype in ["KuPR","GMI"]:
     return timedelta(minutes=30)
   else:
     print "check ret_dDTime"; sys.exit()
@@ -75,7 +92,7 @@ def ret_mmh(DTime, dattype):
     a2pr    = us.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
   elif dattype =="GSMaP.MW":
     a2sateinfo = gsmap.load_sateinfo(DTime)
-    a2prOrg = ma.masked_where(a2sateinfo <=0,
+    a2prOrg = ma.masked_where(a2sateinfo <0,
                ma.masked_less(gsmap.load_mmh(DTime),0.0)
               ).filled(miss)    # mm/h, forward
 
@@ -101,11 +118,9 @@ def ret_mmh(DTime, dattype):
     a2prOrg = ma.masked_less(imerg.load_mmh(DTime, var="HQprecipitation"),0.0).filled(miss)    # mm/h, forward
     a2pr    = us.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
 
-
-
   elif dattype =="RA":
     a2prOrg = ra.loadForward_mmh(DTime,mask=True).filled(miss)    # mm/h, forward
-    a2pr    = us.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
+    a2pr    = usRa.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
 
   elif dattype =="KuPR":
     Year    = DTime.year
@@ -167,15 +182,7 @@ for dattype in ldattype:
     us    = Regrid.UpScale()
     us(LatOrg, LonOrg, LatUp, LonUp, globflag=False)
   
-  elif dattype == "RA":
-    import myfunc.IO.RadarAMeDAS as RadarAMeDAS
-    ra    = RadarAMeDAS.RadarAMeDAS(prj="ra_0.01")
-    LatOrg= ra.Lat
-    LonOrg= ra.Lon
-  
-    us    = Regrid.UpScale()
-    us(LatOrg, LonOrg, LatUp, LonUp, globflag=False)
-  
+ 
   elif dattype in ["KuPR","GMI"]:
     pass
   else:
@@ -192,7 +199,7 @@ for dattype in ldattype:
   
     iDTime = datetime(Year,Mon,iDay,0,0)
     eDTime = datetime(Year,Mon,eDay,23,eMinute)
-  
+ 
     dDTime = ret_dDTime(dattype)
     lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
   
@@ -202,22 +209,13 @@ for dattype in ldattype:
     f.close()
   
     # Initialize
-    da3sum = {binPr: zeros([ncltype,ny,nx],float32) for binPr in lbinPr}
-    da3num = {binPr: zeros([ncltype,ny,nx],int32  ) for binPr in lbinPr} # Int32 !!
-    
-    a2oneint= ones([ny,nx],int32)
-  
+
+    dpr = {icl:deque([]) for icl in lcltype} 
+    dra = {icl:deque([]) for icl in lcltype} 
     for DTime in lDTime:
       print DTime
-      try:
-        a2pr    = ret_mmh(DTime, dattype=dattype)    # mm/h, forward
-        a2pr    = ma.masked_equal(a2pr, miss)
-      except MyIOException as error:
-        print "MyIOException: Skip",DTime
-        continue
-  
-  
-      # load Cloud Type 
+
+      # load Cloud Type
       if DTime.minute == 30:
         DTimeCL = DTime + dDTime
       else:
@@ -235,37 +233,42 @@ for dattype in ldattype:
           print "check cloud data"
           print DTimeCL
           print "stop"
-          sys.exit() 
-      #-----------------
-   
-      for binPr in lbinPr:
-        if binPr==0.0:
-          a2tmp1  = ma.masked_greater(a2pr, binPr)
-        else:
-          a2tmp1  = ma.masked_greater_equal(a2pr, binPr)
-  
-        for cltype in lcltype:
-          clid   = dclid[cltype]
-          a2tmp2 = ma.masked_where(a2cl !=clid, a2tmp1)
-    
-    
-          da3sum[binPr][cltype] = da3sum[binPr][cltype] + a2tmp2.filled(0.0)
-          da3num[binPr][cltype] = da3num[binPr][cltype] + ma.masked_where(a2tmp2.mask, a2oneint).filled(0)
-  
-    # Save Monthly output
-    baseDir = "/tank/utsumi/PMM/WNP.261x265"
-    oDir    = baseDir + "/CL.Pr.%s"%(dattype)
-    util.mk_dir(oDir)
-  
-    # Bin file
-    binPath = oDir + "/CloudType.txt"
-    sout    = "\n".join(["%d:%d"%(cltype, dclid[cltype]) for cltype in lcltype]).strip()
-    f=open(binPath,"w"); f.write(sout); f.close()
-  
-    for binPr in lbinPr:
-      sumPath   = oDir + "/sum.P%05.1f.%04d.%02d.%dx%dx%d"%(binPr, Year,Mon, ncltype,ny,nx)
-      numPath   = oDir + "/num.P%05.1f.%04d.%02d.%dx%dx%d"%(binPr, Year,Mon, ncltype,ny,nx)
-  
-      da3sum[binPr].tofile(sumPath)
-      da3num[binPr].tofile(numPath)  
-      print sumPath
+          sys.exit()
+
+      #-- load precipitation 
+      try:
+        a2pr    = ret_mmh(DTime, dattype=dattype)    # mm/h, forward
+        a2pr    = ma.masked_equal(a2pr, miss)
+      except MyIOException as error:
+        print "MyIOException: Skip",DTime
+        continue
+
+      #-- load RA -----
+      a2ra  = ret_mmh(DTime, dattype="RA") 
+      a2ra  = ma.masked_equal(a2ra, miss) 
+
+      #-- mask by cloud
+      a2mask = a2ramask
+      a2mask = ma.masked_where((a2ra< vmin)&(a2pr<vmin), a2mask)
+
+      for icl in lcltype: 
+        clid = dclid[icl]
+        a2mask1 = ma.masked_where(a2cl !=clid, a2mask)
+        a2prtmp = ma.masked_where(a2mask1.mask, a2pr)
+        a2ratmp = ma.masked_where(a2mask1.mask, a2ra)
+
+        dpr[icl].extend(a2prtmp.compressed())
+        dra[icl].extend(a2ratmp.compressed())
+
+    #-- Save --------- 
+    for icl in lcltype:
+      baseDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265"
+      sDir     = baseDir + "/VsRA.CL.%s"%(dattype)
+      prPath   = sDir + "/%s.%04d.%02d.%s.bn"%(dattype,Year,Mon,dclShortName[icl])
+      raPath   = sDir + "/RA.%04d.%02d.%s.bn"%(Year,Mon,dclShortName[icl])
+
+      util.mk_dir(sDir)
+      array(dpr[icl], float32).tofile(prPath)
+      array(dra[icl], float32).tofile(raPath)
+      print prPath
+

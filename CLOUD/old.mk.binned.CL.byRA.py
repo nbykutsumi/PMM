@@ -2,19 +2,21 @@ from numpy import *
 from datetime import datetime, timedelta
 from myfunc.regrid import Regrid
 import myfunc.IO.CLOUDTYPE as CLOUDTYPE
+import myfunc.IO.RadarAMeDAS as RadarAMeDAS
 import myfunc.util as util
 import calendar
 import sys
 
 from mpl_toolkits.basemap import Basemap
- 
+
 
 iYM    = [2014,4]
-eYM    = [2015,6]
+eYM    = [2014,11]
 #eYM    = [2014,12]
 lYM    = util.ret_lYM(iYM, eYM)
-#ldattype = ["RA","KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
-ldattype = ["GSMaP.MW"]
+#ldattype = ["RA","KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG"]
+#ldattype = ["GSMaP","GSMaP.IR","GSMaP.MW","IMERG"]
+ldattype = ["GSMaP.IR","GSMaP.MW","IMERG"]
 
 #dattype= "RA"
 #dattype= "GSMaP"
@@ -43,6 +45,14 @@ cl    = CLOUDTYPE.CloudWNP()
 LatUp = cl.Lat
 LonUp = cl.Lon
 
+# RadarAMeDAS
+ra    = RadarAMeDAS.RadarAMeDAS(prj="ra_0.01")
+LatOrgRA = ra.Lat
+LonOrgRA = ra.Lon
+usRa  = Regrid.UpScale()
+usRa(LatOrgRA, LonOrgRA, LatUp, LonUp, globflag=False)
+ 
+
 # Init Precip
 #*****************
 class MyIOException(Exception): pass
@@ -54,7 +64,7 @@ def ret_dDTime(dattype):
     return timedelta(hours=1)
   elif dattype == "RA":
     return timedelta(hours=1)
-  elif dattype in ["IMERG","IMERG.IR","IMERG.MW","KuPR","GMI"]:
+  elif dattype in ["IMERG","KuPR","GMI"]:
     return timedelta(minutes=30)
   else:
     print "check ret_dDTime"; sys.exit()
@@ -75,7 +85,7 @@ def ret_mmh(DTime, dattype):
     a2pr    = us.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
   elif dattype =="GSMaP.MW":
     a2sateinfo = gsmap.load_sateinfo(DTime)
-    a2prOrg = ma.masked_where(a2sateinfo <=0,
+    a2prOrg = ma.masked_where(a2sateinfo <0,
                ma.masked_less(gsmap.load_mmh(DTime),0.0)
               ).filled(miss)    # mm/h, forward
 
@@ -93,19 +103,9 @@ def ret_mmh(DTime, dattype):
     a2prOrg = ma.masked_less(imerg.load_mmh(DTime),0.0).filled(miss)    # mm/h, forward
     a2pr    = us.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
 
-  elif dattype =="IMERG.IR":
-    a2prOrg = ma.masked_less(imerg.load_mmh(DTime, var="IRprecipitation"),0.0).filled(miss)    # mm/h, forward
-    a2pr    = us.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
-
-  elif dattype =="IMERG.MW":
-    a2prOrg = ma.masked_less(imerg.load_mmh(DTime, var="HQprecipitation"),0.0).filled(miss)    # mm/h, forward
-    a2pr    = us.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
-
-
-
   elif dattype =="RA":
     a2prOrg = ra.loadForward_mmh(DTime,mask=True).filled(miss)    # mm/h, forward
-    a2pr    = us.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
+    a2pr    = usRa.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
 
   elif dattype =="KuPR":
     Year    = DTime.year
@@ -159,7 +159,7 @@ for dattype in ldattype:
     us    = Regrid.UpScale()
     us(LatOrg, LonOrg, LatUp, LonUp, globflag=False)
   
-  elif dattype.split(".")[0] == "IMERG":
+  elif dattype == "IMERG":
     import myfunc.IO.IMERG as IMERG
     imerg = IMERG.IMERG(PRD="PROD",VER="V03",crd="sa", BBox=BBox)
     LatOrg= imerg.Lat
@@ -167,14 +167,14 @@ for dattype in ldattype:
     us    = Regrid.UpScale()
     us(LatOrg, LonOrg, LatUp, LonUp, globflag=False)
   
-  elif dattype == "RA":
-    import myfunc.IO.RadarAMeDAS as RadarAMeDAS
-    ra    = RadarAMeDAS.RadarAMeDAS(prj="ra_0.01")
-    LatOrg= ra.Lat
-    LonOrg= ra.Lon
-  
-    us    = Regrid.UpScale()
-    us(LatOrg, LonOrg, LatUp, LonUp, globflag=False)
+  #elif dattype == "RA":
+  #  import myfunc.IO.RadarAMeDAS as RadarAMeDAS
+  #  ra    = RadarAMeDAS.RadarAMeDAS(prj="ra_0.01")
+  #  LatOrg= ra.Lat
+  #  LonOrg= ra.Lon
+  #
+  #  us    = Regrid.UpScale()
+  #  us(LatOrg, LonOrg, LatUp, LonUp, globflag=False)
   
   elif dattype in ["KuPR","GMI"]:
     pass
@@ -215,8 +215,10 @@ for dattype in ldattype:
       except MyIOException as error:
         print "MyIOException: Skip",DTime
         continue
-  
-  
+      #-- load RA -----
+      a2ra  = ret_mmh(DTime, dattype="RA") 
+      a2ra  = ma.masked_equal(a2ra, miss) 
+ 
       # load Cloud Type 
       if DTime.minute == 30:
         DTimeCL = DTime + dDTime
@@ -236,25 +238,31 @@ for dattype in ldattype:
           print DTimeCL
           print "stop"
           sys.exit() 
+
       #-----------------
    
       for binPr in lbinPr:
+        #if binPr==0.0:
+        #  a2tmp1  = ma.masked_greater(a2pr, binPr)
+        #else:
+        #  a2tmp1  = ma.masked_greater_equal(a2pr, binPr)
+
         if binPr==0.0:
-          a2tmp1  = ma.masked_greater(a2pr, binPr)
+          a2cltmp  = ma.masked_where(a2ra>binPr,  a2cl)
         else:
-          a2tmp1  = ma.masked_greater_equal(a2pr, binPr)
-  
+          a2cltmp  = ma.masked_where(a2ra>=binPr, a2cl)
+
         for cltype in lcltype:
-          clid   = dclid[cltype]
-          a2tmp2 = ma.masked_where(a2cl !=clid, a2tmp1)
+          clid    = dclid[cltype]
+          a2tmp = ma.masked_where(a2cltmp !=clid, a2pr)
     
-    
-          da3sum[binPr][cltype] = da3sum[binPr][cltype] + a2tmp2.filled(0.0)
-          da3num[binPr][cltype] = da3num[binPr][cltype] + ma.masked_where(a2tmp2.mask, a2oneint).filled(0)
+          da3sum[binPr][cltype] = da3sum[binPr][cltype] + a2tmp.filled(0.0)
+          da3num[binPr][cltype] = da3num[binPr][cltype] + ma.masked_where(a2tmp.mask, a2oneint).filled(0)
   
     # Save Monthly output
-    baseDir = "/tank/utsumi/PMM/WNP.261x265"
-    oDir    = baseDir + "/CL.Pr.%s"%(dattype)
+    #baseDir = "/tank/utsumi/PMM/WNP.261x265"
+    baseDir = "/home/utsumi/mnt/well.share/PMM/WNP.261x265"
+    oDir    = baseDir + "/ByRA.CL.Pr.%s"%(dattype)
     util.mk_dir(oDir)
   
     # Bin file

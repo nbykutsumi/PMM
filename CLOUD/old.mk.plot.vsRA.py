@@ -10,8 +10,8 @@ import sys
 iYM = [2014,4]
 eYM = [2014,11]
 lYM = util.ret_lYM(iYM, eYM)
-ldattype = ["RA","KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
-#ldattype = ["RA","GSMaP.IR"]
+#ldattype = ["KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
+ldattype = ["GSMaP","GSMaP.IR","GSMaP.MW","IMERG"]
 
 cl    = CLOUDTYPE.CloudWNP()
 ny,nx = cl.ny, cl.nx   #261, 265
@@ -70,8 +70,9 @@ def aveCLnum(iYM, eYM, icl):
 
 
 def loadSum(Year,Mon,binPr):
-  baseDir = "/tank/utsumi/PMM/WNP.261x265"
-  srcDir    = baseDir + "/CL.Pr.%s"%(dattype)
+  #baseDir = "/tank/utsumi/PMM/WNP.261x265"
+  baseDir = "/home/utsumi/mnt/well.share/PMM/WNP.261x265"
+  srcDir    = baseDir + "/ByRA.CL.Pr.%s"%(dattype)
   iPath     = srcDir + "/sum.P%05.1f.%04d.%02d.%dx%dx%d"%(binPr, Year,Mon, ncltype,ny,nx)
   if binPr == 0.0:
     a3out = zeros([ncltype,ny,nx],float32)
@@ -81,8 +82,9 @@ def loadSum(Year,Mon,binPr):
   return ma.masked_where(a3dommask==-9999., a3out)
 
 def loadNum(Year,Mon,binPr):
-  baseDir = "/tank/utsumi/PMM/WNP.261x265"
-  srcDir    = baseDir + "/CL.Pr.%s"%(dattype)
+  #baseDir = "/tank/utsumi/PMM/WNP.261x265"
+  baseDir = "/home/utsumi/mnt/well.share/PMM/WNP.261x265"
+  srcDir    = baseDir + "/ByRA.CL.Pr.%s"%(dattype)
   iPath     = srcDir + "/num.P%05.1f.%04d.%02d.%dx%dx%d"%(binPr, Year,Mon, ncltype,ny,nx)
   if binPr == 0.0:
     a3out = zeros([ncltype,ny,nx],int32)
@@ -106,29 +108,13 @@ def accDat(iYM, eYM, binPr, sumnum="num"):
     accDat = accDat + dfunc[sumnum](Year,Mon,binPr)
   return accDat
 
-def ret_pdf(lBin,lNum):
+def ret_rat(lBin,lNum,lSum):
   llBin  = [[0,lBin[0]]] + zip(lBin[:-1],lBin[1:])
   lMid   = [mean(Bin) for Bin in llBin]
-  lWidth = array([Bin[1]-Bin[0] for Bin in llBin], float32)
-  lpdf   = array(lNum)/sum(lNum).astype(float32)/lWidth
-  return lMid, lpdf
+  lRat   = ma.masked_where(lNum==0.0, lSum)/lNum
+  return lMid, lRat
 
-def ret_Cnt(lBin,lNum, lSum, icltype):
-  if icltype != 99:
-    a2CLnum = aveCLnum(iYM,eYM,icltype)
-  elif icltype ==99:
-    a2CLnum = array([aveCLnum(iYM,eYM,icltype) for icltype in lcltype]).sum(axis=0)
-
-  llBin  = [[0,lBin[0]]] + zip(lBin[:-1],lBin[1:])
-  lMid   = [mean(Bin) for Bin in llBin]
-  lWidth = array([Bin[1]-Bin[0] for Bin in llBin], float32)
-  lpdf   = array(lNum)/sum(lNum).astype(float32)/lWidth
-
-  lMean  = (ma.masked_where(lNum==0.0, lSum)/lNum).filled(0.0)
-  lCnt   = lpdf *  a2CLnum.mean() * lMean
-  return lMid, lCnt 
-
-def mk_Fig(lMid, dY, icltype, figtype="pdf"):
+def mk_Fig(lMid, dY, icltype):
   figplot = plt.figure(figsize=(4.1, 3.2))
   axplot  = figplot.add_axes([0.14, 0.10, 0.82,0.8])
 
@@ -143,7 +129,7 @@ def mk_Fig(lMid, dY, icltype, figtype="pdf"):
 #  linewidth = [0 if dattype in ["GSMaP.IR","GSMaP.MW"] else 4
 #                        for dattype in ldattype]
 
-  linewidth = [2 if dattype in ["GSMaP.IR","GSMaP.MW"] else 2
+  linewidth = [4 if dattype in ["GSMaP.IR","GSMaP.MW"] else 4
                         for dattype in ldattype]
 
 
@@ -155,61 +141,12 @@ def mk_Fig(lMid, dY, icltype, figtype="pdf"):
               ,linestyle=linestyle[idattype])
          for idattype, dattype in enumerate(ldattype)]
 
-
-
   # Axis
-  if figtype=="pdf":
-    if   icltype ==1: 
-      axplot.set_ylim(0.0, 0.3)
-      axplot.set_xlim(0.0, 20.0)
-    elif icltype ==7:
-      axplot.set_ylim(0.0, 0.05)
-      axplot.set_xlim(0.0, 20.0)
+  axplot.set_ylim(0.0, 50.0)
+  axplot.set_xlim(0.0, 50.0)
 
-    else:
-      axplot.set_ylim(0.0, 0.05)
-      axplot.set_xlim(0.0, 6.0)
-
-  elif figtype=="cnt":
-    if   icltype ==1: 
-      axplot.set_xlim(0.0, 20.0)
-    elif icltype ==7:
-      axplot.set_xlim(0.0, 20.0)
-    else:
-      axplot.set_xlim(0.0, 6.0)
-
-  elif figtype =="Weak.pdf":
-    axplot.set_xlim(0.0, 3.0)
-
-  elif figtype =="Heavy.pdf":
-    if icltype==1:
-      axplot.set_ylim(0.0, 0.05)
-    else:
-      axplot.set_ylim(0.0, 1e-3)
-
-    axplot.set_xlim(10, lbinPr[-2])
-
-  elif figtype =="log.Weak.pdf":
-    plt.yscale("log")
-    if icltype==1:
-      axplot.set_ylim(1.e-3, 1.e+0)
-      axplot.set_xlim(0.0, 3.0)
-    else:
-      axplot.set_ylim(1.e-6, 1.e+1)
-      axplot.set_xlim(0.0, 3.0)
-
-  elif figtype =="log.Heavy.pdf":
-    plt.yscale("log")
-    if icltype==1:
-      axplot.set_ylim(1.e-5, 1.e-1)
-    else:
-      axplot.set_ylim(1.e-8, 1.e-3)
-    axplot.set_xlim(10.0, lbinPr[-2])
-     
-
-  else:
-    print "check figtype", figtype
-    sys.exit()
+  # 1-to-1 line
+  axplot.plot([0,200],[0,200], "-", color="k")
 
   # Axis-tick labels
   for tick in axplot.xaxis.get_major_ticks():
@@ -218,8 +155,8 @@ def mk_Fig(lMid, dY, icltype, figtype="pdf"):
     tick.label.set_fontsize(17)
 
   # Add title
-  stitle = "%s %04d/%02d-%04d/%02d CL=%s"\
-             %(figtype, iYM[0],iYM[1],eYM[0],eYM[1],dclName[icltype])
+  stitle = "%04d/%02d-%04d/%02d CL=%s"\
+             %(iYM[0],iYM[1],eYM[0],eYM[1],dclName[icltype])
 
   if dommask !=None:
     stitle = stitle + " %sdom"%(dommask)
@@ -230,15 +167,15 @@ def mk_Fig(lMid, dY, icltype, figtype="pdf"):
   #sDir  = "/tank/utsumi/PMM/WNP.261x265/pict"
   sDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict"
   if dommask==None:
-    sPath = sDir + "/%s.%s.png"%(figtype, dclShortName[icltype]) 
+    sPath = sDir + "/rat.vsRA.%s.png"%(dclShortName[icltype]) 
   else:
-    sPath = sDir + "/%sdom.%s.%s.png"%(dommask, figtype, dclShortName[icltype]) 
+    sPath = sDir + "/%sdom.rat.vsRA.%s.png"%(dommask, dclShortName[icltype]) 
   plt.savefig(sPath)
   print sPath
 
   plt.close()
   # Legend file
-  legPath = sDir + "/legend.pdfs.png"
+  legPath = sDir + "/legend.rat.vsRA.png"
   figleg  = plt.figure(figsize=(2,3))
   lines = [line[0] for line in lines]  # 2D list to 1D list
   figleg.legend(lines, ldattype)
@@ -257,8 +194,7 @@ dSum = {(dattype,icltype):[]
        for icltype in lcltype + [99]
        }
 
-dPDF = {}
-dCnt = {}
+dRat = {}
 
 for dattype in ldattype:
   print dattype
@@ -282,23 +218,9 @@ for dattype in ldattype:
 
   
   for icltype in lcltype + [99]:
-    lMid, dPDF[dattype,icltype] = ret_pdf(lbinPr, dNum[dattype,icltype])
-    lMid, dCnt[dattype,icltype] = ret_Cnt(lbinPr, dNum[dattype,icltype], dSum[dattype,icltype], icltype)
-
-#-- test ---
-lw =  r_[lbinPr[0], array(lbinPr[1:])-array(lbinPr[:-1])]
-dfreq = {}
-for dattype in ldattype:
-  for icltype in lcltype:
-    dfreq[dattype,icltype] = ma.masked_invalid(lw* dPDF[dattype,icltype])
+    lMid, dRat[dattype,icltype] = ret_rat(lbinPr, dNum[dattype,icltype], dSum[dattype,icltype])
 
 #-----------
 # Figure 
 for icltype in lcltype + [99]:
-  mk_Fig(lMid, dPDF, icltype, figtype="pdf")
-  #mk_Fig(lMid, dPDF, icltype, figtype="Weak.pdf")
-  #mk_Fig(lMid, dPDF, icltype, figtype="Heavy.pdf")
-  mk_Fig(lMid, dPDF, icltype, figtype="log.Weak.pdf")
-  mk_Fig(lMid, dPDF, icltype, figtype="log.Heavy.pdf")
-  mk_Fig(lMid, dCnt, icltype, figtype="cnt")
-  #mk_Fig(lMid, dCnt, icltype, figtype="cnt"
+  mk_Fig(lMid, dRat, icltype)
