@@ -1,30 +1,40 @@
 from numpy import *
+import myfunc.IO.CLOUDTYPE as CLOUDTYPE
 import Image
 
-
-baseDir = "/home/utsumi/mnt/well.share"
-figDir  = baseDir + "/PMM/WNP.261x265/pict"
+#clVer = "JMA1"
+#clVer = "MyWNP1"
+clVer = "MyWNP2"
 
 #ldattype = ["KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
 ldattype = ["KuPR","IMERG","IMERG.IR","IMERG.MW","GMI","GSMaP","GSMaP.IR","GSMaP.MW"]
 
-lcltype = range(0,7+1)
-#lcltype = [1]
-ncltype = len(lcltype)
-dclid   = {0:0, 1:1, 2:201, 3:202, 4:4, 5:3, 6:204, 7:200}
-dclName ={0:"Clear Sky",   1:"Cumulonimbus(Cb)",  2:"High Cloud",3:"Mid Cloud"
-         ,4:"Cumulus(Cu)", 5:"Stratocumulus(Sc)", 6:"Fog/St"    ,7:"Cloudy", 99:"All"}
+rootDir = "/home/utsumi/mnt/well.share"
+if clVer   == "JMA1":
+  cl         = CLOUDTYPE.CloudWNP()
+  ncltype = 8
+  lcltype = range(ncltype)
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.JMA"
+  ibaseDirCL = "/tank/utsumi/CLOUDTYPE/WNPAC"
 
-dclShortName={0:"no", 1:"Cb",  2:"hi",3:"md"
-             ,4:"Cu", 5:"Sc",  6:"St",7:"cw", 99:"All"}
+elif clVer[:5] == "MyWNP":
+  ver     = int(clVer[5:])
+  cl      = CLOUDTYPE.MyCloudWNP(ver=ver)
+  ncltype = cl.ncl
+  lcltype = cl.licl
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%d"%(ver)
+  ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP%d"%(ver)
 
+dclShortName = cl.dclShortName
+figDir       = ibaseDir + "/pict"
 
+#iy  = 125  # top
 iy  = 108  # top
 ey  = -1  # bottom
 ix  = 1   # left
-ex  = -108 # right
+ex  = -118 # right
 
-for icl in lcltype:
+for icl in lcltype + [99]:
 
   da2dat = {}
   for i,dattype in enumerate(ldattype):

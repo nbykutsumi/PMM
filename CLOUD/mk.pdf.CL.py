@@ -6,14 +6,37 @@ import myfunc.util as util
 import matplotlib.pyplot as plt
 import sys
 
+#clVer = "JMA1"
+#clVer = "MyWNP1"
+clVer = "MyWNP2"
 
 iYM = [2014,4]
-eYM = [2014,11]
+eYM = [2015,6]
 lYM = util.ret_lYM(iYM, eYM)
-ldattype = ["RA","KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
-#ldattype = ["RA","GSMaP.IR"]
+lYM = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
 
-cl    = CLOUDTYPE.CloudWNP()
+ldattype = ["RA","KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
+#ldattype = ["RA"]
+
+# 
+#rootDir = "/tank/utsumi"
+rootDir = "/home/utsumi/mnt/well.share"
+if clVer   == "JMA1":
+  cl         = CLOUDTYPE.CloudWNP()
+  ncltype = 8
+  lcltype = range(ncltype)
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.JMA"
+  ibaseDirCL = "/tank/utsumi/CLOUDTYPE/WNPAC"
+
+elif clVer[:5] == "MyWNP":
+  ver     = int(clVer[5:])
+  cl      = CLOUDTYPE.MyCloudWNP(ver=ver)
+  ncltype = cl.ncl
+  lcltype = cl.licl
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%d"%(ver)
+  ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP%d"%(ver)
+
+
 ny,nx = cl.ny, cl.nx   #261, 265
 Lat   = cl.Lat
 Lon   = cl.Lon
@@ -27,16 +50,14 @@ miss  = -9999.
 
 
 #lbinPr  = [0.0, 0.1, 0.3, 0.5, 0.7] + range(1,9+1) + range(10,48+1,2) + [999]
+#lbinPr  = [0.1, 0.3, 0.5, 0.7] + range(1,9+1) + range(10,48+1,2) + [999]
 lbinPr  = [0.1, 0.3, 0.5, 0.7] + range(1,9+1) + range(10,48+1,2) + [999]
-ncltype = 8
-lcltype = range(8)
-dclName ={0:"Clear Sky",   1:"Cumulonimbus(Cb)",  2:"High Cloud",3:"Mid Cloud"
-         ,4:"Cumulus(Cu)", 5:"Stratocumulus(Sc)", 6:"Fog/St"    ,7:"Cloudy", 99:"All"}
 
-dclShortName={0:"no", 1:"Cb",  2:"hi",3:"md"
-             ,4:"Cu", 5:"Sc",  6:"St",7:"cw", 99:"All"}
+dclName = cl.dclName
+dclShortName = cl.dclShortName
 
 llbinPr = [[0, lbinPr[0]]] + zip(lbinPr[0:-1], lbinPr[1:])
+
 #----------------------
 iX      = bisect_left (Lon,BBox[0][1])
 eX      = bisect_right(Lon,BBox[1][1])
@@ -57,7 +78,8 @@ else:
 #----------------------
 def aveCLnum(iYM, eYM, icl):
   clName = dclShortName[icl]
-  sDir   = "/tank/utsumi/CLOUDTYPE/WNPAC/num"
+  #sDir   = "/tank/utsumi/CLOUDTYPE/WNPAC/num"
+  sDir   = ibaseDirCL + "/num"
   lYM    = util.ret_lYM(iYM, eYM)
   a2out  = zeros([ny,nx], int32) 
   for YM in lYM:
@@ -70,8 +92,7 @@ def aveCLnum(iYM, eYM, icl):
 
 
 def loadSum(Year,Mon,binPr):
-  baseDir = "/tank/utsumi/PMM/WNP.261x265"
-  srcDir    = baseDir + "/CL.Pr.%s"%(dattype)
+  srcDir    = ibaseDir + "/CL.Pr.%s"%(dattype)
   iPath     = srcDir + "/sum.P%05.1f.%04d.%02d.%dx%dx%d"%(binPr, Year,Mon, ncltype,ny,nx)
   if binPr == 0.0:
     a3out = zeros([ncltype,ny,nx],float32)
@@ -81,8 +102,7 @@ def loadSum(Year,Mon,binPr):
   return ma.masked_where(a3dommask==-9999., a3out)
 
 def loadNum(Year,Mon,binPr):
-  baseDir = "/tank/utsumi/PMM/WNP.261x265"
-  srcDir    = baseDir + "/CL.Pr.%s"%(dattype)
+  srcDir    = ibaseDir + "/CL.Pr.%s"%(dattype)
   iPath     = srcDir + "/num.P%05.1f.%04d.%02d.%dx%dx%d"%(binPr, Year,Mon, ncltype,ny,nx)
   if binPr == 0.0:
     a3out = zeros([ncltype,ny,nx],int32)
@@ -91,7 +111,7 @@ def loadNum(Year,Mon,binPr):
 
   return ma.masked_where(a3dommask==-9999., a3out)
 
-def accDat(iYM, eYM, binPr, sumnum="num"):
+def accDat(lYM, binPr, sumnum="num"):
   dfunc = {"sum":loadSum
           ,"num":loadNum
           }
@@ -101,7 +121,6 @@ def accDat(iYM, eYM, binPr, sumnum="num"):
 
   accDat = zeros([ncltype, ny, nx], ddtype[sumnum])
 
-  lYM = util.ret_lYM(iYM,eYM)
   for (Year,Mon) in lYM:
     accDat = accDat + dfunc[sumnum](Year,Mon,binPr)
   return accDat
@@ -146,67 +165,149 @@ def mk_Fig(lMid, dY, icltype, figtype="pdf"):
   linewidth = [2 if dattype in ["GSMaP.IR","GSMaP.MW"] else 2
                         for dattype in ldattype]
 
-
-
-
   # Plot
   lines =[axplot.plot(lMid, dY[dattype,icltype]
               ,linewidth=linewidth[idattype], c=colors[idattype]
               ,linestyle=linestyle[idattype])
          for idattype, dattype in enumerate(ldattype)]
 
-
-
   # Axis
-  if figtype=="pdf":
-    if   icltype ==1: 
+  if clVer == "JMA1":
+    if figtype=="pdf":
+      if   icltype ==1: 
+        axplot.set_ylim(0.0, 0.3)
+        axplot.set_xlim(0.0, 20.0)
+      elif icltype ==7:
+        axplot.set_ylim(0.0, 0.05)
+        axplot.set_xlim(0.0, 20.0)
+  
+      else:
+        axplot.set_ylim(0.0, 0.05)
+        axplot.set_xlim(0.0, 6.0)
+  
+    elif figtype=="cnt":
+      if   icltype ==1: 
+        axplot.set_xlim(0.0, 20.0)
+      elif icltype ==7:
+        axplot.set_xlim(0.0, 20.0)
+      else:
+        axplot.set_xlim(0.0, 6.0)
+  
+    elif figtype =="Weak.pdf":
+      axplot.set_xlim(0.0, 3.0)
+  
+    elif figtype =="Heavy.pdf":
+      if icltype==1:
+        axplot.set_ylim(0.0, 0.05)
+      else:
+        axplot.set_ylim(0.0, 1e-3)
+  
+      axplot.set_xlim(10, lbinPr[-2])
+  
+    elif figtype =="log.Weak.pdf":
+      plt.yscale("log")
+      if icltype==1:
+        axplot.set_ylim(1.e-3, 1.e+0)
+        axplot.set_xlim(0.0, 3.0)
+      else:
+        axplot.set_ylim(1.e-6, 1.e+1)
+        axplot.set_xlim(0.0, 3.0)
+  
+    elif figtype =="log.Heavy.pdf":
+      plt.yscale("log")
+      if icltype==1:
+        axplot.set_ylim(1.e-5, 1.e-1)
+      else:
+        axplot.set_ylim(1.e-8, 1.e-3)
+      axplot.set_xlim(10.0, lbinPr[-2])
+
+  elif clVer == "MyWNP1":
+    if figtype=="pdf":
       axplot.set_ylim(0.0, 0.3)
       axplot.set_xlim(0.0, 20.0)
-    elif icltype ==7:
-      axplot.set_ylim(0.0, 0.05)
-      axplot.set_xlim(0.0, 20.0)
-
-    else:
+ 
+    elif figtype == "pdf.focus":
       axplot.set_ylim(0.0, 0.05)
       axplot.set_xlim(0.0, 6.0)
+ 
+    elif figtype=="cnt":
+        axplot.set_xlim(0.0, 20.0)
 
-  elif figtype=="cnt":
-    if   icltype ==1: 
-      axplot.set_xlim(0.0, 20.0)
-    elif icltype ==7:
-      axplot.set_xlim(0.0, 20.0)
-    else:
-      axplot.set_xlim(0.0, 6.0)
-
-  elif figtype =="Weak.pdf":
-    axplot.set_xlim(0.0, 3.0)
-
-  elif figtype =="Heavy.pdf":
-    if icltype==1:
-      axplot.set_ylim(0.0, 0.05)
-    else:
-      axplot.set_ylim(0.0, 1e-3)
-
-    axplot.set_xlim(10, lbinPr[-2])
-
-  elif figtype =="log.Weak.pdf":
-    plt.yscale("log")
-    if icltype==1:
-      axplot.set_ylim(1.e-3, 1.e+0)
+    elif figtype=="cnt.focus":
+        axplot.set_xlim(0.0, 6.0)
+  
+    elif figtype =="Weak.pdf":
       axplot.set_xlim(0.0, 3.0)
-    else:
-      axplot.set_ylim(1.e-6, 1.e+1)
-      axplot.set_xlim(0.0, 3.0)
-
-  elif figtype =="log.Heavy.pdf":
-    plt.yscale("log")
-    if icltype==1:
-      axplot.set_ylim(1.e-5, 1.e-1)
-    else:
-      axplot.set_ylim(1.e-8, 1.e-3)
-    axplot.set_xlim(10.0, lbinPr[-2])
+  
+    elif figtype =="Heavy.pdf":
+      if icltype in [1]:
+        axplot.set_ylim(0.0, 0.05)
+      else:
+        axplot.set_ylim(0.0, 1e-3)
+  
+      axplot.set_xlim(10, lbinPr[-2])
+  
+    elif figtype =="log.Weak.pdf":
+      plt.yscale("log")
+      if icltype in [1]:
+        axplot.set_ylim(1.e-3, 1.e+0)
+        axplot.set_xlim(0.0, 3.0)
+      else:
+        axplot.set_ylim(1.e-6, 1.e+1)
+        axplot.set_xlim(0.0, 3.0)
+  
+    elif figtype =="log.Heavy.pdf":
+      plt.yscale("log")
+      if icltype in [1]:
+        axplot.set_ylim(1.e-5, 1.e-1)
+      else:
+        axplot.set_ylim(1.e-8, 1.e-3)
+      axplot.set_xlim(10.0, lbinPr[-2])
      
 
+  elif clVer == "MyWNP2":
+    if figtype=="pdf":
+      axplot.set_ylim(0.0, 0.3)
+      axplot.set_xlim(0.0, 20.0)
+ 
+    elif figtype == "pdf.focus":
+      axplot.set_ylim(0.0, 0.05)
+      axplot.set_xlim(0.0, 6.0)
+ 
+    elif figtype=="cnt":
+        axplot.set_xlim(0.0, 20.0)
+
+    elif figtype=="cnt.focus":
+        axplot.set_xlim(0.0, 6.0)
+  
+    elif figtype =="Weak.pdf":
+      axplot.set_xlim(0.0, 3.0)
+  
+    elif figtype =="Heavy.pdf":
+      if icltype in [1,2]:
+        axplot.set_ylim(0.0, 0.05)
+      else:
+        axplot.set_ylim(0.0, 1e-3)
+  
+      axplot.set_xlim(10, lbinPr[-2])
+  
+    elif figtype =="log.Weak.pdf":
+      plt.yscale("log")
+      if icltype in [1,2]:
+        axplot.set_ylim(1.e-3, 1.e+0)
+        axplot.set_xlim(0.0, 3.0)
+      else:
+        axplot.set_ylim(1.e-6, 1.e+1)
+        axplot.set_xlim(0.0, 3.0)
+  
+    elif figtype =="log.Heavy.pdf":
+      plt.yscale("log")
+      if icltype in [1,2]:
+        axplot.set_ylim(1.e-5, 1.e-1)
+      else:
+        axplot.set_ylim(1.e-8, 1.e-3)
+      axplot.set_xlim(10.0, lbinPr[-2])
+     
   else:
     print "check figtype", figtype
     sys.exit()
@@ -228,7 +329,10 @@ def mk_Fig(lMid, dY, icltype, figtype="pdf"):
 
   # Save figure
   #sDir  = "/tank/utsumi/PMM/WNP.261x265/pict"
-  sDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict"
+  #sDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict"
+  #sDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict.MyCL"
+  sDir  = ibaseDir + "/pict"
+  util.mk_dir(sDir)
   if dommask==None:
     sPath = sDir + "/%s.%s.png"%(figtype, dclShortName[icltype]) 
   else:
@@ -263,11 +367,11 @@ dCnt = {}
 for dattype in ldattype:
   print dattype
   for (binmin, binmax) in llbinPr:
-    a3num0 = accDat(iYM, eYM, binmin, sumnum="num")
-    a3num1 = accDat(iYM, eYM, binmax, sumnum="num")
+    a3num0 = accDat(lYM, binmin, sumnum="num")
+    a3num1 = accDat(lYM, binmax, sumnum="num")
 
-    a3sum0 = accDat(iYM, eYM, binmin, sumnum="sum")
-    a3sum1 = accDat(iYM, eYM, binmax, sumnum="sum")
+    a3sum0 = accDat(lYM, binmin, sumnum="sum")
+    a3sum1 = accDat(lYM, binmax, sumnum="sum")
 
     a3num  = a3num1 - a3num0
     a3sum  = a3sum1 - a3sum0
@@ -285,20 +389,15 @@ for dattype in ldattype:
     lMid, dPDF[dattype,icltype] = ret_pdf(lbinPr, dNum[dattype,icltype])
     lMid, dCnt[dattype,icltype] = ret_Cnt(lbinPr, dNum[dattype,icltype], dSum[dattype,icltype], icltype)
 
-#-- test ---
-lw =  r_[lbinPr[0], array(lbinPr[1:])-array(lbinPr[:-1])]
-dfreq = {}
-for dattype in ldattype:
-  for icltype in lcltype:
-    dfreq[dattype,icltype] = ma.masked_invalid(lw* dPDF[dattype,icltype])
-
 #-----------
 # Figure 
 for icltype in lcltype + [99]:
   mk_Fig(lMid, dPDF, icltype, figtype="pdf")
+  mk_Fig(lMid, dPDF, icltype, figtype="pdf.focus")
   #mk_Fig(lMid, dPDF, icltype, figtype="Weak.pdf")
   #mk_Fig(lMid, dPDF, icltype, figtype="Heavy.pdf")
   mk_Fig(lMid, dPDF, icltype, figtype="log.Weak.pdf")
   mk_Fig(lMid, dPDF, icltype, figtype="log.Heavy.pdf")
   mk_Fig(lMid, dCnt, icltype, figtype="cnt")
+  mk_Fig(lMid, dCnt, icltype, figtype="cnt.focus")
   #mk_Fig(lMid, dCnt, icltype, figtype="cnt"

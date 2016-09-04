@@ -7,25 +7,22 @@ import myfunc.IO.RadarAMeDAS as RadarAMeDAS
 import myfunc.util as util
 import calendar
 import sys
-
 from mpl_toolkits.basemap import Basemap
 
+#clVer = "JMA1"
+#clVer = "MyWNP1"
+clVer = "MyWNP2"
 
 iYM    = [2014,4]
 #eYM    = [2014,4]
-eYM    = [2014,11]
+eYM    = [2015,6]
 lYM    = util.ret_lYM(iYM, eYM)
-#ldattype = ["RA","KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG"]
-#ldattype = ["GSMaP","GSMaP.IR","GSMaP.MW","IMERG"]
-ldattype = ["IMERG.IR","IMERG.MW"]
+lYM = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
 
-#dattype= "RA"
-#dattype= "GSMaP"
-#dattype= "GSMaP.MW"
-#dattype= "GSMaP.IR"
-#dattype= "IMERG"
-#dattype= "KuPR"
-#dattype= "GMI"
+#ldattype = ["RA","KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
+#ldattype = ["KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
+#ldattype = ["GSMaP","GSMaP.IR","GSMaP.MW","IMERG"]
+ldattype = ["IMERG.IR","IMERG.MW","KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG"]
 
 BBox    = [[-0.1, 113.875],[52.1, 180.125]]
 ny,nx   = 261, 265
@@ -33,19 +30,32 @@ miss    = -9999.
 
 vmin    = 0.1
 
-lcltype = range(0,7+1)
+#rootDir = "/tank/utsumi"
+rootDir = "/home/utsumi/mnt/well.share"
+if clVer   == "JMA1":
+  cl         = CLOUDTYPE.CloudWNP()
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.JMA"
+  ibaseDirCL = "/tank/utsumi/CLOUDTYPE/WNPAC"
+
+elif clVer == "MyWNP1":
+  cl         = CLOUDTYPE.MyCloudWNP(ver=1)
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My1"
+  ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP1"
+
+elif clVer == "MyWNP2":
+  cl         = CLOUDTYPE.MyCloudWNP(ver=2)
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My2"
+  ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP2"
+
+
+
+lcltype = cl.licl
 ncltype = len(lcltype)
-dclid   = {0:0, 1:1, 2:201, 3:202, 4:4, 5:3, 6:204, 7:200}
-dclName ={0:"Clear Sky",   1:"Cumulonimbus(Cb)",  2:"High Cloud",3:"Mid Cloud"
-         ,4:"Cumulus(Cu)", 5:"Stratocumulus(Sc)", 6:"Fog/St"    ,7:"Cloudy", 99:"All"}
-
-dclShortName={0:"no", 1:"Cb",  2:"hi",3:"md"
-             ,4:"Cu", 5:"Sc",  6:"St",7:"cw", 99:"All"}
-
-# Cloud Type
-cl    = CLOUDTYPE.CloudWNP()
-LatUp = cl.Lat
-LonUp = cl.Lon
+dclName = cl.dclName
+dclShortName = cl.dclShortName
+dclid   = cl.dclid
+LatUp   = cl.Lat
+LonUp   = cl.Lon
 
 # RadarAMeDAS
 ra    = RadarAMeDAS.RadarAMeDAS(prj="ra_0.01")
@@ -202,6 +212,7 @@ for dattype in ldattype:
  
     dDTime = ret_dDTime(dattype)
     lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
+    #lDTime = lDTime[:5]   # test
   
     # No Data list for Cloud
     f = open(cl.baseDir + "/%04d%02d/list.nodata.txt"%(Year,Mon), "r")
@@ -221,7 +232,11 @@ for dattype in ldattype:
       else:
         DTimeCL = DTime
       try:
-        a2cl = cl.loadData(DTimeCL, DType="clc")
+        if   clVer  == "JMA1":
+          a2cl = cl.loadData(DTimeCL, DType="clc")
+        elif clVer  in ["MyWNP1","MyWNP2"]:
+          a2cl = cl.loadData(DTimeCL)
+
       except IOError:
         Year = DTimeCL.year
         Mon  = DTimeCL.month
@@ -262,7 +277,8 @@ for dattype in ldattype:
 
     #-- Save --------- 
     for icl in lcltype:
-      baseDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265"
+      #baseDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265"
+      baseDir  = ibaseDir
       sDir     = baseDir + "/VsRA.CL.%s"%(dattype)
       prPath   = sDir + "/%s.%04d.%02d.%s.bn"%(dattype,Year,Mon,dclShortName[icl])
       raPath   = sDir + "/RA.%04d.%02d.%s.bn"%(Year,Mon,dclShortName[icl])

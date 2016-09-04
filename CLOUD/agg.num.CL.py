@@ -6,23 +6,44 @@ import calendar
 import sys
 
 iYM   = [2014,4]
-eYM   = [2014,11]
+eYM   = [2015,7]
 lYM   = util.ret_lYM(iYM, eYM)
+#lYM    = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
 
-cl    = CLOUDTYPE.CloudWNP()
+#clVer = "JMA1"
+#clVer = "MyWNP1"
+clVer = "MyWNP2"
+
+#rootDir = "/tank/utsumi"
+rootDir = "/home/utsumi/mnt/well.share"
+if clVer   == "JMA1":
+  cl         = CLOUDTYPE.CloudWNP()
+  ncltype = 8
+  lcltype = range(ncltype)
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.JMA"
+  ibaseDirCL = "/tank/utsumi/CLOUDTYPE/WNPAC"
+
+elif clVer[:5] == "MyWNP":
+  ver     = int(clVer[5:])
+  cl      = CLOUDTYPE.MyCloudWNP(ver=ver)
+  ncltype = cl.ncl
+  lcltype = cl.licl
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%d"%(ver)
+  ibaseDirCL = "/home/utsumi/mnt/well.share/CLOUDTYPE/MyWNP%d"%(ver)
+
 Lat   = cl.Lat
 Lon   = cl.Lon
 ny    = cl.ny
 nx    = cl.nx
 
-lcltype = range(0,7+1)
-dclid   = {0:0, 1:1, 2:201, 3:202, 4:4, 5:3, 6:204, 7:200}
+dclName = cl.dclName
+dclShortName = cl.dclShortName
 
-dclName ={0:"Clear Sky",   1:"Cumulonimbus(Cb)",  2:"High Cloud",3:"Mid Cloud"
-         ,4:"Cumulus(Cu)", 5:"Stratocumulus(Sc)", 6:"Fog/St"    ,7:"Cloudy"}
-
-dclShortName={0:"no", 1:"Cb",  2:"hi",3:"md"
-             ,4:"Cu", 5:"Sc",  6:"St",7:"cw"}
+#dclName ={0:"Clear Sky",   1:"Cumulonimbus(Cb)",  2:"High Cloud",3:"Mid Cloud"
+#         ,4:"Cumulus(Cu)", 5:"Stratocumulus(Sc)", 6:"Fog/St"    ,7:"Cloudy"}
+#
+#dclShortName={0:"no", 1:"Cb",  2:"hi",3:"md"
+#             ,4:"Cu", 5:"Sc",  6:"St",7:"cw"}
 
 dommask  = "RA"
 #dommask  = None
@@ -55,7 +76,8 @@ da2num = {}
 for icl in lcltype:
   da2num[icl]  = zeros([ny,nx],int32)
   for (Year,Mon) in lYM:
-    sDir  = "/tank/utsumi/CLOUDTYPE/WNPAC/num"
+    print Year,Mon
+    sDir  = ibaseDirCL + "/num"
     sPath  = sDir + "/num.%04d%02d.%s.%dx%d"%(Year,Mon,dclShortName[icl],ny,nx)
     a2tmp  = fromfile(sPath, int32).reshape(ny,nx)
     da2num[icl] = da2num[icl] + a2tmp

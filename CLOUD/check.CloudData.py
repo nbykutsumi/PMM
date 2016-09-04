@@ -2,12 +2,15 @@ import os
 from datetime import datetime, timedelta
 import myfunc.util as util
 import calendar
+import myfunc.IO.CLOUDTYPE as CLOUDTYPE
 
 #baseDir = "/tank/utsumi/CLOUDTYPE/WNPAC/201404/20140408/"
 baseDir = "/tank/utsumi/CLOUDTYPE/WNPAC"
+#obaseDir= "/home/utsumi/mnt/well.share/CLOUDTYPE/MyWNP2"
+obaseDir = baseDir
 
 iYM    = [2014,4]
-eYM    = [2015,12]
+eYM    = [2015,7]
 lYM    = util.ret_lYM(iYM,eYM)
 
 for YM in lYM:
@@ -32,9 +35,10 @@ for YM in lYM:
       print Year,Mon,Day,Hour
  
   # Save monthly file
-  oDir = baseDir + "/%04d%02d"%(Year,Mon)
+  oDir = obaseDir + "/%04d%02d"%(Year,Mon)
   oPath= oDir + "/list.nodata.txt"
-
+  util.mk_dir(oDir)
+  
   sout = "\n".join(lout).strip()
   f=open(oPath, "w"); f.write(sout); f.close()
   print oPath  

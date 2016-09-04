@@ -7,14 +7,23 @@ import calendar
 import sys
 
 from mpl_toolkits.basemap import Basemap
- 
+
+#clVer  = "MyWNP1"
+clVer  = "MyWNP2"
+#clVer  = "JMA1"
 
 iYM    = [2014,4]
-eYM    = [2015,6]
+eYM    = [2014,4]
 #eYM    = [2014,12]
 lYM    = util.ret_lYM(iYM, eYM)
+lYM    = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
+print lYM 
+
 #ldattype = ["RA","KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
-ldattype = ["GSMaP.MW"]
+#ldattype = ["IMERG.IR"]
+#ldattype = ["GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
+#ldattype = ["RA","KuPR","GMI","GSMaP","GSMaP.IR"]
+ldattype = ["RA"]
 
 #dattype= "RA"
 #dattype= "GSMaP"
@@ -34,12 +43,24 @@ lbinPr  = [0.0, 0.1, 0.3, 0.5, 0.7] + range(1,9+1,1) + range(10,50+1,2) +[999]  
 #lbinPr  = [3,5,7,9]  # Maxs of bin range
 #lbinPr  = [22,24,26,28,32,34,36,38,42,44,46,48,50]  # Maxs of bin range
 nbinPr  = len(lbinPr)
-lcltype = range(0,7+1)
+
+rootDir = "/home/utsumi/mnt/well.share"
+if   clVer == "JMA1":
+  cl      = CLOUDTYPE.CloudWNP()
+  lcltype = range(0,7+1)
+  dclid   = {0:0, 1:1, 2:201, 3:202, 4:4, 5:3, 6:204, 7:200}
+
+elif clVer[:5] == "MyWNP":
+  ver     = int(clVer[5:])
+  cl      = CLOUDTYPE.MyCloudWNP(ver=ver)
+  lcltype = cl.licl
+  dclid   = cl.dclid
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%d"%(ver)
+  ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP%d"%(ver)
+
 ncltype = len(lcltype)
-dclid   = {0:0, 1:1, 2:201, 3:202, 4:4, 5:3, 6:204, 7:200}
 
 # Cloud Type
-cl    = CLOUDTYPE.CloudWNP()
 LatUp = cl.Lat
 LonUp = cl.Lon
 
@@ -195,6 +216,7 @@ for dattype in ldattype:
   
     dDTime = ret_dDTime(dattype)
     lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
+    #lDTime = lDTime[:5]   # test
   
     # No Data list for Cloud
     f = open(cl.baseDir + "/%04d%02d/list.nodata.txt"%(Year,Mon), "r")
@@ -223,7 +245,11 @@ for dattype in ldattype:
       else:
         DTimeCL = DTime
       try:
-        a2cl = cl.loadData(DTimeCL, DType="clc")
+        if clVer   == "JMA1":
+          a2cl = cl.loadData(DTimeCL, DType="clc")
+        elif clVer[:5] == "MyWNP":
+          a2cl = cl.loadData(DTimeCL)
+
       except IOError:
         Year = DTimeCL.year
         Mon  = DTimeCL.month
@@ -248,12 +274,17 @@ for dattype in ldattype:
           clid   = dclid[cltype]
           a2tmp2 = ma.masked_where(a2cl !=clid, a2tmp1)
     
-    
           da3sum[binPr][cltype] = da3sum[binPr][cltype] + a2tmp2.filled(0.0)
           da3num[binPr][cltype] = da3num[binPr][cltype] + ma.masked_where(a2tmp2.mask, a2oneint).filled(0)
   
     # Save Monthly output
-    baseDir = "/tank/utsumi/PMM/WNP.261x265"
+    #rootDir = "/tank/utsumi"
+    rootDir = "/home/utsumi/mnt/well.share"
+    if   clVer == "JMA1":
+      baseDir = rootDir + "/PMM/WNP.261x265/CL.JMA"
+    elif clVer[:5] == "MyWNP":
+      baseDir = rootDir + "/PMM/WNP.261x265/CL.My%d"%(ver)
+
     oDir    = baseDir + "/CL.Pr.%s"%(dattype)
     util.mk_dir(oDir)
   
@@ -269,3 +300,4 @@ for dattype in ldattype:
       da3sum[binPr].tofile(sumPath)
       da3num[binPr].tofile(numPath)  
       print sumPath
+

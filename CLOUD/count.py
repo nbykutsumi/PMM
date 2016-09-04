@@ -3,23 +3,38 @@ from bisect import bisect, bisect_left, bisect_right
 import myfunc.util as util
 import myfunc.IO.CLOUDTYPE as CLOUDTYPE
 
+clVer = "JMA1"
+clVer = "MyWNP"
+
 iYM   = [2014,4]
 eYM   = [2014,4]
 lYM   = util.ret_lYM(iYM, eYM)
 
-ldattype= ["GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
+ldattype= ["RA"]
 
-lcltype = range(0,7+1)
-ncltype = len(lcltype)
-dclid   = {0:0, 1:1, 2:201, 3:202, 4:4, 5:3, 6:204, 7:200}
+if clVer   == "JMA1":
+  cl         = CLOUDTYPE.CloudWNP()
+  ncltype = 8
+  lcltype = range(ncltype)
+  ibaseDir   = "/tank/utsumi/PMM/WNP.261x265"
+  ibaseDirCL = "/tank/utsumi/CLOUDTYPE/WNPAC"
+  figDir     = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict"
+  def ret_CLPrDir(dattype):
+    return ibaseDir + "/CL.Pr.%s"%(dattype)
 
-dclName ={0:"Clear Sky",   1:"Cumulonimbus(Cb)",  2:"High Cloud",3:"Mid Cloud"
-         ,4:"Cumulus(Cu)", 5:"Stratocumulus(Sc)", 6:"Fog/St"    ,7:"Cloudy"}
+elif clVer == "MyWNP":
+  cl         = CLOUDTYPE.MyCloudWNP()
+  ncltype = 6
+  lcltype = range(ncltype)
+  ibaseDir   = "/home/utsumi/mnt/well.share/PMM/WNP.261x265"
+  ibaseDirCL = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/MyCLTYPE"
+  figDir     = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict.MyCL"
+  def ret_CLPrDir(dattype):
+    return ibaseDir + "/MyCL.Pr.%s"%(dattype)
 
-dclShortName={0:"no", 1:"Cb",  2:"hi",3:"md"
-             ,4:"Cu", 5:"Sc",  6:"St",7:"cw"}
+dclName = cl.dclName
+dclShortName = cl.dclShortName
 
-cl    = CLOUDTYPE.CloudWNP()
 Lat   = cl.Lat
 Lon   = cl.Lon
 ny    = cl.ny
@@ -50,8 +65,7 @@ else:
 
 #----------------------
 def loadNum(Year,Mon,binPr):
-  baseDir = "/tank/utsumi/PMM/WNP.261x265"
-  srcDir    = baseDir + "/CL.Pr.%s"%(dattype)
+  srcDir    = ret_CLPrDir(dattype)
   iPath     = srcDir + "/num.P%05.1f.%04d.%02d.%dx%dx%d"%(binPr, Year,Mon, ncltype,ny,nx)
   if binPr == 0.0:
     a3out = zeros([ncltype,ny,nx],int32)
@@ -61,7 +75,7 @@ def loadNum(Year,Mon,binPr):
   return ma.masked_where(a3dommask==-9999., a3out)
 
 def loadSum(Year,Mon,binPr):
-  baseDir = "/tank/utsumi/PMM/WNP.261x265"
+  srcDir    = ret_CLPrDir(dattype)
   srcDir    = baseDir + "/CL.Pr.%s"%(dattype)
   iPath     = srcDir + "/sum.P%05.1f.%04d.%02d.%dx%dx%d"%(binPr, Year,Mon, ncltype,ny,nx)
   if binPr == 0.0:

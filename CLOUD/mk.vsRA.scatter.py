@@ -2,14 +2,17 @@ from numpy import *
 from collections import deque
 import myfunc.util as util
 import matplotlib.pylab as plt
-
+import myfunc.IO.CLOUDTYPE as CLOUDTYPE
 
 iYM    = [2014,4]
-eYM    = [2014,11]
+eYM    = [2015,6]
+#eYM    = [2014,4]
 lYM    = util.ret_lYM(iYM, eYM)
-#ldattype = ["KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW","IMERG"]
+lYM = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
+ldattype = ["KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
 #ldattype = ["GSMaP","GSMaP.IR","GSMaP.MW","IMERG"]
-ldattype = ["GSMaP.IR","GSMaP.MW","IMERG.IR","IMERG.MW"]
+#ldattype = ["GSMaP.IR","GSMaP.MW","IMERG.IR","IMERG.MW"]
+#ldattype = ["GSMaP.IR","IMERG.IR"]
 
 #dattype= "RA"
 #dattype= "GSMaP"
@@ -19,35 +22,69 @@ ldattype = ["GSMaP.IR","GSMaP.MW","IMERG.IR","IMERG.MW"]
 #dattype= "KuPR"
 #dattype= "GMI"
 
-lcltype = range(0,7+1)
-#lcltype = [1]
-ncltype = len(lcltype)
-dclid   = {0:0, 1:1, 2:201, 3:202, 4:4, 5:3, 6:204, 7:200}
-dclName ={0:"Clear Sky",   1:"Cumulonimbus(Cb)",  2:"High Cloud",3:"Mid Cloud"
-         ,4:"Cumulus(Cu)", 5:"Stratocumulus(Sc)", 6:"Fog/St"    ,7:"Cloudy", 99:"All"}
+#clVer = "JMA1"
+#clVer = "MyWNP1"
+clVer = "MyWNP2"
 
-dclShortName={0:"no", 1:"Cb",  2:"hi",3:"md"
-             ,4:"Cu", 5:"Sc",  6:"St",7:"cw", 99:"All"}
+#rootDir = "/tank/utsumi"
+rootDir = "/home/utsumi/mnt/well.share"
+if clVer   == "JMA1":
+  cl         = CLOUDTYPE.CloudWNP()
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.JMA"
+  ibaseDirCL = "/tank/utsumi/CLOUDTYPE/WNPAC"
+
+elif clVer[:5] == "MyWNP":
+  ver        = int(clVer[5:])
+  cl         = CLOUDTYPE.MyCloudWNP(ver=ver)
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%d"%(ver)
+  ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP%d"%(ver)
+
+lcltype = cl.licl
+ncltype = len(lcltype)
+dclName = cl.dclName
+dclShortName = cl.dclShortName
+dclid   = cl.dclid
+LatUp   = cl.Lat
+LonUp   = cl.Lon
+
+#*******************************
+def loadData(dattype, icl, lYM):
+  lpr = deque([])
+  for Year,Mon in lYM:
+    baseDir  = ibaseDir
+    sDir     = baseDir + "/VsRA.CL.%s"%(dattype)
+    prPath   = sDir + "/%s.%04d.%02d.%s.bn"%(dattype,Year,Mon,dclShortName[icl])
+    a1pr     = fromfile(prPath, float32)
+    lpr.extend(a1pr)
+
+  return array(lpr)
+
+def loadRA(dattype, icl, lYM):
+  lpr = deque([])
+  for Year,Mon in lYM:
+    baseDir  = ibaseDir
+    sDir     = baseDir + "/VsRA.CL.%s"%(dattype)
+    prPath   = sDir + "/RA.%04d.%02d.%s.bn"%(Year,Mon,dclShortName[icl])
+    a1pr     = fromfile(prPath, float32)
+    lpr.extend(a1pr)
+
+  return array(lpr)
+
+#*******************************
 
 vlim    = 40  # mm/hour
 
 for dattype in ldattype:
-  for icl in lcltype:
-    lpr = deque([])
-    lra = deque([])
-    for Year,Mon in lYM:
-      baseDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265"
-      sDir     = baseDir + "/VsRA.CL.%s"%(dattype)
-      prPath   = sDir + "/%s.%04d.%02d.%s.bn"%(dattype,Year,Mon,dclShortName[icl])
-      raPath   = sDir + "/RA.%04d.%02d.%s.bn"%(Year,Mon,dclShortName[icl])
+  #for icl in lcltype + [99]:
+  for icl in [99]:
+    if   icl != 99:
+      lpr = loadData(dattype, icl, lYM)
+      lra = loadRA(dattype  , icl, lYM)
 
-      a1pr     = fromfile(prPath, float32)
-      a1ra     = fromfile(raPath, float32)
-      lpr.extend(a1pr)
-      lra.extend(a1ra)
+    elif icl ==99:
+      lpr = concatenate([loadData(dattype, icltmp, lYM) for icltmp in lcltype])
+      lra = concatenate([loadRA(dattype,   icltmp, lYM) for icltmp in lcltype])
 
-    lpr = array(lpr)
-    lra = array(lra)
     #** Figure **********
     figplot = plt.figure(figsize=(4.5,4.5))
 
@@ -146,10 +183,10 @@ for dattype in ldattype:
     stitle = "%04d/%02d-%04d/%02d CL=%s %s"%(iYM[0],iYM[1],eYM[0],eYM[1],dclShortName[icl],dattype)
     plt.title(stitle, fontsize=10)
     # Save
-    figDir = baseDir + "/pict"
+    figDir = ibaseDir + "/pict"
     figPath= figDir  + "/scatter.%s.vsRA.%s.png"%(dattype,dclShortName[icl])
 
-    #util.mk_dir(figDir)
+    util.mk_dir(figDir)
     plt.savefig(figPath)
     print figPath
     #plt.show() 

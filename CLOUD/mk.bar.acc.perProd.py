@@ -7,13 +7,34 @@ import matplotlib.pyplot as plt
 import calendar
 import sys
 
-iYM    = [2014,4]
-eYM    = [2014,11]
-lYM    = util.ret_lYM(iYM, eYM)
-ldattype = ["RA","KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
-#ldattype = ["GSMaP.IR","RA"]
+clVer  = "JMA1"
+clVer  = "MyWNP1"
 
-cl    = CLOUDTYPE.CloudWNP()
+iYM    = [2014,4]
+eYM    = [2015,6]
+lYM    = util.ret_lYM(iYM, eYM)
+lYM    = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
+print lYM
+
+#ldattype = ["RA","KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
+ldattype = ["RA"]
+
+#
+#rootDir = "/tank/utsumi"
+rootDir = "/home/utsumi/mnt/well.share"
+if clVer   == "JMA1":
+  cl         = CLOUDTYPE.CloudWNP()
+  ncltype = 8
+  lcltype = range(ncltype)
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.JMA"
+
+elif clVer == "MyWNP1":
+  cl         = CLOUDTYPE.MyCloudWNP(ver=1)
+  ncltype = 5
+  lcltype = range(ncltype)
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My1"
+
+#
 ny,nx = cl.ny, cl.nx   #261, 265
 Lat   = cl.Lat
 Lon   = cl.Lon
@@ -25,13 +46,8 @@ dommask  = "RA"   # Keep!
 BBox    = [[20., 118.],[48., 150.]]    # RadarAMeDAS
 miss  = -9999.
 
-lcltype = range(0,7+1)
-ncltype = len(lcltype)
-dclName ={0:"Clear Sky",   1:"Cumulonimbus(Cb)",  2:"High Cloud",3:"Mid Cloud"
-         ,4:"Cumulus(Cu)", 5:"Stratocumulus(Sc)", 6:"Fog/St"    ,7:"Cloudy", 99:"All"}
-
-dclShortName={0:"no", 1:"Cb",  2:"hi",3:"md"
-             ,4:"Cu", 5:"Sc",  6:"St",7:"cw", 99:"All"}
+dclName = cl.dclName
+dclShortName = cl.dclShortName
 
 #----------------------
 iX      = bisect_left (Lon,BBox[0][1])
@@ -52,22 +68,20 @@ else:
 
 #******************************************
 def loadSum(dattype,Year,Mon,binPr):
-  baseDir = "/tank/utsumi/PMM/WNP.261x265"
-  srcDir    = baseDir + "/CL.Pr.%s"%(dattype)
+  srcDir    = ibaseDir + "/CL.Pr.%s"%(dattype)
   iPath     = srcDir + "/sum.P%05.1f.%04d.%02d.%dx%dx%d"%(binPr, Year,Mon, ncltype,ny,nx)
   a3out = fromfile(iPath, float32).reshape(ncltype, ny, nx)
 
   return ma.masked_where(a3dommask==-9999., a3out)
 
 def loadNum(dattype,Year,Mon,binPr):
-  baseDir = "/tank/utsumi/PMM/WNP.261x265"
-  srcDir    = baseDir + "/CL.Pr.%s"%(dattype)
+  srcDir    = ibaseDir + "/CL.Pr.%s"%(dattype)
   iPath     = srcDir + "/num.P%05.1f.%04d.%02d.%dx%dx%d"%(binPr, Year,Mon, ncltype,ny,nx)
   a3out = fromfile(iPath, int32).reshape(ncltype, ny, nx)
   return ma.masked_where(a3dommask==-9999., a3out)
 
 
-def accDat(dattype,iYM, eYM, binPr, sumnum="num"):
+def accDat(dattype,lYM, binPr, sumnum="num"):
   dfunc = {"sum":loadSum
           ,"num":loadNum
           }
@@ -77,7 +91,6 @@ def accDat(dattype,iYM, eYM, binPr, sumnum="num"):
 
   accDat = zeros([ncltype, ny, nx], ddtype[sumnum])
 
-  lYM = util.ret_lYM(iYM,eYM)
   for (Year,Mon) in lYM:
     accDat = accDat + dfunc[sumnum](dattype,Year,Mon,binPr)
   return accDat
@@ -90,8 +103,8 @@ dDTime   = timedelta(hours=1)
 a3numCL  = array([cl.loadNumAcc(iYM, eYM, cltype) for cltype in lcltype])
 
 for dattype in ldattype:
-  a3sum = accDat(dattype,iYM,eYM,999,"sum")
-  a3num = accDat(dattype,iYM,eYM,999,"num")
+  a3sum = accDat(dattype,lYM,999,"sum")
+  a3num = accDat(dattype,lYM,999,"num")
   a3rat = ma.masked_invalid(a3sum / a3num)  # average rate (mm/h)
 
   a3acc = a3rat * a3numCL / len(lYM)  # mm/month
@@ -106,13 +119,14 @@ for dattype in ldattype:
   # Each cloud type
   X  = [icl+1 for (icl,cltype) in enumerate(lcltype)]
 
-  """
-  CAUTION!: precip rate for Cb is multipled by 0.1
-  """
-  Y  = [a3rat[icl].mean()*0.1 if icl==1 else a3rat[icl].mean()
+#  """
+#  CAUTION!: precip rate for Cb is multipled by 0.1
+#  """
+#  Y  = [a3rat[icl].mean()*0.1 if icl==1 else a3rat[icl].mean()
+#              for (icl,cltype) in enumerate(lcltype)]
+
+  Y  = [a3rat[icl].mean() 
               for (icl,cltype) in enumerate(lcltype)]
-
-
 
   # All
   X = [0] + X
@@ -131,14 +145,15 @@ for dattype in ldattype:
     tick.label.set_fontsize(15) 
 
   # Y limit
-  axplot.set_ylim(0,1.4)
+  #axplot.set_ylim(0,1.4)
 
   # zero line
   plt.plot([X[0]-0.1,X[-1]+1.1],[0,0],"-",color="k")
 
   # Names
   #sDir  = "/tank/utsumi/PMM/WNP.261x265/pict"
-  sDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict"
+  #sDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict"
+  sDir  = ibaseDir + "/pict"
   if dommask==False:  
     sPath = sDir + "/bar.prate.%s.png"%(dattype)
   else:
@@ -148,45 +163,46 @@ for dattype in ldattype:
   print sPath 
 
 
-  ##**** Figure: Accumulated precipitation *****
-  #figplot = plt.figure(figsize=(4.1,3.2))
-  #axplot  = figplot.add_axes([0.11,0.10, 0.88, 0.8])
+  #**** Figure: Accumulated precipitation *****
+  figplot = plt.figure(figsize=(4.1,3.2))
+  axplot  = figplot.add_axes([0.11,0.10, 0.88, 0.8])
 
-  ## Each cloud type
-  #X  = [icl+1 for (icl,cltype) in enumerate(lcltype)]
-  #Y  = [a3acc[icl].mean() 
-  #            for (icl,cltype) in enumerate(lcltype)]
+  # Each cloud type
+  X  = [icl+1 for (icl,cltype) in enumerate(lcltype)]
+  Y  = [a3acc[icl].mean() 
+              for (icl,cltype) in enumerate(lcltype)]
 
-  ## All
-  #X = [0] + X
-  #Y = [a3acc.sum(axis=0).mean()] + Y
+  # All
+  X = [0] + X
+  Y = [a3acc.sum(axis=0).mean()] + Y
 
-  ## Title
-  #plt.bar(X, Y, color=["k"]+["grey"]*(len(X)-1))
-  #plt.title(dattype, fontsize=20)
+  # Title
+  plt.bar(X, Y, color=["k"]+["grey"]*(len(X)-1))
+  plt.title(dattype, fontsize=20)
 
-  ## X-ticks
-  #plt.xticks(array(X)+0.5, [dclShortName[icl] for icl in [99]+lcltype]
-  #           ,fontsize=18)
+  # X-ticks
+  plt.xticks(array(X)+0.5, [dclShortName[icl] for icl in [99]+lcltype]
+             ,fontsize=18)
 
-  ## Y-ticks
-  #for tick in axplot.yaxis.get_major_ticks():
-  #  tick.label.set_fontsize(15) 
+  # Y-ticks
+  for tick in axplot.yaxis.get_major_ticks():
+    tick.label.set_fontsize(15) 
 
-  ## Y limit
-  #axplot.set_ylim(0,200)
+  # Y limit
+  axplot.set_ylim(0,200)
 
-  ## zero line
-  #plt.plot([X[0]-0.1,X[-1]+1.1],[0,0],"-",color="k")
+  # zero line
+  plt.plot([X[0]-0.1,X[-1]+1.1],[0,0],"-",color="k")
 
-  ## Names
-  ##sDir  = "/tank/utsumi/PMM/WNP.261x265/pict"
+  # Names
+  #sDir  = "/tank/utsumi/PMM/WNP.261x265/pict"
   #sDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict"
-  #if dommask==False:  
-  #  sPath = sDir + "/bar.acc.%s.png"%(dattype)
-  #else:
-  #  sPath = sDir + "/%sdom.bar.acc.%s.png"%(dommask, dattype)
-  #figplot.savefig(sPath)
-  #print "all=",Y[0]
-  #print sPath 
+  sDir  = ibaseDir + "/pict"
+  if dommask==False:  
+    sPath = sDir + "/bar.acc.%s.png"%(dattype)
+  else:
+    sPath = sDir + "/%sdom.bar.acc.%s.png"%(dommask, dattype)
+  figplot.savefig(sPath)
+  print "all=",Y[0]
+  print sPath 
 
