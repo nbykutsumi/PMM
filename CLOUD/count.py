@@ -4,7 +4,8 @@ import myfunc.util as util
 import myfunc.IO.CLOUDTYPE as CLOUDTYPE
 
 clVer = "JMA1"
-clVer = "MyWNP"
+#clVer = "MyWNP2"
+clVer = "MyWNP.M.3"
 
 iYM   = [2014,4]
 eYM   = [2014,4]
@@ -12,25 +13,21 @@ lYM   = util.ret_lYM(iYM, eYM)
 
 ldattype= ["RA"]
 
+rootDir = "/home/utsumi/mnt/well.share"
 if clVer   == "JMA1":
   cl         = CLOUDTYPE.CloudWNP()
   ncltype = 8
   lcltype = range(ncltype)
-  ibaseDir   = "/tank/utsumi/PMM/WNP.261x265"
-  ibaseDirCL = "/tank/utsumi/CLOUDTYPE/WNPAC"
-  figDir     = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict"
-  def ret_CLPrDir(dattype):
-    return ibaseDir + "/CL.Pr.%s"%(dattype)
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.JMA"
 
-elif clVer == "MyWNP":
-  cl         = CLOUDTYPE.MyCloudWNP()
-  ncltype = 6
-  lcltype = range(ncltype)
-  ibaseDir   = "/home/utsumi/mnt/well.share/PMM/WNP.261x265"
-  ibaseDirCL = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/MyCLTYPE"
-  figDir     = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict.MyCL"
-  def ret_CLPrDir(dattype):
-    return ibaseDir + "/MyCL.Pr.%s"%(dattype)
+elif clVer[:5] == "MyWNP":
+  ver        = clVer[5:]
+  cl         = CLOUDTYPE.MyCloudWNP(ver=ver)
+  ncltype = cl.ncl
+  lcltype = cl.licl
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%s"%(ver)
+  ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP%s"%(ver)
+
 
 dclName = cl.dclName
 dclShortName = cl.dclShortName
@@ -65,7 +62,7 @@ else:
 
 #----------------------
 def loadNum(Year,Mon,binPr):
-  srcDir    = ret_CLPrDir(dattype)
+  srcDir    = ibaseDir + "/CL.Pr.%s/%04d"%(dattype,Year)
   iPath     = srcDir + "/num.P%05.1f.%04d.%02d.%dx%dx%d"%(binPr, Year,Mon, ncltype,ny,nx)
   if binPr == 0.0:
     a3out = zeros([ncltype,ny,nx],int32)
@@ -75,8 +72,7 @@ def loadNum(Year,Mon,binPr):
   return ma.masked_where(a3dommask==-9999., a3out)
 
 def loadSum(Year,Mon,binPr):
-  srcDir    = ret_CLPrDir(dattype)
-  srcDir    = baseDir + "/CL.Pr.%s"%(dattype)
+  srcDir    = ibaseDir + "/CL.Pr.%s/%04d"%(dattype,Year)
   iPath     = srcDir + "/sum.P%05.1f.%04d.%02d.%dx%dx%d"%(binPr, Year,Mon, ncltype,ny,nx)
   if binPr == 0.0:
     a3out = zeros([ncltype,ny,nx],float32)

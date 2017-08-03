@@ -26,7 +26,7 @@ ldattype = ["KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP
 #clVer = "MyWNP1"
 clVer = "MyWNP2"
 
-lbin = [0,3,6,9,12,16,20]
+lbin = [0,3,6,9,12,16,20,40]
 lBin = map(list,zip(lbin[:-1],lbin[1:])) + [[lbin[-1],999]]
 
 #rootDir = "/tank/utsumi"
@@ -99,8 +99,8 @@ for dattype in ldattype:
       botUpp.append((vLow+vMid))
 
     #** Figure **********
-    figplot = plt.figure(figsize=(4.1,1.0))
-    axplot  = figplot.add_axes([0.11,0.20, 0.84, 0.58])
+    figplot = plt.figure(figsize=(3.0,1.0))
+    axplot  = figplot.add_axes([0.11,0.20, 0.84, 0.55])
 
     # bar plot ----------
     X       = range(len(lBin))
@@ -111,9 +111,23 @@ for dattype in ldattype:
     # X-ticks
     plt.xticks(X, map(str, lbin[:-1]) + ["%d<"%(lbin[-1])])
 
+    # Y-ticks
+    for itick, tick in enumerate(axplot.yaxis.get_major_ticks()):
+      if itick%2 == 0:
+        tick.label.set_fontsize(10)
+      else:
+        if icl == 99:
+          tick.label.set_fontsize(10)
+        else:
+          tick.label.set_fontsize(0)
+  
+    # Y-limit
+    axplot.set_ylim(0,1.0)
+
     # Add title
-    stitle = "%04d/%02d-%04d/%02d %s CL=%s"%(iYM[0],iYM[1],eYM[0],eYM[1],dattype, dclShortName[icl])
-    plt.title(stitle, fontsize=10)
+    #stitle = "%04d/%02d-%04d/%02d %s CL=%s"%(iYM[0],iYM[1],eYM[0],eYM[1],dattype, dclShortName[icl])
+    stitle = "%s CL=%s"%(dattype, dclShortName[icl])
+    plt.title(stitle, fontsize=12)
     # Save
     figDir = baseDir + "/pict"
     figPath= figDir  + "/bar.vsRA.%s.%s.png"%(dattype,dclShortName[icl])

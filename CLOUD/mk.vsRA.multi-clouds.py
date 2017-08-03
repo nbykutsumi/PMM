@@ -50,8 +50,7 @@ dclid   = cl.dclid
 LatUp   = cl.Lat
 LonUp   = cl.Lon
 
-#llndsea = ["any","lnd","sea","cst"]
-llndsea = ["sea"]
+llndsea = ["any","lnd","sea","cst"]
 #*******************************
 def loadData(dattype, lndsea, icl, lYM):
   lpr = deque([])
@@ -104,16 +103,17 @@ elif Xvar == "KuPR": loadX = loadKu
 #*******************************
 vlim    = 40  # mm/hour
 for lndsea in llndsea:
-  for i, icl in enumerate(lcltype[1:] + [99]):
-  #for icl in [99]:
+
+  for i,dattype in enumerate(ldattype):
     #** Figure **********
     figplot = plt.figure(figsize=(3,3))
-    axplot1  = figplot.add_axes([0.2,0.1,0.8,0.8])
-    #axplot1.set_ylim(0.0, vlim)
-    #axplot1.set_xlim(0.0, vlim)
+    axplot1  = figplot.add_axes([0.1,0.1,0.8,0.8])
+    axplot1.set_ylim(0.0, vlim)
+    axplot1.set_xlim(0.0, vlim)
 
     dmean = {}
-    for dattype in ldattype:
+    lcl_tmp = [1,3,4,99]
+    for icl in lcl_tmp:
       # Load data
       if   icl != 99:
         lpr = loadData(dattype, lndsea, icl, lYM)
@@ -125,45 +125,41 @@ for lndsea in llndsea:
 
       # Average line
       #bins   = arange(0, 100,2)
-      #bins   = r_[arange(0, 10+0.1,2), arange(15,100,5)]
-      #BINS   = zip(bins[:-1],bins[1:])
-      BINS = [[0,999]]
-      dmean[dattype] = [ma.masked_where(logical_or( lra<binmin,  binmax<=lra), lpr).mean() for (binmin,binmax) in BINS]
+      bins   = r_[arange(0, 10+0.1,2), arange(15,100,5)]
+      BINS   = zip(bins[:-1],bins[1:])
+      dmean[icl] = [ma.masked_where(logical_or( lra<binmin,  binmax<=lra), lpr).mean() for (binmin,binmax) in BINS]
       lx     = [mean(BIN) for BIN in BINS]
 
-
     # Draw average lines
-    lines = [axplot1.plot(lx,dmean[dattype],"o", linewidth=2) 
-                for dattype in ldattype] 
+    lines = [axplot1.plot(lx,dmean[icl],"-", linewidth=2) 
+                for icl in lcl_tmp] 
 
-    if icl==1:
-      print dmean
+    # Draw 1-1 line
+    axplot1.plot([0,100],[0,100],"--",color="k")
 
-#    # Draw 1-1 line
-#    axplot1.plot([0,100],[0,100],"--",color="k")
-#
-#
+
     # Add title
-    stitle = "%04d/%02d-%04d/%02d CL=%s [%s]"%(iYM[0],iYM[1],eYM[0],eYM[1],dclShortName[icl], lndsea)
+    stitle = "%04d/%02d-%04d/%02d %s [%s]"%(iYM[0],iYM[1],eYM[0],eYM[1],dattype, lndsea)
     plt.title(stitle, fontsize=10)
     # Save
     figDir = ibaseDir + "/pict"
     if   TrackFlag == False:
-      figPath= figDir  + "/temp.lines.mulProd.vs%s.%s.%s.png"%(Xvar,lndsea,dclShortName[icl])
+      figPath= figDir  + "/lines.mulCL.vs%s.%s.%s.png"%(Xvar,lndsea,dattype)
     elif TrackFlag == True:
-      figPath= figDir  + "/temp.Tr.lines.mulProd.vs%s.%s.%s.png"%(Xvar,lndsea,dclShortName[icl])
-#
-#    util.mk_dir(figDir)
+      figPath= figDir  + "/Tr.lines.mulCL.%s.vs%s.%s.%s.png"%(dattype,Xvar,lndsea,dattype)
+
+    util.mk_dir(figDir)
     plt.savefig(figPath)
     print figPath
-#    #plt.show() 
-#    #plt.close()
-#
+    #plt.show() 
+    #plt.close()
+
     # Legend file
     if i==0:
-      legPath = figDir + "/temp.legend.mulProd.vs%s.png"%(Xvar)
+      legPath = figDir + "/legend.mulCL.vs%s.png"%(Xvar)
       figleg  = plt.figure(figsize=(2,3))
       lines   = [line[0] for line in lines]   # 2D list to 1D list
-      figleg.legend(lines, ldattype)
+      llegend = [dclShortName[icl] for icl in lcl_tmp]
+      figleg.legend(lines, llegend)
       figleg.savefig(legPath)
       plt.close()

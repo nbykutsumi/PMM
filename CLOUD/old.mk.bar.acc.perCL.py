@@ -7,17 +7,18 @@ import matplotlib.pyplot as plt
 import calendar
 import sys
 
-clVer  = "JMA1"
-clVer  = "MyWNP1"
+#clVer  = "JMA1"
+#clVer  = "MyWNP1"
+clVer  = "MyWNP2"
 
 iYM    = [2014,4]
 eYM    = [2015,6]
+#eYM    = [2014,5]
 lYM    = util.ret_lYM(iYM, eYM)
 lYM    = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
 print lYM
 
-#ldattype = ["RA","KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
-ldattype = ["RA"]
+ldattype = ["RA","KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
 
 #
 #rootDir = "/tank/utsumi"
@@ -28,11 +29,13 @@ if clVer   == "JMA1":
   lcltype = range(ncltype)
   ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.JMA"
 
-elif clVer == "MyWNP1":
-  cl         = CLOUDTYPE.MyCloudWNP(ver=1)
-  ncltype = 5
-  lcltype = range(ncltype)
-  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My1"
+elif clVer[:5] == "MyWNP":
+  ver        = int(clVer[5:])
+  cl         = CLOUDTYPE.MyCloudWNP(ver=ver)
+  ncltype = cl.ncl
+  lcltype = cl.licl
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%d"%(ver)
+  ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP%d"%(ver)
 
 #
 ny,nx = cl.ny, cl.nx   #261, 265
@@ -60,7 +63,6 @@ a2BBox[iY:eY+1, iX:eX+1]= 1.0
 if dommask =="RA":
   maskPath  = "/tank/utsumi/data/RadarAMeDAS/mask/RAmask.kubota.0.20x0.25WNP.261x265"
   a2dommask = fromfile(maskPath,float32).reshape(ny,nx)
-  a2dommask = ma.masked_equal(a2dommask, miss)
   a2dommask = ma.masked_where(a2BBox ==miss, a2dommask)
   a3dommask = array([a2dommask for i in range(len(lcltype))])
 else:
@@ -103,6 +105,8 @@ dDTime   = timedelta(hours=1)
 
 a3numCL  = array([cl.loadNumAcc(iYM, eYM, cltype) for cltype in lcltype])
 
+drat = {}
+dacc = {}
 for dattype in ldattype:
   a3sum = accDat(dattype,lYM,999,"sum")
   a3num = accDat(dattype,lYM,999,"num")
@@ -111,99 +115,113 @@ for dattype in ldattype:
   a3acc = a3rat * a3numCL / len(lYM)  # mm/month
   a3acc = ma.masked_where(a3dommask==miss, a3acc)
 
-  print dattype, a3acc.mean()
+  for icl in range(ncltype): drat[dattype,icl]  = a3rat[icl].mean()
+  for icl in range(ncltype): dacc[dattype,icl]  = a3acc[icl].mean()
 
-  #**** Figure: precipitation rate *****
-  figplot = plt.figure(figsize=(4.1,3.2))
-  axplot  = figplot.add_axes([0.11,0.10, 0.88, 0.8])
+  #drat[dattype,99]  = ma.masked_invalid(a3sum.sum(axis=0)/a3num.sum(axis=0)).mean()
+  drat[dattype,99]  = ma.masked_invalid(a3acc.sum(axis=0) / (a3numCL / len(lYM)).sum(axis=0)).mean()
 
-  # Each cloud type
-  X  = [icl+1 for (icl,cltype) in enumerate(lcltype)]
+  dacc[dattype,99]  = a3acc.sum(axis=0).mean()
 
-#  """
-#  CAUTION!: precip rate for Cb is multipled by 0.1
-#  """
-#  Y  = [a3rat[icl].mean()*0.1 if icl==1 else a3rat[icl].mean()
-#              for (icl,cltype) in enumerate(lcltype)]
+#**** Figure: precipitation rate *****
+for icl in range(ncltype) + [99]:
+  figplot = plt.figure(figsize=(4.1,1.0))
+  axplot  = figplot.add_axes([0.11,0.2, 0.84, 0.58])
 
-  Y  = [a3rat[icl].mean() 
-              for (icl,cltype) in enumerate(lcltype)]
+  X  = arange(len(ldattype))+0.5
+  Y  = [drat[dattype, icl]
+              for dattype in ldattype]
 
-  # All
-  X = [0] + X
-  Y = [ma.masked_invalid(a3sum.sum(axis=0)/a3num.sum(axis=0)).mean()] + Y
+  bars = plt.bar(X, Y, color=["k"]+["grey"]*(len(X)-1))
 
   # Title
-  plt.bar(X, Y, color=["k"]+["grey"]*(len(X)-1))
-  plt.title(dattype, fontsize=20)
-
-  # X-ticks
-  plt.xticks(array(X)+0.5, [dclShortName[icl] for icl in [99]+lcltype]
-             ,fontsize=18)
-
-  # Y-ticks
-  for tick in axplot.yaxis.get_major_ticks():
-    tick.label.set_fontsize(15) 
+  plt.title(dclName[icl], fontsize=12)
 
   # Y limit
-  #axplot.set_ylim(0,1.4)
+  if    clVer == "MyWNP1":
+    if icl == 1:
+      axplot.set_ylim(0,6)
+    else:
+      axplot.set_ylim(0,0.5)
+
+  elif  clVer == "MyWNP2":
+    if icl in [1,2]:
+      axplot.set_ylim(0,10)
+    else:
+      axplot.set_ylim(0,0.6)
+
+  # X-ticks
+  plt.xticks(X+0.5, map(int, X-0.5), fontsize=10)
+
+  # Y-ticks
+  for itick, tick in enumerate(axplot.yaxis.get_major_ticks()):
+    if itick%2 ==0:
+      tick.label.set_fontsize(10) 
+    else:
+      tick.label.set_fontsize(0) 
+
 
   # zero line
   plt.plot([X[0]-0.1,X[-1]+1.1],[0,0],"-",color="k")
 
   # Names
-  #sDir  = "/tank/utsumi/PMM/WNP.261x265/pict"
-  #sDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict"
   sDir  = ibaseDir + "/pict"
   if dommask==False:  
-    sPath = sDir + "/bar.prate.%s.png"%(dattype)
+    sPath = sDir + "/bar.prate.perCL.%s.png"%(dclShortName[icl])
   else:
-    sPath = sDir + "/%sdom.bar.prate.%s.png"%(dommask, dattype)
+    sPath = sDir + "/%sdom.bar.prate.perCL.%s.png"%(dommask, dclShortName[icl])
   figplot.savefig(sPath)
-  print "all=",Y[0]
   print sPath 
 
 
-  #**** Figure: Accumulated precipitation *****
-  figplot = plt.figure(figsize=(4.1,3.2))
-  axplot  = figplot.add_axes([0.11,0.10, 0.88, 0.8])
 
-  # Each cloud type
-  X  = [icl+1 for (icl,cltype) in enumerate(lcltype)]
-  Y  = [a3acc[icl].mean() 
-              for (icl,cltype) in enumerate(lcltype)]
+#**** Figure: Accumulated rate *****
+for icl in range(ncltype) + [99]:
+  figplot = plt.figure(figsize=(4.1,1.0))
+  axplot  = figplot.add_axes([0.11,0.2, 0.84, 0.56])
 
-  # All
-  X = [0] + X
-  Y = [a3acc.sum(axis=0).mean()] + Y
+  X  = arange(len(ldattype))+0.5
+  Y  = [dacc[dattype, icl]
+              for dattype in ldattype]
+
+  plt.bar(X, Y, color=["k"]+["grey"]*(len(X)-1))
 
   # Title
-  plt.bar(X, Y, color=["k"]+["grey"]*(len(X)-1))
-  plt.title(dattype, fontsize=20)
-
-  # X-ticks
-  plt.xticks(array(X)+0.5, [dclShortName[icl] for icl in [99]+lcltype]
-             ,fontsize=18)
-
-  # Y-ticks
-  for tick in axplot.yaxis.get_major_ticks():
-    tick.label.set_fontsize(15) 
+  plt.title(dclName[icl], fontsize=12)
 
   # Y limit
-  axplot.set_ylim(0,200)
+  if    clVer[:5] == "MyWNP":
+    if icl == 99:
+      axplot.set_ylim(0,300)
+    else:
+      axplot.set_ylim(0,180)
 
-  # zero line
-  plt.plot([X[0]-0.1,X[-1]+1.1],[0,0],"-",color="k")
+  # X-ticks
+  plt.xticks(X+0.5, map(int, X-0.5), fontsize=10)
+
+  # Y-ticks
+  for itick, tick in enumerate(axplot.yaxis.get_major_ticks()):
+    if itick%2 ==0:
+      tick.label.set_fontsize(10) 
+    else:
+      tick.label.set_fontsize(0) 
+
 
   # Names
-  #sDir  = "/tank/utsumi/PMM/WNP.261x265/pict"
-  #sDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict"
   sDir  = ibaseDir + "/pict"
   if dommask==False:  
-    sPath = sDir + "/bar.acc.%s.png"%(dattype)
+    sPath = sDir + "/bar.acc.perCL.%s.png"%(dclShortName[icl])
   else:
-    sPath = sDir + "/%sdom.bar.acc.%s.png"%(dommask, dattype)
+    sPath = sDir + "/%sdom.bar.acc.perCL.%s.png"%(dommask, dclShortName[icl])
   figplot.savefig(sPath)
-  print "all=",Y[0]
   print sPath 
+
+#**** Legend file ****
+legPath = sDir + "/legend.bar.perCL.png"
+sout    = "\n".join(["%d:  %s"%(i, ldattype[i]) for i in range(len(ldattype))])
+figleg  = plt.figure(figsize=(2,3))
+figleg.text(0.1,0.1,sout, fontsize=16)
+figleg.savefig(legPath)
+
+
 

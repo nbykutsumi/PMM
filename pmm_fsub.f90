@@ -66,6 +66,59 @@ end do
 return
 END SUBROUTINE obt_match_map
 
+
+!*************************************************
+SUBROUTINE pickup_data(a3dat, lllat, lllon, urlat, urlon, dlat, dlon, a1lon, a1lat, miss_out, nx, ny, nz, nl, a2out)
+implicit none
+!--------------------------------------
+! pickup data from a3dat over a1lat and a1lon
+! lllat,lllon,urlat,urlon : for a3dat, boundary of grid box, not center.
+! dlat, dlon              : for a3dat
+!--------------------------------------
+integer                          nx, ny, nz
+integer                          nl
+!---- in -----------
+double precision,dimension(nx,ny,nz)      :: a3dat
+!f2py intent(in)                             a3dat
+double precision,dimension(nl)            :: a1lat, a1lon
+!f2py intent(in)                             a1lat, a1lon
+double precision                             lllat,lllon,urlat,urlon  ! boundary of grid box, not center.
+!f2py intent(in)                             lllat,lllon,urlat,urlon
+double precision                             dlat, dlon  ! for a3dat
+!f2py intent(in)                             dlat, dlon
+double precision                             miss_out
+!f2py intent(in)                             miss_out
+!---- out -----------
+double precision,dimension(nl,nz)         :: a2out
+!f2py intent(out)                            a2out
+!---- calc ----------
+integer                                      il
+integer                                      ix,iy,iz
+double precision                             lon,lat
+!---- para ----------
+!double precision,parameter               :: miss_out = -9999.
+
+!---------------------
+do il = 1,nl
+  !------------
+  lon = a1lon(il)
+  lat = a1lat(il)
+  if ((lat .ge. lllat).and.(lat .le. urlat)&
+       .and.(lon .ge. lllon).and.(lon .le. urlon))then
+    ix  = floor( (mod(lon+360.d0, 360.d0) - lllon) / dlon) +1
+    iy  = floor((lat - lllat)/dlat) + 1
+    do iz = 1,nz
+      a2out(il,iz) = a3dat(ix,iy,iz)
+    end do
+  else
+    a2out(il,:) = miss_out
+  end if
+end do
+
+return
+END SUBROUTINE pickup_data
+
+
 !*************************************************
 SUBROUTINE obt2wnpac261x265(a2dat, a2lon, a2lat, nw, nl, a2sum, a2num)
 implicit none

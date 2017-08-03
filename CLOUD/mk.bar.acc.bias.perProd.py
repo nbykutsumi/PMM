@@ -8,7 +8,7 @@ import calendar
 import sys
 
 iYM    = [2014,4]
-eYM    = [2014,11]
+eYM    = [2015,6]
 lYM    = util.ret_lYM(iYM, eYM)
 ldattype = ["KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
 #ldattype = ["GSMaP.IR"]

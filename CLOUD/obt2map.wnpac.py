@@ -1,12 +1,11 @@
 from numpy import *
 from PMM.pmm_fsub import *
-from myfunc.IO import CLOUDTYPE
 from myfunc.IO import GPyM
 from datetime import datetime, timedelta
 import myfunc.util as util
 import os
 
-iDTime  = datetime(2015,1,2,0)
+iDTime  = datetime(2014,3,31,0)
 eDTime  = datetime(2016,1,2,0)
 
 #prj     = 'GPM.KuPR'

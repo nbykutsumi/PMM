@@ -4,7 +4,8 @@ import Image
 
 #clVer = "JMA1"
 #clVer = "MyWNP1"
-clVer = "MyWNP2"
+#clVer = "MyWNP2"
+clVer = "MyWNP.M.3"
 
 #ldattype = ["KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
 ldattype = ["KuPR","IMERG","IMERG.IR","IMERG.MW","GMI","GSMaP","GSMaP.IR","GSMaP.MW"]
@@ -18,12 +19,12 @@ if clVer   == "JMA1":
   ibaseDirCL = "/tank/utsumi/CLOUDTYPE/WNPAC"
 
 elif clVer[:5] == "MyWNP":
-  ver     = int(clVer[5:])
+  ver     = clVer[5:]
   cl      = CLOUDTYPE.MyCloudWNP(ver=ver)
   ncltype = cl.ncl
   lcltype = cl.licl
-  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%d"%(ver)
-  ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP%d"%(ver)
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%s"%(ver)
+  ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP%s"%(ver)
 
 dclShortName = cl.dclShortName
 figDir       = ibaseDir + "/pict"

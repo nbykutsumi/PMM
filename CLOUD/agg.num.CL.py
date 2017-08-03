@@ -6,13 +6,14 @@ import calendar
 import sys
 
 iYM   = [2014,4]
-eYM   = [2015,7]
+eYM   = [2015,6]
 lYM   = util.ret_lYM(iYM, eYM)
-#lYM    = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
+lYM    = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
 
 #clVer = "JMA1"
 #clVer = "MyWNP1"
-clVer = "MyWNP2"
+#clVer = "MyWNP2"
+clVer = "MyWNP.M.3"
 
 #rootDir = "/tank/utsumi"
 rootDir = "/home/utsumi/mnt/well.share"
@@ -24,12 +25,12 @@ if clVer   == "JMA1":
   ibaseDirCL = "/tank/utsumi/CLOUDTYPE/WNPAC"
 
 elif clVer[:5] == "MyWNP":
-  ver     = int(clVer[5:])
+  ver     = clVer[5:]
   cl      = CLOUDTYPE.MyCloudWNP(ver=ver)
   ncltype = cl.ncl
   lcltype = cl.licl
-  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%d"%(ver)
-  ibaseDirCL = "/home/utsumi/mnt/well.share/CLOUDTYPE/MyWNP%d"%(ver)
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%s"%(ver)
+  ibaseDirCL = "/home/utsumi/mnt/well.share/CLOUDTYPE/MyWNP%s"%(ver)
 
 Lat   = cl.Lat
 Lon   = cl.Lon
@@ -69,9 +70,6 @@ else:
   a3dommask = array([a2dommask for i in range(len(lcltype))])
 
 #----------------------
-
-
-
 da2num = {}
 for icl in lcltype:
   da2num[icl]  = zeros([ny,nx],int32)

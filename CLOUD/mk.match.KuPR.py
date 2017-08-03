@@ -1,64 +1,49 @@
 from numpy import *
 from datetime import datetime, timedelta
 from myfunc.regrid import Regrid
+from collections import deque
 import myfunc.IO.CLOUDTYPE as CLOUDTYPE
+import myfunc.IO.RadarAMeDAS as RadarAMeDAS
 import myfunc.util as util
 import calendar
 import sys, os
-
 from mpl_toolkits.basemap import Basemap
 
-#clVer  = "MyWNP1"
-#clVer  = "MyWNP2"
-#clVer  = "MyWNP3"
-clVer  = "MyWNP.M.3"
-#clVer  = "JMA1"
+#clVer = "JMA1"
+#clVer = "MyWNP1"
+#clVer = "MyWNP3"
+clVer = "MyWNP.M.3"
 
+#iYM    = [2014,4]
+#eYM    = [2015,6]
 iYM    = [2014,4]
 eYM    = [2015,6]
-#iYM    = [2015,6]
-#eYM    = [2015,6]
 
 
 lYM    = util.ret_lYM(iYM, eYM)
-lYM    = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
-print lYM 
+lYM = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
 
 #ldattype = ["RA","KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
-#ldattype = ["KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
-#ldattype = ["KuPR","GMI"]
+ldattype = ["GSMaP","IMERG"]
 #ldattype = ["GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
-ldattype = ["KuPR","GMI"]
 
-#dattype= "RA"
-#dattype= "GSMaP"
-#dattype= "GSMaP.MW"
-#dattype= "GSMaP.IR"
-#dattype= "IMERG"
-#dattype= "KuPR"
-#dattype= "GMI"
 
 BBox    = [[-0.1, 113.875],[52.1, 180.125]]
 ny,nx   = 261, 265
 miss    = -9999.
 
-#lbinPr  = [0.0, 0.1, 0.3, 0.5, 0.7] + range(1,9+1,1) + range(10,50+1,2) +[999]  # Maxs of bin range
-lbinPr  = [0.0, 0.1, 0.3, 0.5, 0.7] + range(1,9+1,1) + range(10,18+1,2) + range(20, 40+1,4) +[999]  # Maxs of bin range
-nbinPr  = len(lbinPr)
-
-rootDir = "/home/utsumi/mnt/well.share"
-if   clVer == "JMA1":
-  cl      = CLOUDTYPE.CloudWNP()
-  lcltype = range(0,7+1)
-  dclid   = {0:0, 1:1, 2:201, 3:202, 4:4, 5:3, 6:204, 7:200}
+#rootDir = "/tank/utsumi"
+rootDir = "/home/utsumi/mnt/wellshare"
+if clVer   == "JMA1":
+  cl         = CLOUDTYPE.CloudWNP()
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.JMA"
+  ibaseDirCL = "/tank/utsumi/CLOUDTYPE/WNPAC"
 
 elif clVer[:5] == "MyWNP":
-  ver     = clVer[5:]
-  cl      = CLOUDTYPE.MyCloudWNP(ver=ver)
-  lcltype = cl.licl
-  dclid   = cl.dclid
+  ver        = clVer[5:]
+  cl         = CLOUDTYPE.MyCloudWNP(ver=ver)
   ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%s"%(ver)
-  ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP%s"%(ver)
+  ibaseDirCL = rootDir + "/CLOUDTYPE/%s"%(clVer)
 
 if clVer[5:8]==".M.":
   MidFlag = True
@@ -68,16 +53,51 @@ print "*"*50+"\n"
 print "MidFlag=",MidFlag
 print "*"*50
 
+
+lcltype = cl.licl
+#lcltype = [3]
 ncltype = len(lcltype)
+dclName = cl.dclName
+dclShortName = cl.dclShortName
+dclid   = cl.dclid
+LatUp   = cl.Lat
+LonUp   = cl.Lon
 
-# Cloud Type
-LatUp = cl.Lat
-LonUp = cl.Lon
 
+maskPath  = "/tank/utsumi/data/RadarAMeDAS/mask/RAmask.kubota.0.20x0.25WNP.261x265" 
+a2ramask  = fromfile(maskPath, float32).reshape(261,265)
+a2ramask  = ma.masked_equal(a2ramask, -9999.)
 
+# land sea mask
+landfracDir = "/home/utsumi/mnt/wellshare/PMM/WNP.261x265/MASK"
+landfracPath= landfracDir + "/landfrac.%dx%d"%(cl.ny, cl.nx)
+a2lndfrc    = fromfile(landfracPath, float32).reshape(261,265)
+
+a2lndmask   = ma.masked_less(a2lndfrc,1.0).mask  # mask sea&coast
+a2seamask   = ma.masked_greater(a2lndfrc,0.0).mask # mask land&coast
+a2cstmask   = ma.masked_equal(a2lndfrc, 1.0).mask \
+             +ma.masked_equal(a2lndfrc, 0.0).mask  # mask land&sea
+
+dLSmask     = {"lnd":a2lndmask, "sea":a2seamask, "cst":a2cstmask}
+llndsea     = ["lnd","sea","cst"]
 #*****************
 class MyIOException(Exception): pass
 
+#*****************
+def check_nodata(lNoData, DTime):
+    DTime = DTime
+    Year = DTime.year
+    Mon  = DTime.month
+    Day  = DTime.day
+    Hour = DTime.hour
+    Minute = DTime.minute
+    if "%04d-%02d-%02d-%02d-%02d"%(Year,Mon,Day,Hour,Minute) in lNoData:
+      print "skip", DTime
+      return "NoData"
+    else:
+      print DTime,"Not listed in"
+      print nodataPath
+      return "error"
 
 #*****************
 def ret_mmh(DTime, dattype):
@@ -86,7 +106,7 @@ def ret_mmh(DTime, dattype):
     a2pr    = us.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
   elif dattype =="GSMaP.MW":
     a2sateinfo = gsmap.load_sateinfo(DTime)
-    a2prOrg = ma.masked_where(a2sateinfo <=0,
+    a2prOrg = ma.masked_where(a2sateinfo <0,
                ma.masked_less(gsmap.load_mmh(DTime),0.0)
               ).filled(miss)    # mm/h, forward
 
@@ -99,6 +119,7 @@ def ret_mmh(DTime, dattype):
               ).filled(miss)    # mm/h, forward
 
     a2pr    = us.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
+
   elif dattype =="IMERG":
     var    = "precipitationCal"
     DTime0 = DTime
@@ -133,6 +154,7 @@ def ret_mmh(DTime, dattype):
   elif dattype =="RA":
     a2prOrg = ra.loadForward_mmh(DTime,mask=True).filled(miss)    # mm/h, forward
     a2pr    = us.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
+    a2pr    = ma.masked_where(a2ramask.mask, a2pr).filled(miss)
 
   elif dattype =="KuPR":
     DTime0   = DTime
@@ -181,7 +203,6 @@ def ret_mmh(DTime, dattype):
     else:
       raise MyIOException()
 
-
   elif dattype =="GMI":
     DTime0   = DTime
     DTime1   = DTime + timedelta(minutes=30)
@@ -218,17 +239,19 @@ def ret_mmh(DTime, dattype):
       a2pr    = ma.masked_less(
                 array([a2pr0,a2pr1]), 0.0
                 ).mean(axis=0)*60.*60.  # mm/s --> mm/h
+
     elif (exist0==True)&(exist1==False):
       a2pr    = ma.masked_less(
                 fromfile(dataPath0, float32).reshape(ny,nx), 0.0
                 )*60.*60.  # mm/s --> mm/h
+
     elif (exist0==False)&(exist1==True):
       a2pr    = ma.masked_less(
                 fromfile(dataPath1, float32).reshape(ny,nx), 0.0
                 )*60.*60.  # mm/s --> mm/h
     else:
       raise MyIOException()
-
+   
   else:
     print "check ret_mmh"; sys.exit()
   return a2pr
@@ -250,16 +273,15 @@ for dattype in ldattype:
     LonOrg= imerg.Lon
     us    = Regrid.UpScale()
     us(LatOrg, LonOrg, LatUp, LonUp, globflag=False)
-  
+
   elif dattype == "RA":
-    import myfunc.IO.RadarAMeDAS as RadarAMeDAS
+    import myfunc.IO.RadarAMeDAS
     ra    = RadarAMeDAS.RadarAMeDAS(prj="ra_0.01")
     LatOrg= ra.Lat
     LonOrg= ra.Lon
-  
     us    = Regrid.UpScale()
     us(LatOrg, LonOrg, LatUp, LonUp, globflag=False)
-  
+ 
   elif dattype in ["KuPR","GMI"]:
     pass
   else:
@@ -272,98 +294,115 @@ for dattype in ldattype:
     Mon    = YM[1]
     iDay   = 1
     eDay   = calendar.monthrange(Year,Mon)[1]
-    #eMinute= ret_eMinute(dattype)
-  
+ 
     iDTime = datetime(Year,Mon,iDay,0,0)
     eDTime = datetime(Year,Mon,eDay,23,0)
-  
+ 
     dDTime = timedelta(hours=1)
     lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
-    #lDTime = lDTime[:24]   # test
+    #lDTime = lDTime[24*2:24*9]   # test
   
     # No Data list for Cloud
-    f = open(cl.baseDir + "/%04d%02d/list.nodata.txt"%(Year,Mon), "r")
+    nodataPath = cl.baseDir + "/%04d%02d/list.nodata.txt"%(Year,Mon)
+    f = open(nodataPath, "r")
     lNoData = [s.strip() for s in f.readlines()]
     f.close()
   
     # Initialize
-    da3sum = {binPr: zeros([ncltype,ny,nx],float32) for binPr in lbinPr}
-    da3num = {binPr: zeros([ncltype,ny,nx],int32  ) for binPr in lbinPr} # Int32 !!
-    
-    a2oneint= ones([ny,nx],int32)
-  
+    lkeys = [[lndsea,icl] for lndsea in llndsea
+                          for icl    in lcltype]
+    dpr = {(lndsea,icl):deque([]) for [lndsea,icl] in lkeys} 
+    dku = {(lndsea,icl):deque([]) for [lndsea,icl] in lkeys}
+
     for DTime in lDTime:
-      print DTime
-      try:
-        a2pr    = ret_mmh(DTime, dattype=dattype)    # mm/h, forward
-        a2pr    = ma.masked_equal(a2pr, miss)
-      except MyIOException as error:
-        print "MyIOException: Skip",DTime
-        continue
-  
-  
-      # load Cloud Type 
+
+      # load Cloud Type
       if MidFlag == True:
         DTimeCL = DTime + timedelta(minutes=30)
-      elif MidFlag == False:
-        DTimeCL = DTime
       else:
-        print "check MidFlag", MidFlag, sys.exit()
+        DTimeCL = DTime
+
       try:
-        if clVer   == "JMA1":
+        if   clVer  == "JMA1":
           a2cl = cl.loadData(DTimeCL, DType="clc")
         elif clVer[:5] == "MyWNP":
           a2cl = cl.loadData(DTimeCL)
 
       except IOError:
-        Year = DTimeCL.year
-        Mon  = DTimeCL.month
-        Day  = DTimeCL.day
-        Hour = DTimeCL.hour
-        Minute = DTimeCL.minute
-        if "%04d-%02d-%02d-%02d-%02d"%(Year,Mon,Day,Hour,Minute) in lNoData:
-          print "skip", DTimeCL
-          continue
-        else:
-          print "check cloud data"
-          print DTimeCL
-          print "stop"
-          sys.exit() 
-      #-----------------
-      for binPr in lbinPr:
-        if binPr==0.0:
-          a2tmp1  = ma.masked_greater(a2pr, binPr)
-        else:
-          a2tmp1  = ma.masked_greater_equal(a2pr, binPr)
-    
-        for cltype in lcltype:
-          clid   = dclid[cltype]
-          a2tmp2 = ma.masked_where(a2cl !=clid, a2tmp1)
-      
-          da3sum[binPr][cltype] = da3sum[binPr][cltype] + a2tmp2.filled(0.0)
-          da3num[binPr][cltype] = da3num[binPr][cltype] + ma.masked_where(a2tmp2.mask, a2oneint).filled(0)
-  
-    # Save Monthly output
-    #rootDir = "/tank/utsumi"
-    rootDir = "/home/utsumi/mnt/well.share"
-    if   clVer == "JMA1":
-      baseDir = rootDir + "/PMM/WNP.261x265/CL.JMA"
-    elif clVer[:5] == "MyWNP":
-      baseDir = rootDir + "/PMM/WNP.261x265/CL.My%s"%(ver)
+        print "NoCloud",DTimeCL
+        check = check_nodata(lNoData, DTimeCL)
+        if check=="NoData": continue
+        else:sys.exit()
 
-    oDir    = baseDir + "/CL.Pr.%s/%04d"%(dattype,Year)
-    util.mk_dir(oDir)
-  
-    # Bin file
-    binPath = oDir + "/CloudType.txt"
-    sout    = "\n".join(["%d:%d"%(cltype, dclid[cltype]) for cltype in lcltype]).strip()
-    f=open(binPath,"w"); f.write(sout); f.close()
-  
-    for binPr in lbinPr:
-      sumPath   = oDir + "/sum.P%05.1f.%04d.%02d.%dx%dx%d"%(binPr, Year,Mon, ncltype,ny,nx)
-      numPath   = oDir + "/num.P%05.1f.%04d.%02d.%dx%dx%d"%(binPr, Year,Mon, ncltype,ny,nx)
+      #-- load KuPR precipitation --
+      try:
+        a2ku   = ret_mmh(DTime, dattype="KuPR")    # mm/h, forward
+        a2ku   = ma.masked_equal(a2ku, miss)
+      except MyIOException as error:
+        print "MyIOException: Skip","KuPR",DTime
+        continue
+
+      #-- load precipitation 
+      try:
+        a2pr    = ret_mmh(DTime, dattype=dattype)    # mm/h, forward
+        a2pr    = ma.masked_equal(a2pr, miss)
+      except MyIOException as error:
+        print "MyIOException: Skip",dattype,DTime
+        continue
+
+      print DTime
+      #-- general mask
+      a2mask = a2ku.mask + a2pr.mask
+
+      #-- mask by cloud and land/sea
+      lkeys = [[lndsea,icl] for lndsea in llndsea
+                            for icl     in lcltype]
+      for [lndsea, icl] in lkeys: 
+        clid = dclid[icl]
+        a2mask1 = ma.masked_not_equal(a2cl,clid).mask \
+                 + a2mask\
+                 +dLSmask[lndsea]
+                   
+        a2prtmp = ma.masked_where(a2mask1, a2pr)
+        a2kutmp = ma.masked_where(a2mask1, a2ku)
+
+        dpr[lndsea,icl].extend(a2prtmp.compressed())
+        dku[lndsea,icl].extend(a2kutmp.compressed())
+
+    #-- Save --------- 
+    lkeys = [[lndsea,icl] for lndsea in llndsea
+                          for icl     in lcltype]
+    for [lndsea,icl] in lkeys:
+      #baseDir  = "/home/utsumi/mnt/wellshare/PMM/WNP.261x265"
+      baseDir  = ibaseDir
+      sDir     = baseDir + "/VsKuPR.CL.%s/%04d"%(dattype,Year)
+
+      prPath   = sDir + "/%s.%04d.%02d.%s.%s.bn"%(dattype,Year,Mon,lndsea, dclShortName[icl])
+      kuPath   = sDir + "/KuPR.%04d.%02d.%s.%s.bn"%(Year,Mon,lndsea, dclShortName[icl])
+
+      util.mk_dir(sDir)
+      array(dpr[lndsea,icl], float32).tofile(prPath)
+      array(dku[lndsea,icl], float32).tofile(kuPath)
+
+      print prPath
+
+    # Combine lnd, sea, cst
+    for icl in lcltype:
+      baseDir = ibaseDir
+      sDir  = baseDir + "/VsKuPR.CL.%s/%04d"%(dattype,Year)
+
+      lstype = [dattype, "KuPR"]
+
+      for stype in lstype:
+        lndPath = sDir + "/%s.%04d.%02d.%s.%s.bn"%(stype,Year,Mon,"lnd", dclShortName[icl])
+        seaPath = sDir + "/%s.%04d.%02d.%s.%s.bn"%(stype,Year,Mon,"sea", dclShortName[icl])
+        cstPath = sDir + "/%s.%04d.%02d.%s.%s.bn"%(stype,Year,Mon,"cst", dclShortName[icl])
     
-      da3sum[binPr].tofile(sumPath)
-      da3num[binPr].tofile(numPath)  
-      print sumPath
+        alnd    = fromfile(lndPath, float32) 
+        asea    = fromfile(seaPath, float32) 
+        acst    = fromfile(cstPath, float32)
+        aany    = r_[alnd, asea,acst]
   
+        anyPath = sDir + "/%s.%04d.%02d.%s.%s.bn"%(stype,Year,Mon,"any", dclShortName[icl])
+        aany.astype(float32).tofile(anyPath)
+        print anyPath

@@ -15,17 +15,18 @@ clVer = "MyWNP.M.3"
 iYM = [2014,4]
 eYM = [2015,6]
 #iYM = [2014,4]
-#eYM = [2014,4]
+#eYM = [2014,5]
 
 lYM = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
 
-ldattype = ["KuPR","GMI","IMERG","IMERG.MW","IMERG.IR","GSMaP","GSMaP.MW","GSMaP.IR"]
+ldattype = ["RA","KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
+#ldattype = ["RA","KuPR"]
 #ldattype = ["RA"]
 
 # 
 #rootDir = "/tank/utsumi"
-rootDir = "/home/utsumi/mnt/wellshare"
+rootDir = "/home/utsumi/mnt/well.share"
 if clVer   == "JMA1":
   cl         = CLOUDTYPE.CloudWNP()
   ncltype = 8
@@ -50,38 +51,20 @@ Lon   = cl.Lon
 dommask  = None
 
 #BBox    = [[-0.1, 113.875],[52.1, 180.125]]  # WN.Pac
-#BBox    = [[20., 118.],[48., 150.]]    # RadarAMeDAS
-BBox    = [[20., 118.],[40., 150.]]    # RadarAMeDAS
+BBox    = [[20., 118.],[48., 150.]]    # RadarAMeDAS
 miss  = -9999.
 
 
-#lbinPr  = [0.0, 0.1, 0.3, 0.5, 0.7] + range(1,9+1,1) + range(10,18+1,2) + range(20, 40+1,4) +[999]  # Maxs of bin range
-lbinPr  = [0.1, 0.3, 0.5, 0.7] + range(1,9+1,1) + range(10,18+1,2) + range(20, 40+1,4) +[999]  # Maxs of bin range
+#lbinPr  = [0.0, 0.1, 0.3, 0.5, 0.7] + range(1,9+1) + range(10,48+1,2) + [999]
+#lbinPr  = [0.1, 0.3, 0.5, 0.7] + range(1,9+1) + range(10,48+1,2) + [999]
+#lbinPr  = [0.1, 0.3, 0.5, 0.7] + range(1,9+1) + range(10,48+1,2) + [999]
+lbinPr  = [0.0, 0.1, 0.3, 0.5, 0.7] + range(1,9+1,1) + range(10,18+1,2) + range(20, 40+1,4) +[999]  # Maxs of bin range
 dclName = cl.dclName
 dclShortName = cl.dclShortName
 
-#llbinPr = [[0, lbinPr[0]]] + zip(lbinPr[0:-1], lbinPr[1:])
-llbinPr = zip(lbinPr[0:-1], lbinPr[1:])
+llbinPr = [[0, lbinPr[0]]] + zip(lbinPr[0:-1], lbinPr[1:])
 
-# land sea mask
-landfracDir = "/home/utsumi/mnt/wellshare/PMM/WNP.261x265/MASK"
-landfracPath= landfracDir + "/landfrac.%dx%d"%(cl.ny, cl.nx)
-a2lndfrc    = fromfile(landfracPath, float32).reshape(261,265)
-
-a2lndmask   = ma.masked_less(a2lndfrc,1.0).mask  # mask sea&coast
-a2seamask   = ma.masked_greater(a2lndfrc,0.0).mask # mask land&coast
-a2cstmask   = ma.masked_equal(a2lndfrc, 1.0).mask \
-             +ma.masked_equal(a2lndfrc, 0.0).mask  # mask land&sea
-a2anymask   = ma.masked_equal(zeros([ny, nx]), 1.0).mask
-da2lsmask   = {"lnd":a2lndmask, "sea":a2seamask, "cst":a2cstmask,"any":a2anymask}
-
-da3lsmask   = {"lnd":resize(a2lndmask,[ncltype,ny,nx])
-             , "sea":resize(a2seamask,[ncltype,ny,nx])
-             , "cst":resize(a2cstmask,[ncltype,ny,nx])
-             , "any":resize(a2anymask,[ncltype,ny,nx])}
-
-llndsea     = ["sea","lnd","cst"]
-
+llndsea = ["any","lnd","sea","cst"]
 #----------------------
 iX      = bisect_left (Lon,BBox[0][1])
 eX      = bisect_right(Lon,BBox[1][1])
@@ -100,16 +83,6 @@ else:
   a3dommask = array([a2dommask for i in range(len(lcltype))])
 
 #----------------------
-def ret_ldatname(ldattype):
-    ldatname = []
-    for dattype in ldattype:
-        if dattype.split(".")[-1] == "MW":
-            datname = dattype.split(".")[0]+".PMW"
-        else:
-            datname = dattype
-        ldatname.append(datname)
-    return ldatname
-
 def aveCLnum(iYM, eYM, icl):
   clName = dclShortName[icl]
   #sDir   = "/tank/utsumi/CLOUDTYPE/WNPAC/num"
@@ -160,8 +133,7 @@ def accDat(lYM, binPr, sumnum="num"):
   return accDat
 
 def ret_pdf(lBin,lNum):
-  #llBin  = [[0,lBin[0]]] + zip(lBin[:-1],lBin[1:])
-  llBin  = zip(lBin[:-1],lBin[1:])
+  llBin  = [[0,lBin[0]]] + zip(lBin[:-1],lBin[1:])
   lMid   = [mean(Bin) for Bin in llBin]
   lWidth = array([Bin[1]-Bin[0] for Bin in llBin], float32)
   lpdf   = array(lNum)/sum(lNum).astype(float32)/lWidth
@@ -173,8 +145,7 @@ def ret_Cnt(lBin,lNum, lSum, icltype):
   elif icltype ==99:
     a2CLnum = array([aveCLnum(iYM,eYM,icltype) for icltype in lcltype]).sum(axis=0)
 
-  #llBin  = [[0,lBin[0]]] + zip(lBin[:-1],lBin[1:])
-  llBin  = zip(lBin[:-1],lBin[1:])
+  llBin  = [[0,lBin[0]]] + zip(lBin[:-1],lBin[1:])
   lMid   = [mean(Bin) for Bin in llBin]
   lWidth = array([Bin[1]-Bin[0] for Bin in llBin], float32)
   lpdf   = array(lNum)/sum(lNum).astype(float32)/lWidth
@@ -183,7 +154,7 @@ def ret_Cnt(lBin,lNum, lSum, icltype):
   lCnt   = lpdf *  a2CLnum.mean() * lMean
   return lMid, lCnt 
 
-def mk_Fig(lMid, dY, lndsea, icltype, figtype="pdf"):
+def mk_Fig(lMid, dY, icltype, figtype="pdf"):
   figplot = plt.figure(figsize=(4.1, 3.2))
   axplot  = figplot.add_axes([0.14, 0.10, 0.82,0.8])
 
@@ -202,7 +173,7 @@ def mk_Fig(lMid, dY, lndsea, icltype, figtype="pdf"):
                         for dattype in ldattype]
 
   # Plot
-  lines =[axplot.plot(lMid, dY[dattype,lndsea,icltype]
+  lines =[axplot.plot(lMid, dY[dattype,icltype]
               ,linewidth=linewidth[idattype], c=colors[idattype]
               ,linestyle=linestyle[idattype])
          for idattype, dattype in enumerate(ldattype)]
@@ -312,8 +283,8 @@ def mk_Fig(lMid, dY, lndsea, icltype, figtype="pdf"):
     tick.label.set_fontsize(17)
 
   # Add title
-  stitle = "%s %04d/%02d-%04d/%02d CL=%s"\
-             %(lndsea,iYM[0],iYM[1],eYM[0],eYM[1],dclName[icltype])
+  stitle = "%04d/%02d-%04d/%02d CL=%s"\
+             %(iYM[0],iYM[1],eYM[0],eYM[1],dclName[icltype])
 
   if dommask !=None:
     stitle = stitle + " %sdom"%(dommask)
@@ -322,37 +293,35 @@ def mk_Fig(lMid, dY, lndsea, icltype, figtype="pdf"):
 
   # Save figure
   #sDir  = "/tank/utsumi/PMM/WNP.261x265/pict"
-  #sDir  = "/home/utsumi/mnt/wellshare/PMM/WNP.261x265/pict"
-  #sDir  = "/home/utsumi/mnt/wellshare/PMM/WNP.261x265/pict.MyCL"
+  #sDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict"
+  #sDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/pict.MyCL"
   sDir  = ibaseDir + "/pict"
   util.mk_dir(sDir)
   if dommask==None:
-    sPath = sDir + "/%s.%s.%s.png"%(figtype, lndsea, dclShortName[icltype]) 
+    sPath = sDir + "/%s.%s.png"%(figtype, dclShortName[icltype]) 
   else:
-    sPath = sDir + "/%sdom.%s.%s.%s.png"%(dommask, figtype, lndsea, dclShortName[icltype]) 
+    sPath = sDir + "/%sdom.%s.%s.png"%(dommask, figtype, dclShortName[icltype]) 
   plt.savefig(sPath)
   print sPath
 
   plt.close()
   # Legend file
   legPath = sDir + "/legend.pdfs.png"
-  figleg  = plt.figure(figsize=(2.2,3))
+  figleg  = plt.figure(figsize=(2,3))
   lines = [line[0] for line in lines]  # 2D list to 1D list
-  figleg.legend(lines, ret_ldatname(ldattype))
+  figleg.legend(lines, ldattype)
   figleg.savefig(legPath)
  
   plt.close()
 
 #----------------------
-dNum = {(dattype,lndsea,icltype):[] 
+dNum = {(dattype,icltype):[] 
        for dattype in ldattype
-       for lndsea  in llndsea
        for icltype in lcltype + [99]
        }
 
-dSum = {(dattype,lndsea,icltype):[] 
+dSum = {(dattype,icltype):[] 
        for dattype in ldattype
-       for lndsea  in llndsea
        for icltype in lcltype + [99]
        }
 
@@ -371,29 +340,28 @@ for dattype in ldattype:
     a3num  = a3num1 - a3num0
     a3sum  = a3sum1 - a3sum0
 
-    for lndsea in llndsea:
-      for icltype in lcltype:
-        dNum[dattype,lndsea,icltype].append(ma.masked_array(a3num[icltype],da2lsmask[lndsea]).sum())
-        dSum[dattype,lndsea,icltype].append(ma.masked_array(a3sum[icltype],da2lsmask[lndsea]).sum())
-  
-      
-      dNum[dattype,lndsea,99].append(ma.masked_array(a3num,da3lsmask[lndsea]).sum())
-      dSum[dattype,lndsea,99].append(ma.masked_array(a3sum,da3lsmask[lndsea]).sum())
+    for icltype in lcltype:
+      dNum[dattype,icltype].append(a3num[icltype].sum())
+      dSum[dattype,icltype].append(a3sum[icltype].sum())
 
-  for lndsea in llndsea: 
-    for icltype in lcltype + [99]:
-      lMid, dPDF[dattype,lndsea,icltype] = ret_pdf(lbinPr, dNum[dattype,lndsea,icltype])
-      lMid, dCnt[dattype,lndsea,icltype] = ret_Cnt(lbinPr, dNum[dattype,lndsea,icltype], dSum[dattype,lndsea,icltype], icltype)
+    
+    dNum[dattype,99].append(a3num.sum())
+    dSum[dattype,99].append(a3sum.sum())
+
+  
+  for icltype in lcltype + [99]:
+    lMid, dPDF[dattype,icltype] = ret_pdf(lbinPr, dNum[dattype,icltype])
+    lMid, dCnt[dattype,icltype] = ret_Cnt(lbinPr, dNum[dattype,icltype], dSum[dattype,icltype], icltype)
+
 #-----------
 # Figure 
-for lndsea in llndsea:
-  for icltype in lcltype + [99]:
-    mk_Fig(lMid, dPDF, lndsea, icltype, figtype="pdf")
-    mk_Fig(lMid, dPDF, lndsea, icltype, figtype="pdf.focus")
-    #mk_Fig(lMid, dPDF, lndsea, icltype, figtype="Weak.pdf")
-    #mk_Fig(lMid, dPDF, lndsea, icltype, figtype="Heavy.pdf")
-    mk_Fig(lMid, dPDF, lndsea, icltype, figtype="log.Weak.pdf")
-    mk_Fig(lMid, dPDF, lndsea, icltype, figtype="log.Heavy.pdf")
-    mk_Fig(lMid, dCnt, lndsea, icltype, figtype="cnt")
-    mk_Fig(lMid, dCnt, lndsea, icltype, figtype="cnt.focus")
-    #mk_Fig(lMid, dCnt, lndsea, icltype, figtype="cnt"
+for icltype in lcltype + [99]:
+  mk_Fig(lMid, dPDF, icltype, figtype="pdf")
+  mk_Fig(lMid, dPDF, icltype, figtype="pdf.focus")
+  #mk_Fig(lMid, dPDF, icltype, figtype="Weak.pdf")
+  #mk_Fig(lMid, dPDF, icltype, figtype="Heavy.pdf")
+  mk_Fig(lMid, dPDF, icltype, figtype="log.Weak.pdf")
+  mk_Fig(lMid, dPDF, icltype, figtype="log.Heavy.pdf")
+  mk_Fig(lMid, dCnt, icltype, figtype="cnt")
+  mk_Fig(lMid, dCnt, icltype, figtype="cnt.focus")
+  #mk_Fig(lMid, dCnt, icltype, figtype="cnt"

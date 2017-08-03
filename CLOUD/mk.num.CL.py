@@ -7,7 +7,9 @@ import sys
 
 #clVer = "JMA1"
 #clVer = "MyWNP1"
-clVer = "MyWNP2"
+#clVer = "MyWNP2"
+#clVer = "MyWNP3"
+clVer = "MyWNP.M.3"
 
 iYM   = [2014,4]
 eYM   = [2015,6]
@@ -23,15 +25,23 @@ if   clVer == "JMA1":
     return  cl.loadData(DTime, DType="clc")
 
 elif clVer[:5] == "MyWNP":
-  ver        = int(clVer[5:])
+  ver        = clVer[5:]
   cl         = CLOUDTYPE.MyCloudWNP(ver=ver)
   ncltype = cl.ncl
   lcltype = cl.licl
   dclid   = cl.dclid
-  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%d"%(ver)
-  ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP%d"%(ver)
+  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%s"%(ver)
+  ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP%s"%(ver)
   def loadData(DTime):
     return  cl.loadData(DTime)
+
+if clVer[5:8]==".M.":
+  MidFlag = True
+else:
+  MidFlag = False
+print "*"*50+"\n"
+print "MidFlag=",MidFlag
+print "*"*50
 
 
 Lat   = cl.Lat
@@ -58,8 +68,12 @@ for YM in lYM:
   iDay   = 1
   eDay   = calendar.monthrange(Year,Mon)[1]
 
-  iDTime = datetime(Year,Mon,iDay,0,)
-  eDTime = datetime(Year,Mon,eDay,23)
+  if MidFlag == True:
+    iDTime = datetime(Year,Mon,iDay,0,30)
+    eDTime = datetime(Year,Mon,eDay,23,30)
+  elif MidFlag == False:
+    iDTime = datetime(Year,Mon,iDay,0,0)
+    eDTime = datetime(Year,Mon,eDay,23,0)
 
   dDTime = timedelta(hours=1)
   lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
@@ -75,7 +89,8 @@ for YM in lYM:
     Mon  = DTime.month
     Day  = DTime.day
     Hour = DTime.hour
-    if "%04d-%02d-%02d-%02d"%(Year,Mon,Day,Hour) in lNoData:
+    Minute=DTime.minute
+    if "%04d-%02d-%02d-%02d-%02d"%(Year,Mon,Day,Hour,Minute) in lNoData:
       continue
     a2cl = loadData(DTime)
     for icl in lcltype:
