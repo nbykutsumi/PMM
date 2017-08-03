@@ -17,7 +17,8 @@ import  pysftp
 from    datetime        import datetime, timedelta
 
 #--------------------------------------------------------
-outDir   = "/media/disk2/data"
+#outDir   = "/media/disk2/data"
+outDir   = "/home/utsumi/mnt/wellshare/data/TRMM"
 #--------------------------------------------------------
 class GPortal(object):
 
