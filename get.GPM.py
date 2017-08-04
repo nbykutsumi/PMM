@@ -8,8 +8,8 @@
 #
 # DESCRIPTION:
 #------------------------------------------------------cf0.2@20120401
-
 import  os,sys,re
+import  socket
 from    optparse        import OptionParser
 #from    cf.util.LOGGER  import *
 
@@ -17,6 +17,12 @@ import  pysftp
 from    datetime        import datetime, timedelta
 
 #--------------------------------------------------------
+hostname = socket.gethostname()
+if  hostname =="mizu":
+    outDir   = "/home/utsumi/mnt/wellshare/data/GPM"
+elif hostname=="well":
+    outDir   = "/media/disk2/share/data/GPM"
+
 #outDir   = "/media/disk2/data"
 outDir   = "/home/utsumi/mnt/wellshare/data/TRMM"
 #--------------------------------------------------------
@@ -103,11 +109,20 @@ class GPortal(object):
 
             subDir  = dtime.strftime('%Y/%m')
 
-            saveDir = os.path.join(outDir, self.prjName, self.subPrj, subDir)
+            #saveDir = os.path.join(outDir, self.prjName, self.subPrj, subDir)
+            saveDir = os.path.join(outDir, self.prjName, self.subPrj, self.version, subDir)
+
+            print "*"*50
+            print "*"*50
+            print "*"*50
+            print "*"*50
+            print saveDir
+
 
             if not os.path.exists( saveDir ): os.makedirs( saveDir )
 
-            outPath     = os.path.join(outDir, self.prjName, self.subPrj, srcPath)
+            #outPath     = os.path.join(outDir, self.prjName, self.subPrj, srcPath)
+            outPath     = os.path.join(outDir, self.prjName, self.subPrj, self.version, srcPath)
 
             if os.path.exists(outPath) and ow == False:
                 print 'Skip (ow:%5s) ::'%ow, outPath
