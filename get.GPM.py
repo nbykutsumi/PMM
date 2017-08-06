@@ -24,7 +24,7 @@ elif hostname=="well":
     outDir   = "/media/disk2/share/data/GPM"
 
 #outDir   = "/media/disk2/data"
-outDir   = "/home/utsumi/mnt/wellshare/data/TRMM"
+#outDir   = "/home/utsumi/mnt/wellshare/data/TRMM"
 #--------------------------------------------------------
 class GPortal(object):
 
