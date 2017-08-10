@@ -10,12 +10,13 @@ elif hostname=="well":
     orootDir   = "/media/disk2/share/data/GPM"
 
 
-iYM     = [1997,1]
+iYM     = [1998,1]
 eYM     = [1998,12]
 lYM	= util.ret_lYM(iYM,eYM)
 
 ow  = False # OverWrite
-prj	= ["TRMM","TRMM.PR","L3A25","07"]
+#prj	= ["TRMM","TRMM.PR","L3A25","07"]
+prj	= ["TRMM","TRMM.PR","L2A23","07"]
 sate	= prj[0]
 sensor	= prj[1]
 prdName = prj[2]

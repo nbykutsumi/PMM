@@ -158,7 +158,7 @@ def main(args,opts):
 #        gpm     = GPortal('TRMM.COMB')['L2B31']
 #        gpm     = GPortal('TRMM.PR')['L2A21']
 #        gpm     = GPortal('TRMM.PR')['L2A25']
-        gpm     = GPortal('TRMM.PR')['L3A25']
+        gpm     = GPortal('TRMM.PR')['L2A23']
 #        gpm     = GPortal('TRMM.TMI')['L2A12']
         #gpm.get_dtime( datetime(year,month,d), datetime(year,month,d), outDir='../' )
         print "call gpm.get_dtime"

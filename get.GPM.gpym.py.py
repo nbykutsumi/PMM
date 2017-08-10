@@ -9,7 +9,7 @@ lmon  = range(imon,emon+1)
 print lyear
 print lmon
 print "********************"
-prog = "./get.GPM.py"
+prog = "./get.GPM.gpym.py"
 for year in lyear:
   for mon in lmon:
     cmd = "%s %s %s"%(prog, year, mon)

@@ -8,8 +8,8 @@ import matplotlib
 matplotlib.use('Agg')
 
 iY  = 1999
-eY  = 2002
-#eY  = 2013
+#eY  = 2002
+eY  = 2013
 iYM =[iY,1]
 eYM =[eY,12]
 lYM = util.ret_lYM(iYM,eYM)
@@ -224,6 +224,145 @@ for iz in range(nz):
 """
 
 
+
+
+
+#"""
+#*****************************
+# Strat rain rate
+nz  = 1
+Var = "surfRainStratMean2"
+da2dat = {i:empty([ny,len(lYM)]) for i in range(nz)}
+for itime, (Y,M) in enumerate(lYM):
+    a3in = gpm.load_var(Y,M,Var)
+    for iz in range(nz):
+        da2dat[iz][:,itime] = ma.masked_less(a3in[iz],0).mean(axis=1)
+
+
+# Figure
+for iz in range(nz):
+    figPath = os.path.join(figDir, "TimeLat.%s.%02d.png"%(Var, iz))
+
+
+    stitle  = "strat near surf rain 3A25 %s [mm/h]"\
+                %(Var)
+    DrawTimeLat(da2dat[iz], figPath, stitle)
+
+#"""
+
+
+#"""
+#*****************************
+# Strat rain rate (Normalized)
+Var = "surfRainStratMean2"
+nz  = 1
+da2dat = {i:empty([ny,len(lYM)]) for i in range(nz)}
+da2out = {i:empty([ny,len(lYM)]) for i in range(nz)}
+for itime, (Y,M) in enumerate(lYM):
+    a3in = gpm.load_var(Y,M,Var)
+    for iz in range(nz):
+        da2dat[iz][:,itime] = ma.masked_less(a3in[iz],0).mean(axis=1)
+
+# Normalize
+for iz in range(nz):
+    a2clim     = mkClimMon(da2dat[iz])
+    da2out[iz] = (da2dat[iz] - a2clim)/a2clim
+
+
+# Figure
+for iz in range(nz):
+    figPath = os.path.join(figDir, "TimeLat.%s.Norm.%02d.png"%(Var, iz))
+
+
+    stitle  = "normalized near surf strat rain 3A25 %s [mm/h]"\
+                %(Var)
+    DrawTimeLat(da2out[iz], figPath, stitle)
+#"""
+
+#"""
+#*****************************
+# Strat rain pixels
+nz  = 1
+Var = "surfRainStratPix2"
+da2dat = {i:empty([ny,len(lYM)]) for i in range(nz)}
+for itime, (Y,M) in enumerate(lYM):
+    a3in = gpm.load_var(Y,M,Var)
+    for iz in range(nz):
+        da2dat[iz][:,itime] = ma.masked_less(a3in[iz],0).mean(axis=1)
+
+
+# Figure
+for iz in range(nz):
+    figPath = os.path.join(figDir, "TimeLat.%s.%02d.png"%(Var, iz))
+
+
+    stitle  = "strat near surf rain counts 3A25 %s [counts]"\
+                %(Var)
+    DrawTimeLat(da2dat[iz], figPath, stitle)
+#"""
+
+#"""
+#*****************************
+# Strat rain pixels (Normalized)
+Var = "surfRainStratPix2"
+nz  = 1
+da2dat = {i:empty([ny,len(lYM)]) for i in range(nz)}
+da2out = {i:empty([ny,len(lYM)]) for i in range(nz)}
+for itime, (Y,M) in enumerate(lYM):
+    a3in = gpm.load_var(Y,M,Var)
+    for iz in range(nz):
+        da2dat[iz][:,itime] = ma.masked_less(a3in[iz],0).mean(axis=1)
+
+# Normalize
+for iz in range(nz):
+    a2clim     = mkClimMon(da2dat[iz])
+    da2out[iz] = (da2dat[iz] - a2clim)/a2clim
+
+
+# Figure
+for iz in range(nz):
+    figPath = os.path.join(figDir, "TimeLat.%s.Norm.%02d.png"%(Var, iz))
+
+
+    stitle  = "normalized near surf strat counts 3A25 %s [counts]"\
+                %(Var)
+    DrawTimeLat(da2out[iz], figPath, stitle)
+#"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 """
 #*****************************
 # Shallow rain pixels
@@ -325,7 +464,7 @@ for iz in range(nz):
     DrawTimeLat(da2out[iz], figPath, stitle)
 """
 
-#"""
+"""
 #*****************************
 # storm height 
 nz  = 2
@@ -348,7 +487,7 @@ for iz in range(nz):
     vmin = 0
     vmax = 6000
     DrawTimeLat(da2dat[iz], figPath, stitle, vmin, vmax)
-#"""
+"""
 
 """
 #*****************************
@@ -376,6 +515,109 @@ for iz in range(nz):
 
     stitle  = "normalized Storm Height 3A25 %s [m] @%s"\
                 %(Var,lzname[iz])
+    DrawTimeLat(da2out[iz], figPath, stitle)
+"""
+
+"""
+#*****************************
+# Surface Rain 
+nz  = 1
+Var = "surfRainMean2"
+da2dat = {i:empty([ny,len(lYM)]) for i in range(nz)}
+for itime, (Y,M) in enumerate(lYM):
+    a3in = gpm.load_var(Y,M,Var)
+    for iz in range(nz):
+        da2dat[iz][:,itime] = ma.masked_less(a3in[iz],0).mean(axis=1)
+
+
+# Figure
+for iz in range(nz):
+    figPath = os.path.join(figDir, "TimeLat.%s.%02d.png"%(Var, iz))
+
+
+    stitle  = "non-zero near-surface rain [mm/h] %s 3A25"\
+                %(Var)
+    DrawTimeLat(da2dat[iz], figPath, stitle)
+"""
+
+"""
+#*****************************
+# Non-zero Surface Rain (Normalized)
+nz  = 1
+Var = "surfRainMean2"
+da2dat = {i:empty([ny,len(lYM)]) for i in range(nz)}
+da2out = {i:empty([ny,len(lYM)]) for i in range(nz)}
+for itime, (Y,M) in enumerate(lYM):
+    a3in = gpm.load_var(Y,M,Var)
+    for iz in range(nz):
+        da2dat[iz][:,itime] = ma.masked_less(a3in[iz],0).mean(axis=1)
+
+# Normalize
+for iz in range(nz):
+    a2clim     = mkClimMon(da2dat[iz])
+    da2out[iz] = (da2dat[iz] - a2clim)/a2clim
+
+
+# Figure
+for iz in range(nz):
+    figPath = os.path.join(figDir, "TimeLat.%s.Norm.%02d.png"%(Var, iz))
+
+
+    stitle  = "normalized non-zero near-surface rain %s 3A25 "\
+                %(Var)
+    DrawTimeLat(da2out[iz], figPath, stitle)
+"""
+
+"""
+#*****************************
+# Surface Rain Count
+nz  = 1
+Var = "surfRainPix2"
+da2dat = {i:empty([ny,len(lYM)]) for i in range(nz)}
+for itime, (Y,M) in enumerate(lYM):
+    a3in = gpm.load_var(Y,M,Var)
+    for iz in range(nz):
+        da2dat[iz][:,itime] = ma.masked_less(a3in[iz],0).mean(axis=1)
+
+
+# Figure
+for iz in range(nz):
+    figPath = os.path.join(figDir, "TimeLat.%s.%02d.png"%(Var, iz))
+
+
+    stitle  = "non-zero near-surface rain count [#] %s 3A25"\
+                %(Var)
+
+    vmin = 0
+    vmax = 300
+    DrawTimeLat(da2dat[iz], figPath, stitle, vmin=vmin, vmax=vmax)
+"""
+
+"""
+#*****************************
+# Surface Rain (Normalized)
+nz  = 1
+Var = "surfRainPix2"
+da2dat = {i:empty([ny,len(lYM)]) for i in range(nz)}
+da2out = {i:empty([ny,len(lYM)]) for i in range(nz)}
+for itime, (Y,M) in enumerate(lYM):
+    a3in = gpm.load_var(Y,M,Var)
+    for iz in range(nz):
+        da2dat[iz][:,itime] = ma.masked_less(a3in[iz],0).mean(axis=1)
+
+# Normalize
+for iz in range(nz):
+    a2clim     = mkClimMon(da2dat[iz])
+    da2out[iz] = (da2dat[iz] - a2clim)/a2clim
+
+
+# Figure
+for iz in range(nz):
+    figPath = os.path.join(figDir, "TimeLat.%s.Norm.%02d.png"%(Var, iz))
+
+
+    stitle  = "normalized non-zero near-surface rain count %s 3A25 "\
+                %(Var)
     DrawTimeLat(da2out[iz], figPath, stitle)
 """
 
