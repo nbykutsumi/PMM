@@ -10,8 +10,8 @@ elif hostname=="well":
     orootDir   = "/media/disk2/share/data/GPM"
 
 
-iYM     = [1998,1]
-eYM     = [1998,12]
+iYM     = [1999,1]
+eYM     = [2013,12]
 lYM	= util.ret_lYM(iYM,eYM)
 
 ow  = False # OverWrite

@@ -1,7 +1,7 @@
 from numpy import *
 import os, sys
 import myfunc.util          as util
-import myfunc.IO.GPyML3     as GPyML3
+import myfunc.IO.GPM        as GPM
 import matplotlib.pyplot    as plt
 import matplotlib
 
@@ -19,7 +19,7 @@ GRIDTYPE = 2
 version  = "07"
 figDir   = "/tank/utsumi/PMM/HCELL/pict"
 
-gpm = GPyML3.L3A25(version=version, GRIDTYPE=GRIDTYPE, crd="sa")
+gpm = GPM.L3A25(version=version, GRIDTYPE=GRIDTYPE, crd="sa")
 
 ny  = gpm.ny
 nx  = gpm.nx

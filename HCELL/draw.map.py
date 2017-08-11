@@ -1,4 +1,4 @@
-import myfunc.IO.GPyML3 as GPyML3
+import myfunc.IO.GPM as GPM
 from myfunc.fig import Fig
 from numpy import *
 import myfunc.IO.GSMaP as GSMaP
@@ -20,7 +20,7 @@ bnd = arange(0,9000,1000)
 #BBox   = [[0,30],[30,160]]
 BBox   = False
 cmap= "Spectral_r"
-gpm = GPyML3.L3A25(version=version,GRIDTYPE=GRIDTYPE, crd="sa", BBox=BBox)
+gpm = GPM.L3A25(version=version,GRIDTYPE=GRIDTYPE, crd="sa", BBox=BBox)
 
 print gpm.Lat
 print gpm.Lon
