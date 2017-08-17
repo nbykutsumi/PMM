@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, socket
 import myfunc.util      as util
 import calendar
 from   datetime         import datetime, timedelta
@@ -7,9 +7,17 @@ from   numpy            import *
 from   myfunc.IO        import GPM
 from   hcell_fsub import *
 
+hostname = socket.gethostname()
+if  hostname =="mizu":
+    orootDir   = "/home/utsumi/mnt/wellshare"
+elif hostname=="well":
+    orootDir   = "/media/disk2/share"
 
-iYM     = [1998,1]
-eYM     = [1998,1]
+orootDir = os.path.join(orootDir, "HCELL/PDF/ALL")
+
+
+iYM     = [1999,1]
+eYM     = [2003,12]
 lYM     = util.ret_lYM(iYM,eYM)
 
 #prj     = "TRMM.PR"
@@ -33,14 +41,14 @@ for Year,Mon in lYM:
 
     aCount= zeros([len(Bin)+2,ny,nx],int32)
     lPath = gpm.list_granule(Year,Mon)
-    #for srcPath in lPath:
-    for srcPath in lPath[0:1]:
-        print srcPath
+    for iPath,srcPath in enumerate(lPath):
+    #for iPath,srcPath in enumerate(lPath[153:156]):
+        print iPath,srcPath
 
         stormH  = gpm.load_var_granule(srcPath,Var)
         Lat     = gpm.load_var_granule(srcPath,"Latitude")
         Lon     = gpm.load_var_granule(srcPath,"Longitude")
-        rainType= gpm.load_var_granule(srcPath,"rainType").flatten()
+        #rainType= gpm.load_var_granule(srcPath,"rainType").flatten()
 
         #--------------------------
         # Mask Missing value
@@ -63,12 +71,16 @@ for Year,Mon in lYM:
         Lattmp   = ma.masked_where(aMsk, Lat   ).compressed()
         Lontmp   = ma.masked_where(aMsk, Lon   ).compressed()
 
-        aTmp     = hcell_fsub.obt2grid_count(stormHtmp, Lontmp, Lattmp, lon_first, lat_first, dlon, dlat, nx, ny)
+        if len(stormHtmp)==0:
+            aTmp = zeros([nx,ny],int32)
+        else:
+            aTmp     = hcell_fsub.obt2grid_count(Lontmp, Lattmp, lon_first, lat_first, dlon, dlat, nx, ny)
+
         aCount[0] = aCount[0] + aTmp.T
 
 
-        print "zero=",len(stormHtmp)
-        print "aCount[0]",aCount[0].sum()
+#        print "zero=",len(stormHtmp)
+#        print "aCount[0]",aCount[0].sum()
         #--------------------------
         # Rain events
         aMsk     = ma.masked_less_equal(stormH,0).mask
@@ -76,21 +88,29 @@ for Year,Mon in lYM:
         Lattmp   = ma.masked_where(aMsk, Lat   ).compressed()
         Lontmp   = ma.masked_where(aMsk, Lon   ).compressed()
 
-        aTmp  = hcell_fsub.obt2grid_hist(stormHtmp, Lontmp, Lattmp, Bin, lon_first, lat_first, dlon, dlat, nx, ny)
+        if len(stormHtmp)==0:
+            aTmp = zeros([nx,ny,len(Bin)+1],int32)
+        else:
+            aTmp  = hcell_fsub.obt2grid_hist(stormHtmp, Lontmp, Lattmp, Bin, lon_first, lat_first, dlon, dlat, nx, ny)
       
         for iz in range(len(Bin)+1):
             aCount[iz+1] = aCount[iz+1] + aTmp[:,:,iz].T
 
-        print "non-zero=",len(stormHtmp)
-        print "aCount[1:]",aCount[1:].sum()
+#        print "non-zero=",len(stormHtmp)
+#        print "aCount[1:]",aCount[1:].sum()
+#
+#        tmp  = ma.masked_greater_equal(stormHtmp,12000)
+#        print "0< <12000",len(tmp.compressed())
+#        print "aCount[1:13]",aCount[1:13].sum()
 
-        tmp  = ma.masked_greater_equal(stormHtmp,12000)
-        print "0< <12000",len(tmp.compressed())
-        print "aCount[1:13]",aCount[1:13].sum()
+
+    #------------------------------
+    # Write
+    #------------------------------
+    outDir = os.path.join(orootDir, "%04d"%(Year))
+    outPath= os.path.join(outDir, "num.%02d.%02dx%03dx%03d"%(Mon,len(Bin)+2, ny, nx))
+    util.mk_dir(outDir)
+    aCount.tofile(outPath)
+    print outPath
 
 
-        for i in range((aCount.shape)[0]):
-            print i, aCount[i].sum()
-
-        #--------------------------
-        # 

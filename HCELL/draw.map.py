@@ -1,8 +1,6 @@
 import myfunc.IO.GPM as GPM
 from myfunc.fig import Fig
 from numpy import *
-import myfunc.IO.GSMaP as GSMaP
-
 
 
 sensor = "TRMM.PR"
