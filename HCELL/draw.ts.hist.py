@@ -161,23 +161,25 @@ for [season,rtype,landsea] in lkey:
 #        cmap   = "RdBu_r" 
 #        DrawTimeH(a2norm, figPath, stitle, cmap,vmin=-1.0, vmax=1.0)
 
+    """
+    # PDF
+    for ielat in lielat:
+        ilat,elat = ielat
 
-#    # PDF
-#    for ielat in lielat:
-#        ilat,elat = ielat
-#
-#
-#        a2pdf    = empty([nz,nYear])
-#        a1sum    = d2hist[ielat].sum(axis=0).astype(float32)
-#        for it in range(nYear):
-#            a2pdf[:,it] = d2hist[ielat][:,it]/a1sum[it]
-#        a2out    = a2pdf
-#            
-#        stitle = "stormH %s %s %s Lat:%.1f-%.1f deg"%(landsea, rtype, season, ilat, elat)
-#        figDir = "/tank/utsumi/PMM/HCELL/pict"
-#        figPath= os.path.join(figDir,"TS.PDF.%s.%s.%s.Lat.%.1f.%.1f.png"%(landsea,rtype,season,ilat,elat))
-#    
-#        DrawTimeH(a2out, figPath, stitle)
+
+        a2pdf    = empty([nz,nYear])
+        a1sum    = d2hist[ielat].sum(axis=0).astype(float32)
+        for it in range(nYear):
+            a2pdf[:,it] = d2hist[ielat][:,it]/a1sum[it]
+        a2out    = a2pdf
+
+        stitle = "stormH %s %s %s Lat:%.1f-%.1f deg"%(landsea, rtype, season, ilat, elat)
+        figDir = "/tank/utsumi/PMM/HCELL/pict"
+        figPath= os.path.join(figDir,"TS.PDF.%s.%s.%s.Lat.%.1f.%.1f.png"%(landsea,rtype,season,ilat,elat))
+    
+        DrawTimeH(a2out, figPath, stitle)
+    """
+
 
     # Anomary of PDF
     for ielat in lielat:
@@ -194,11 +196,10 @@ for [season,rtype,landsea] in lkey:
         for iz in range(nz):
             a2norm[iz] = (a2pdf[iz]-a1clim[iz]) / a1clim[iz]
         a2norm = ma.masked_invalid(a2norm)
-            
-        stitle = "stormH %s %s %s Lat:%.1f-%.1f deg"%(landsea, rtype, season, ilat, elat)
+
+        stitle = "H RelF %s %s %s Lat:%.1f-%.1f deg"%(landsea, rtype, season, ilat, elat)
         figDir = "/tank/utsumi/PMM/HCELL/pict"
-        figPath= os.path.join(figDir,"TS.PDF.Norm%s.%s.%s.Lat.%.1f.%.1f.png"%(landsea,rtype,season,ilat,elat))
-    
+        figPath= os.path.join(figDir,"TS.PDF.Norm.%s.%s.%s.Lat.%.1f.%.1f.png"%(landsea,rtype,season,ilat,elat)) 
         cmap   = "RdBu_r" 
         DrawTimeH(a2norm, figPath, stitle, cmap,vmin=-1.0, vmax=1.0)
 

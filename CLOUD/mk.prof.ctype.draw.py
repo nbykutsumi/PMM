@@ -57,6 +57,7 @@ da2Num   = {clid: zeros([len(lcsid),nbin], int)
 
 dEvents  = {clid: 0 for clid in lclid}
 
+"""   #test
 for Year,Mon in lYM:
   srcDir = os.path.join(ibaseDir, "Trc.%s"%(prdName), "%04d.%02d"%(Year,Mon))
   strYM    = "%04d.%02d"%(Year,Mon)
@@ -90,6 +91,17 @@ for Year,Mon in lYM:
 
     da2Num[clid] = da2Num[clid] + a2num
 
+""" #test
+
+# test --------------
+ibaseDir = "/home/utsumi/temp"
+da2Num ={}
+dEvents={}
+for clid in lclid:
+    da2Num[clid] = arange(nbin*(len(lcsid)+1)).reshape(len(lcsid)+1,nbin)
+    dEvents[clid]= nbin*(len(lcsid)+1)
+#--------------------
+
 # Draw
 for clid in lclid[:-1]:
   fig  = plt.figure(figsize=(3.5,1.8))
@@ -99,12 +111,15 @@ for clid in lclid[:-1]:
   y    = lz - (lz[1]-lz[0])*0.5      # height bin size=240 m
   X,Y  = meshgrid(x,y)
   Z    = flipud(da2Num[clid][1:].T)  # don't show csid=0: no cloud
+  print "*"*50
+  print Z
   Z    = ma.masked_equal(Z,0) 
   Z    = Z / float(dEvents[clid]) * 100. # [%]
+  cmap = "binary"
   if clid in [1,2]:
-    im   = ax.pcolormesh(X, Y, Z, vmin=0, vmax=100)
+    im   = ax.pcolormesh(X, Y, Z, cmap=cmap, vmin=0, vmax=100)
   else:
-    im   = ax.pcolormesh(X, Y, Z, vmin=0, vmax=50)
+    im   = ax.pcolormesh(X, Y, Z, cmap=cmap, vmin=0, vmax=50)
   
   # Colorbar
   cb   = plt.colorbar(im)

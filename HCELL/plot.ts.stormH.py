@@ -20,7 +20,7 @@ if  hostname =="mizu":
 elif hostname=="well":
     rootDir   = "/media/disk2/share"
 
-rootDir = os.path.join(rootDir, "HCELL/SUMNUM/Type")
+baseDir = os.path.join(rootDir, "HCELL/SUMNUM/Type")
 
 #lrtype = ["strat","conv","other","all"]
 lrtype = ["all"]
@@ -30,6 +30,12 @@ miss= -9999.
 Lat = arange(-37+0.25,37-0.25+0.01,0.5)
 Lon = arange(0+1.0,360-1.0+0.01,2.0)
 llndsea = ["sea","lnd"]
+lhemi   = ["N","S"]
+#lhemi   = ["S"]
+
+lielatN= [[0,5],[5,10],[10,15],[15,20],[20,25],[25,30],[30,35]] 
+lielatS= [[-x[1],-x[0]] for x in lielatN]
+dlielat = {"N":lielatN, "S":lielatS}
 #-------------------------------
 # Function
 #---------
@@ -40,7 +46,7 @@ def load_landfrac():
 
 def ret_sumnum_single(sumnum,Year,Mon,rtype):
     if rtype !="all":
-        srcDir = os.path.join(rootDir, "%04d"%(Year))
+        srcDir = os.path.join(baseDir, "%04d"%(Year))
         srcPath= os.path.join(srcDir, "%s.%s.%02d.%03dx%03d"%(sumnum, rtype,Mon, ny, nx))
         a2in   = fromfile(srcPath, int32).reshape(ny,nx)
     else:
@@ -179,7 +185,7 @@ def PlotTimeFit(a2in, la2fit, la1xfit, lslp, lpv, lname, figPath, legPath, stitl
 
     lines   = ax.get_lines()
     figleg  = plt.figure(figsize=(2,2))
-    figleg.legend(lines, lname)
+    figleg.legend(lines[::-1], lname[::-1])
     figleg.savefig(legPath)   
     plt.close()
 
@@ -190,19 +196,27 @@ def PlotTimeFit(a2in, la2fit, la1xfit, lslp, lpv, lname, figPath, legPath, stitl
     for iperiod,a2fit in enumerate(la2fit):
         for iline,a1fit in enumerate(a2fit):
             x = la1xfit[iperiod]
-            print x
-            print a1fit
             ax.plot(x,a1fit,color=colors[iline],linewidth=1,linestyle=dlinestyle[iperiod])
 #    
 
     # set ylim
-    ax.set_ylim((3500,6500))
+    if   lndsea=="sea":
+        ymin = 3200
+        ymax = 6600
+        textpos = 5500
+    elif lndsea=="lnd":
+        ymin = 3600
+        ymax = 7200
+        textpos = 3700
+
+
+    ax.set_ylim((ymin,ymax))
 
     # text
     for iperiod,a1slp in enumerate(la1slp):
         for iline,slp in enumerate(a1slp):
             pv = la1pv[iperiod][iline]
-            plt.text(1998+8*iperiod,6000+100*iline,"%.1f (%.2f)"%(slp,pv), color=colors[iline])
+            plt.text(1999+8*iperiod,textpos+120*iline,"%.1f (%.2f)"%(slp,pv), color=colors[iline])
 
     # Save main plot
     plt.savefig(figPath)
@@ -216,6 +230,11 @@ def ret_y(lat):
     return int(floor((lat - lat_first)/dlat))
 
 #-------------------------------
+a2landfrac= load_landfrac()
+da2lndsea={"lnd":ma.masked_not_equal(a2landfrac,1).mask
+         ,"sea" :ma.masked_not_equal(a2landfrac,0).mask
+         }
+
 
 d2dat = {(rtype,lndsea):zeros([ny,len(lYM)],int32) for rtype in lrtype for lndsea in llndsea}
 d2num = {(rtype,lndsea):zeros([ny,len(lYM)],int32) for rtype in lrtype for lndsea in llndsea}
@@ -227,8 +246,13 @@ for it,(iYear,iMon) in enumerate(lYM):
     print eYear,eMon
     for rtype in lrtype:
         for lndsea in llndsea:
+            a2lndsea = da2lndsea[lndsea]
             a2num = ret_sumnum("num",[iYear,iMon],[eYear,eMon], rtype)
             a2sum = ret_sumnum("sum",[iYear,iMon],[eYear,eMon], rtype)
+
+            # mask lndsea
+            a2num = ma.masked_where(a2lndsea, a2num)
+            a2sum = ma.masked_where(a2lndsea, a2sum)
             a1num= a2num.mean(axis=1) 
             a1sum= a2sum.mean(axis=1) 
                
@@ -239,27 +263,7 @@ for it,(iYear,iMon) in enumerate(lYM):
             d2dat[rtype,lndsea][:,it] = a1dat
 
 
-#-- monthly ----
-for rtype in lrtype:
-    figDir  = "/tank/utsumi/PMM/HCELL/pict"
-#    for lndsea in llndsea:
-#        # Storm Height
-#        a2out   = d2dat[rtype]
-#        figPath = os.path.join(figDir, "TimeLat.sumnum.stormH.%s.png"%(rtype))
-#        stitle  = "stormH (%s) 2A23"%(rtype)
-#        DrawTimeLat(a2out, figPath, stitle) 
-#   
-#        # Normalized
-#        a2clim  = mkClimMon(d2dat[rtype])
-#        a2out   = (d2dat[rtype]-a2clim) / a2clim
-#   
-#        figPath = os.path.join(figDir, "TimeLat.sumnum.stormH.Norm.%s.png"%(rtype))
-#        stitle  = "Normalized stormH (%s) 2A23"%(rtype)
-#        cmap    = "RdBu_r"
-#        DrawTimeLat(a2out, figPath, stitle, cmap=cmap, vmin=-0.1, vmax=0.1)
-
-
-#-- Seasonal ----
+figDir  = "/tank/utsumi/PMM/HCELL/pict"
 lseason = ["DJF","MAM","JJA","SON"]
 dik     = {"DJF":0,"MAM":3,"JJA":6,"SON":9}
 if iYM[1] != 12:
@@ -271,115 +275,74 @@ if eYM[1] != 11:
     print "the last month must be Nov."
     sys.exit()
 
-
-for rtype in ["all"]:
-#    for lndsea in llndsea:
-#        figDir  = "/tank/utsumi/PMM/HCELL/pict"
-#    
-#        for season in lseason:
-#            ik   = dik[season] 
-#    
-#            # Storm Height
-#            a2sum =   d2sum[rtype,lndsea][:,ik::12]\
-#                     +d2sum[rtype,lndsea][:,ik+1::12]\
-#                     +d2sum[rtype,lndsea][:,ik+2::12]
-#    
-#            a2num =   d2num[rtype,lndsea][:,ik::12]\
-#                     +d2num[rtype,lndsea][:,ik+1::12]\
-#                     +d2num[rtype,lndsea][:,ik+2::12]
-#    
-#            a2dat = ma.masked_invalid(a2sum/a2num)
-#    
-#            a2out = a2dat
-#            figPath = os.path.join(figDir, "TimeLat.sumnum.stormH.%s.%s.%s.png"%(season,rtype,lndsea))
-#            stitle  = "stormH (%s) @%s %s 2A23"%(rtype,season,lndsea)
-#            DrawTimeLat(a2out, figPath, stitle, vmin=1000., season=True)
-#    
-#    
-#            # Normalized 
-#            a2sum =   d2sum[rtype,lndsea][:,ik::12]\
-#                     +d2sum[rtype,lndsea][:,ik+1::12]\
-#                     +d2sum[rtype,lndsea][:,ik+2::12]
-#    
-#            a2num =   d2num[rtype,lndsea][:,ik::12]\
-#                     +d2num[rtype,lndsea][:,ik+1::12]\
-#                     +d2num[rtype,lndsea][:,ik+2::12]
-#    
-#            a2dat = ma.masked_invalid(a2sum/a2num)
-#            a2clim= mkClim(a2dat)
-#    
-#            a2out = ma.masked_invalid((a2dat - a2clim)/a2clim)
-#    
-#            figPath = os.path.join(figDir, "TimeLat.sumnum.stormH.Norm.%s.%s.%s.png"%(season,rtype,lndsea))
-#            stitle  = "stormH (%s) @%s %s 2A23"%(rtype,season,lndsea)
-#            cmap    = "RdBu_r"
-#            DrawTimeLat(a2out, figPath, stitle, cmap=cmap, vmin=-0.1, vmax=0.1, season=True)
+for hemi in lhemi:
+    lielat = dlielat[hemi]
+    print lielat
+    for rtype in ["all"]:
+        # Line plot
+        for lndsea in llndsea:
+            for season in lseason:
+                ik    = dik[season] 
+                a2sum =   d2sum[rtype,lndsea][:,ik::12]\
+                         +d2sum[rtype,lndsea][:,ik+1::12]\
+                         +d2sum[rtype,lndsea][:,ik+2::12]
+        
+                a2num =   d2num[rtype,lndsea][:,ik::12]\
+                         +d2num[rtype,lndsea][:,ik+1::12]\
+                         +d2num[rtype,lndsea][:,ik+2::12]
+        
+                a2dat = ma.masked_invalid(a2sum/a2num)
+        
+                nx    = a2dat.shape[1]
+                a2out = empty([len(lielat),nx])
+    
+                a2fit0= empty([len(lielat),16])
+                a2fit1= empty([len(lielat),7])
+    
+                a1slp0= empty([len(lielat)])
+                a1slp1= empty([len(lielat)])
+    
+                a1pv0 = empty([len(lielat)])
+                a1pv1 = empty([len(lielat)])
+    
+                for iline,(ilat,elat) in enumerate(lielat):
+                    iy    = ret_y(ilat)
+                    ey    = ret_y(elat)
+                    print "iy,ey=",iy,ey
+                    a1out = a2dat[iy:ey].mean(axis=0)
+                    a2out[iline] = a1out
+    
+                    # Linear fit for all years
+                    x     = arange(1998,2013+1)
+                    y     = a1out # 1998-2013
+    
+                    slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+                    print lndsea,ilat,elat,slope, p_value
+                    a2fit0[iline] = x*slope + intercept
+                    a1slp0[iline] = slope
+                    a1pv0 [iline] = p_value
+    
+                    # Linear fit for 2002-2008
+                    x     = arange(2002,2008+1)
+                    y     = a1out[4:4+7] # 2002-2008
+                    slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+                    print lndsea,ilat,elat,slope, p_value
+                    a2fit1[iline] = x*slope + intercept
+                    a1slp1[iline] = slope
+                    a1pv1 [iline] = p_value
+    
+                la2fit = [a2fit0, a2fit1]
+                la1xfit= [arange(1998,2013+1),arange(2002,2008+1)]
+                la1slp = [a1slp0, a1slp1]
+                la1pv  = [a1pv0,  a1pv1]
+    
+        
+                figPath = os.path.join(figDir, "plot.ts.stormH.%s.%s.%s.%s.png"%(hemi,season,rtype,lndsea))
+                stitle  = "stormH %s-hemi (%s) @%s %s 2A23"%(hemi, rtype, season, lndsea)
+        
+                legPath = os.path.join(figDir, "leg.plot.stormH.%s.png"%(hemi))
+                lname   = ["%.1f-%.1f"%(ilat,elat) for (ilat,elat) in lielat]
+    #            PlotTime(a2out, lname, figPath, legPath, stitle)
+                PlotTimeFit(a2out, [a2fit0,a2fit1], [arange(1998,2013+1),arange(2002,2008+1)], la1slp, la1pv, lname, figPath, legPath, stitle)
     
     
-    # Line plot
-    for lndsea in llndsea:
-        for season in lseason:
-            ik    = dik[season] 
-            a2sum =   d2sum[rtype,lndsea][:,ik::12]\
-                     +d2sum[rtype,lndsea][:,ik+1::12]\
-                     +d2sum[rtype,lndsea][:,ik+2::12]
-    
-            a2num =   d2num[rtype,lndsea][:,ik::12]\
-                     +d2num[rtype,lndsea][:,ik+1::12]\
-                     +d2num[rtype,lndsea][:,ik+2::12]
-    
-            a2dat = ma.masked_invalid(a2sum/a2num)
-    
-            lielat= [[5,10],[10,15],[15,20],[20,25],[25,30],[30,35]] 
-            nx    = a2dat.shape[1]
-            a2out = empty([len(lielat),nx])
-
-            a2fit0= empty([len(lielat),16])
-            a2fit1= empty([len(lielat),7])
-
-            a1slp0= empty([len(lielat)])
-            a1slp1= empty([len(lielat)])
-
-            a1pv0 = empty([len(lielat)])
-            a1pv1 = empty([len(lielat)])
-
-            for iline,(ilat,elat) in enumerate(lielat):
-                iy    = ret_y(ilat)
-                ey    = ret_y(elat)
-                a1out = a2dat[iy:ey].mean(axis=0)
-                a2out[iline] = a1out
-
-                # Linear fit for all years
-                x     = arange(1998,2013+1)
-                y     = a1out # 1998-2013
-
-                slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
-                print lndsea,ilat,elat,slope, p_value
-                a2fit0[iline] = x*slope + intercept
-                a1slp0[iline] = slope
-                a1pv0 [iline] = p_value
-
-                # Linear fit for 2002-2008
-                x     = arange(2002,2008+1)
-                y     = a1out[4:4+7] # 2002-2008
-                slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
-                print lndsea,ilat,elat,slope, p_value
-                a2fit1[iline] = x*slope + intercept
-                a1slp1[iline] = slope
-                a1pv1 [iline] = p_value
-
-            la2fit = [a2fit0, a2fit1]
-            la1xfit= [arange(1998,2013+1),arange(2002,2008+1)]
-            la1slp = [a1slp0, a1slp1]
-            la1pv  = [a1pv0,  a1pv1]
-
-    
-            figPath = os.path.join(figDir, "plot.sumnum.stormH.%s.%s.%s.png"%(season,rtype,lndsea))
-            stitle  = "stormH (%s) @%s %s 2A23"%(rtype, season, lndsea)
-    
-            legPath = os.path.join(figDir, "leg.plot.stormH.png")
-            lname   = ["%.1f-%.1f"%(ilat,elat) for (ilat,elat) in lielat]
-#            PlotTime(a2out, lname, figPath, legPath, stitle)
-            PlotTimeFit(a2out, [a2fit0,a2fit1], [arange(1998,2013+1),arange(2002,2008+1)], la1slp, la1pv, lname, figPath, legPath, stitle)
-
-

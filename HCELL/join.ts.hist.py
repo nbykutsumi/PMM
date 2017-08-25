@@ -10,8 +10,8 @@ elif hostname=="well":
 
 #var  = "Count"
 var  = "PDF"
-#Norm = True
-Norm = False
+Norm = True
+#Norm = False
 
 baseDir = os.path.join(rootDir, "HCELL/PDF/Type")
 
