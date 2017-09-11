@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use("Agg")
 import myfunc.IO.GPM as GPM
 from myfunc.fig import Fig
 from numpy import *

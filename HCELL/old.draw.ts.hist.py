@@ -1,12 +1,10 @@
-import matplotlib
-matplotlib.use('Agg')
 from numpy import *
 import myfunc.util as util
-import myfunc.grids as grids
 import os, sys, socket
 import matplotlib.pyplot as plt
-import hcell_func
+import matplotlib
 
+matplotlib.use('Agg')
 
 
 iYM = [1997,12]
@@ -47,23 +45,6 @@ def load_landfrac():
     srcPath = os.path.join(rootDir,"data/const/landfrac.37SN.148x180")
     return fromfile(srcPath,float32).reshape(148,180)
 
-
-def mk_regionMask(region,landsea):
-    lndfracPath   = os.path.join(rootDir,"data/const/landfrac.37SN.148x180")
-    a2lndfrac= fromfile(lndfracPath, float32).reshape(148,180)
-    BBox = hcell_func.ret_regionBBox(region)
-    a2region = grids.mk_mask_BBox(Lat,Lon,BBox,miss=-9999)
-    if landsea == "lnd":
-        a2region = ma.masked_where(a2lndfrac <0.9, a2region).filled(-9999.)
-    elif landsea == "sea":
-        a2region = ma.masked_where(a2lndfrac >0.1, a2region).filled(-9999.)
-    elif landsea == "all":
-        pass
-    else:
-        print "check landsea",landsea
-        print "landsea must be","lnd","sea","all"
-        sys.exit() 
-    return a2region
 
 def ret_num_single(Year,Mon,rtype):
     srcDir = os.path.join(baseDir, "%04d"%(Year))
@@ -115,11 +96,6 @@ def DrawTimeH(a2in, figPath, stitle, cmap=None, vmin=None, vmax=None):
     plt.yticks(yticks)
     ax.yaxis.set_ticklabels(yticks/1000, fontsize=8)
 
-    # lines at 2001 & 2009
-    ax.plot([2002-1998,2002-1998],[Bin[0],Bin[-1]],"-",color="k")
-    ax.plot([2009-1998,2009-1998],[Bin[0],Bin[-1]],"-",color="k")
-
-
     # Title
     plt.title(stitle,fontsize=9)
 
@@ -129,83 +105,64 @@ def DrawTimeH(a2in, figPath, stitle, cmap=None, vmin=None, vmax=None):
     print figPath
 
 #-------------------------------
-llandsea= ["sea","lnd"]
-lregion = ["NAT","NAF","ASI","NPA","NAM","SAT","SAF","SIN","OCE","SWP","SEP","SAM"]
-#lregion = ["SAF","SIN","OCE","SWP","SEP","SAM"]
+a2landfrac= load_landfrac()
+dlandsea={"land":ma.masked_not_equal(a2landfrac,1).mask
+         ,"sea" :ma.masked_not_equal(a2landfrac,0).mask
+         }
 
+llandsea= ["land","sea"]
 lseason = ["DJF","MAM","JJA","SON"]
 dik     = {"DJF":0,"MAM":3,"JJA":6,"SON":9}
-
-dhemi   = {}
-for region in ["NAT","NAF","ASI","NPA","NAM"]:
-    dhemi[region] = "N"
-for region in ["SAT","SAF","SIN","OCE","SWP","SEP","SAM"]:
-    dhemi[region] = "S"
 
 lkey = [[season,rtype,landsea] 
                        for season in lseason
                        for rtype  in lrtype
                        for landsea in llandsea
                         ]
-#-------------------
-# Load data
+
 for [season,rtype,landsea] in lkey:
     ik  = dik[season]
-    d2hist  = {(region,ielat):zeros([nz,nYear],int32) 
-                for region  in lregion
+    a2lsmask= dlandsea[landsea]
+    d2hist  = {ielat:zeros([nz,nYear],int32) 
                 for ielat   in lielat}
 
-    d2region = {region: ma.masked_equal(mk_regionMask(region, landsea),miss) for region in lregion}
  
     for it,(iYear,iMon) in enumerate(lYM[ik::12]):
         eYear,eMon = util.shift_YM(iYear,iMon,2)
         a3in = ret_num([iYear,iMon],[eYear,eMon], rtype)
-        for region in lregion:
-            a2regionMask = d2region[region]
-
-            for ilat,elat in lielat:
-                ielat = (ilat,elat)
-                if dhemi[region]=="N":
-                    iy,ey = ret_y(ilat), ret_y(elat)
-                elif dhemi[region]=="S":
-                    iy,ey = ret_y(-elat), ret_y(-ilat)
-                    #print ielat,"iy,ey=",iy,ey
-                for iz in range(nz):
-                    d2hist[region,ielat][iz,it] = ma.masked_where(a2regionMask.mask, a3in[iz])[iy:ey+1,:].mean()
-                    #print d2hist[region,ielat][iz,it]
-#-------------------   
-    
-    # Counts
-    for region in lregion:
-        for ielat in lielat:
-            ilat,elat = ielat
-            stitle = "stormH %s %s %s %s Lat:%.1f-%.1f deg"%(landsea, region, rtype, season, ilat, elat)
-            figDir = "/tank/utsumi/PMM/HCELL/pict"
-            figPath= os.path.join(figDir,"TS.Count.%s.%s.%s.%s.Lat.%.1f.%.1f.png"%(landsea,region,rtype,season,ilat,elat))
-
-            #print d2hist[(region,ielat)]   
-            DrawTimeH(d2hist[(region,ielat)], figPath, stitle)
-
-
-    # Normalized Counts
-    for region in lregion:
-        for ielat in lielat:
-            ilat,elat = ielat
-    
-            a2norm    = empty([nz,nYear])
-            a1clim    = d2hist[(region,ielat)][:,2002-1998:2008-1998+1].mean(axis=1)
+        for ilat,elat in lielat:
+            ielat = (ilat,elat)
+            iy,ey = ret_y(ilat), ret_y(elat)
             for iz in range(nz):
-                a2norm[iz] = (d2hist[(region,ielat)][iz]-a1clim[iz])/a1clim[iz]
+                d2hist[ielat][iz,it] = ma.masked_where(a2lsmask, a3in[iz])[iy:ey+1,:].mean()
     
-            a2norm = ma.masked_invalid(a2norm) 
-            stitle = "Norm.H %s %s %s %s Lat:%.1f-%.1f deg"%(landsea,region, rtype, season, ilat, elat)
-            figDir = "/tank/utsumi/PMM/HCELL/pict"
-            figPath= os.path.join(figDir,"TS.Count.Norm.%s.%s.%s.%s.Lat.%.1f.%.1f.png"%(landsea,region,rtype,season,ilat,elat))
-            cmap   = "RdBu_r" 
-            DrawTimeH(a2norm, figPath, stitle, cmap,vmin=-1.0, vmax=1.0)
+    
+#    # Counts
+#    for ielat in lielat:
+#        ilat,elat = ielat
+#        stitle = "stormH %s %s %s Lat:%.1f-%.1f deg"%(landsea, rtype, season, ilat, elat)
+#        figDir = "/tank/utsumi/PMM/HCELL/pict"
+#        figPath= os.path.join(figDir,"TS.Count.%s.%s.%s.Lat.%.1f.%.1f.png"%(landsea,rtype,season,ilat,elat))
+#    
+#        DrawTimeH(d2hist[ielat], figPath, stitle)
 
-    
-    """
+#    # Normalized Counts
+#    for ielat in lielat:
+#        ilat,elat = ielat
+#
+#        a2norm    = empty([nz,nYear])
+#        a1clim    = d2hist[ielat].mean(axis=1)
+#        for iz in range(nz):
+#            a2norm[iz] = (d2hist[ielat][iz]-a1clim[iz])/a1clim[iz]
+#
+#        a2norm = ma.masked_invalid(a2norm) 
+#        stitle = "Norm.H %s %s %s Lat:%.1f-%.1f deg"%(landsea, rtype, season, ilat, elat)
+#        figDir = "/tank/utsumi/PMM/HCELL/pict"
+#        figPath= os.path.join(figDir,"TS.Count.Norm.%s.%s.%s.Lat.%.1f.%.1f.png"%(landsea,rtype,season,ilat,elat))
+#        cmap   = "RdBu_r" 
+#        DrawTimeH(a2norm, figPath, stitle, cmap,vmin=-1.0, vmax=1.0)
+
+    #"""
     # PDF
     for ielat in lielat:
         ilat,elat = ielat
@@ -222,7 +179,7 @@ for [season,rtype,landsea] in lkey:
         figPath= os.path.join(figDir,"TS.PDF.%s.%s.%s.Lat.%.1f.%.1f.png"%(landsea,rtype,season,ilat,elat))
     
         DrawTimeH(a2out, figPath, stitle)
-    """
+    #"""
 
     """
     # Anomary of PDF

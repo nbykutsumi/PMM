@@ -43,7 +43,8 @@ dlower    = {"strat":100, "conv":200, "other":300}
 for Year,Mon in lYM:
 
     aNoRain= zeros([ny,nx], int32)
-    dCount = {rtype:zeros([len(Bin)+1,ny,nx], int32) for rtype in lrtype}
+    dNum   = {rtype:zeros([len(Bin)+1,ny,nx], int32) for rtype in lrtype}
+    dSum   = {rtype:zeros([len(Bin)+1,ny,nx], int32) for rtype in lrtype}
 
     lPath = gpm.list_granule(Year,Mon)
     for srcPath in lPath:
@@ -79,16 +80,12 @@ for Year,Mon in lYM:
         rTypetmp = ma.masked_where(aMsk, rType ).compressed()
 
         if ((len(stormHtmp)==0)or(len(rTypetmp)==0)):
-            aTmp = zeros([nx,ny],int32)
+            aSum = zeros([nx,ny],int32)
+            aSum = zeros([nx,ny],int32)
         else:
             aTmp     = hcell_fsub.obt2grid_count(Lontmp, Lattmp, lon_first, lat_first, dlon, dlat, nx, ny)
 
         aNoRain = aNoRain + aTmp.T
-
-        #print "*"*50
-        #print "zero=",len(stormHtmp)
-        #print "aNoRain",aNoRain.sum()
-
 
         #--------------------------
         # Rain events
@@ -101,9 +98,6 @@ for Year,Mon in lYM:
         #--------------------------
         # Rain-type
         
-        tmpsum0 = 0
-        tmpsum1 = 0
- 
         for rtype in lrtype:
             lower = dlower[rtype]
 
@@ -116,21 +110,15 @@ for Year,Mon in lYM:
 
 
             if ((len(stormHtmp)==0)or(len(rTypetmp)==0)):
-                aTmp = zeros([nx,ny,len(Bin)+1],int32)
+                aTmpSum = zeros([nx,ny,len(Bin)+1],int32)
+                aTmpNum = zeros([nx,ny,len(Bin)+1],int32)
             else:    
-                aTmp = hcell_fsub.obt2grid_hist(stormHtmp, Lontmp, Lattmp, Bin, lon_first, lat_first, dlon, dlat, nx, ny)
+                aTmpSum,aTmpNum = hcell_fsub.obt2grid_hist(stormHtmp, Lontmp, Lattmp, Bin, lon_first, lat_first, dlon, dlat, nx, ny)
           
             for iz in range(len(Bin)+1):
-                dCount[rtype][iz] = dCount[rtype][iz] + aTmp[:,:,iz].T
+                dSum[rtype][iz] = dSum[rtype][iz] + aTmpSum[:,:,iz].T
+                dNum[rtype][iz] = dNum[rtype][iz] + aTmpNum[:,:,iz].T
     
-            #print " "*50
-            #print "non-zero",rtype,len(stormHtmp)
-            #print "dCount",dCount[rtype].sum()
-            tmpsum0 = tmpsum0 + len(stormHtmp)
-            tmpsum1 = tmpsum1 + dCount[rtype].sum()
- 
-    #print " "*50
-    #print tmpsum0, tmpsum1
     #------------------------------
     # Write
     #------------------------------
@@ -138,13 +126,15 @@ for Year,Mon in lYM:
     util.mk_dir(outDir)
 
     # Write : No rain
-    outPath= os.path.join(outDir, "num.non.%02d.%03dx%03d"%(Mon, ny, nx))
-    aNoRain.tofile(outPath)
+    numPath= os.path.join(outDir, "num.non.%02d.%03dx%03d"%(Mon, ny, nx))
+    aNoRain.tofile(numPath)
 
     # Write : with rain
     for rtype in lrtype:        
-        outPath= os.path.join(outDir, "num.%s.%02d.%02dx%03dx%03d"%(rtype,Mon, len(Bin)+1,ny, nx))
-        dCount[rtype].tofile(outPath)
-        print outPath
+        sumPath= os.path.join(outDir, "sum.%s.%02d.%02dx%03dx%03d"%(rtype,Mon, len(Bin)+1,ny, nx))
+        numPath= os.path.join(outDir, "num.%s.%02d.%02dx%03dx%03d"%(rtype,Mon, len(Bin)+1,ny, nx))
+        dSum[rtype].tofile(sumPath)
+        dNum[rtype].tofile(numPath)
+        print sumPath
     
 

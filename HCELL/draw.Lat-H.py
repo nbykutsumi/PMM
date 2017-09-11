@@ -75,6 +75,10 @@ def DrawLatH(dH,stitle, figPath, legPath):
 
     x     = Lat
     for i,Year in enumerate(lYear):
+        if Year in range(1998,2001+1)+range(2009,2013+1):
+            print "Skip",Year
+            continue
+
         axplot.plot(x[1:-1],dH[Year][1:-1],"-",color=lcmap[i], linewidth=1)
 
     # X-tick label
@@ -148,7 +152,6 @@ for season in lseason:
         dHlnd[Year] = ma.masked_where(dlndsea["lnd"], a2h).mean(axis=1)
         dHsea[Year] = ma.masked_where(dlndsea["sea"], a2h).mean(axis=1)
 
-    sys.exit()
     # Figure
     for lndsea in llndsea:
         if lndsea=="sea":
@@ -161,3 +164,4 @@ for season in lseason:
         legPath   = os.path.join(figDir,"legend.plot.LatH.png")
     
         DrawLatH(dDat,stitle,figPath,legPath)
+        print figPath
