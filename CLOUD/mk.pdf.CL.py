@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use("Agg")
 from numpy import *
 from myfunc.regrid import Regrid
 from bisect import bisect, bisect_left, bisect_right
@@ -21,6 +23,7 @@ lYM = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
 
 ldattype = ["KuPR","GMI","IMERG","IMERG.MW","IMERG.IR","GSMaP","GSMaP.MW","GSMaP.IR"]
+#ldattype = ["KuPR","GMI"]
 #ldattype = ["RA"]
 
 # 
@@ -49,9 +52,9 @@ Lon   = cl.Lon
 #dommask  = "RA"
 dommask  = None
 
-#BBox    = [[-0.1, 113.875],[52.1, 180.125]]  # WN.Pac
+BBox    = [[-0.1, 113.875],[52.1, 180.125]]  # WN.Pac
 #BBox    = [[20., 118.],[48., 150.]]    # RadarAMeDAS
-BBox    = [[20., 118.],[40., 150.]]    # RadarAMeDAS
+#BBox    = [[20., 118.],[40., 150.]]    # RadarAMeDAS
 miss  = -9999.
 
 
@@ -80,7 +83,8 @@ da3lsmask   = {"lnd":resize(a2lndmask,[ncltype,ny,nx])
              , "cst":resize(a2cstmask,[ncltype,ny,nx])
              , "any":resize(a2anymask,[ncltype,ny,nx])}
 
-llndsea     = ["sea","lnd","cst"]
+#llndsea     = ["sea","lnd","cst"]
+llndsea     = ["sea","lnd"]
 
 #----------------------
 iX      = bisect_left (Lon,BBox[0][1])
@@ -185,7 +189,7 @@ def ret_Cnt(lBin,lNum, lSum, icltype):
 
 def mk_Fig(lMid, dY, lndsea, icltype, figtype="pdf"):
   figplot = plt.figure(figsize=(4.1, 3.2))
-  axplot  = figplot.add_axes([0.14, 0.10, 0.82,0.8])
+  axplot  = figplot.add_axes([0.15, 0.10, 0.79,0.8])
 
   # Colors
   colors = plt.matplotlib.cm.jet(linspace(0,1,len(ldattype)))
@@ -260,56 +264,77 @@ def mk_Fig(lMid, dY, lndsea, icltype, figtype="pdf"):
 
   elif clVer[:5] == "MyWNP":
     if figtype=="pdf":
-      axplot.set_ylim(0.0, 0.3)
-      axplot.set_xlim(0.0, 20.0)
+      xtick = arange(0, 20+0.01, 5)
+      sxtick= ["%d"%(x) for x in xtick]
+      ytick = arange(0, 0.3+0.01, 0.05)
  
     elif figtype == "pdf.focus":
-      axplot.set_ylim(0.0, 0.05)
-      axplot.set_xlim(0.0, 6.0)
- 
+      xtick = arange(0, 6.0+0.001, 1.0)
+      sxtick = None 
+      ytick = arange(0, 0.05+0.001, 0.01)
     elif figtype=="cnt":
-        axplot.set_xlim(0.0, 20.0)
+      xtick = arange(0.0, 20.0+0.01, 5)
+      sxtick = None 
+      ytick = None
 
     elif figtype=="cnt.focus":
-        axplot.set_xlim(0.0, 6.0)
+      xtick = arange(0.0, 6.0+0.01, 1.0)
+      sxtick = None 
+      ytick = None
   
     elif figtype =="Weak.pdf":
-      axplot.set_xlim(0.0, 3.0)
+      xtick = arange(0, 3+0.01, 0.5)
+      sxtick = None 
   
     elif figtype =="Heavy.pdf":
       if icltype in [1,2]:
-        axplot.set_ylim(0.0, 0.05)
+        xtick = arange(0, 0.05+0.001, 0.01)
+        sxtick = None 
       else:
-        axplot.set_ylim(0.0, 1e-3)
+        ytick = [0, 1e-5, 1e-4, 1e-3]
   
       axplot.set_xlim(10, lbinPr[-2])
-  
+      xtick = arange(10, lbinPr[-2]+1, 10) 
+      sxtick = None 
     elif figtype =="log.Weak.pdf":
       plt.yscale("log")
       if icltype in [1,2]:
-        axplot.set_ylim(1.e-3, 1.e+0)
-        axplot.set_xlim(0.0, 3.0)
+        ytick = [1.e-3, 1.e-2, 1.e-1, 1.e+0]
+        xtick = arange(0, 3+0.01, 0.5)
+        sxtick = None 
       else:
-        axplot.set_ylim(1.e-6, 1.e+1)
-        axplot.set_xlim(0.0, 3.0)
+        ytick = [1.e-6, 1.e-5, 1.e-4, 1.e-3, 1.e-2, 1.e-1, 1.e+0, 1.e+1]
+        xtick = arange(0, 3+0.01, 0.5)
+        sxtick = None 
   
     elif figtype =="log.Heavy.pdf":
       plt.yscale("log")
       if icltype in [1,2]:
-        axplot.set_ylim(1.e-5, 1.e-1)
+        ytick = [1.e-5, 1.e-4, 1.e-3, 1.e-2, 1.e-1]
       else:
         axplot.set_ylim(1.e-8, 1.e-3)
-      axplot.set_xlim(10.0, lbinPr[-2])
-     
+        ytick = [1.e-8, 1.e-7, 1.e-6, 1.e-5, 1.e-4, 1.e-3]
+      xtick = arange(10, lbinPr[-2]+1, 10) 
+      sxtick = None 
   else:
     print "check figtype", figtype
     sys.exit()
 
   # Axis-tick labels
+  if xtick !=None:
+    axplot.set_xlim([xtick[0],xtick[-1]])
+    if sxtick !=None:
+      plt.xticks( xtick, sxtick)
+    else:
+      plt.xticks( xtick, xtick)
+  if ytick !=None:
+    axplot.set_ylim([ytick[0],ytick[-1]])
+    plt.yticks( ytick, ytick)
+
   for tick in axplot.xaxis.get_major_ticks():
-    tick.label.set_fontsize(20)
+    tick.label.set_fontsize(19)
   for tick in axplot.yaxis.get_major_ticks():
-    tick.label.set_fontsize(17)
+    tick.label.set_fontsize(16)
 
   # Add title
   stitle = "%s %04d/%02d-%04d/%02d CL=%s"\

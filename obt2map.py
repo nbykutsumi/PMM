@@ -6,7 +6,7 @@ import os
 
 prj     = 'GPM.KuPR'
 prdLv   = 'L2'
-prdVer  = '03'
+prdVer  = '05'
 var     = 'NS/SLV/precipRateESurface'
 
 #prj     = 'GPM.KaPR'

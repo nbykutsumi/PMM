@@ -25,8 +25,8 @@ elif hostname=="well":
 baseDir = os.path.join(rootDir, "HCELL/PDF/Type")
 figDir  = "/tank/utsumi/PMM/HCELL/pict"
 
-#lregion = ["NAT","NAF","ASI","NPA","NAM","SAT","SAF","SIN","OCE","SWP","SEP","SAM"]
-lregion = ["NAT"]
+lregion = ["NAT","NAF","ASI","NPA","NAM","SAT","SAF","SIN","OCE","SWP","SEP","SAM"]
+#lregion = ["NAT"]
 
 #lrtype = ["strat","conv","other","all"]
 lrtype = ["all"]
@@ -40,8 +40,8 @@ llndsea = ["sea","lnd"]
 
 BinBnd = arange(0,12000+1,1000)
 nz     = len(BinBnd)
-#liH    = [5,8,10]
-liH    = [10]
+liH    = [5,8,10]
+#liH    = [10]
 
 dhemi   = {}
 for region in ["NAT","NAF","ASI","NPA","NAM"]:
@@ -164,7 +164,13 @@ def PlotTimeFit(a2in, la2fit, la1xfit, lslp, lpv, lname, figPath, legPath, stitl
 #    
 
     # set ylim
-    ax.set_ylim(top=a2in.max()*1.3)
+    if var=="num":
+        ax.set_ylim(top=a2in.max()*1.3)
+    elif var=="hgt":
+        print BinBnd[iH]
+        ax.set_ylim(bottom=BinBnd[iH])
+        ax.set_ylim(top=BinBnd[iH]+ (a2in.max() - BinBnd[iH])*1.3)
+
 
     # y-axis
     ax.tick_params(axis="y", which="major", pad=0)
@@ -219,7 +225,8 @@ for it,(iYear,iMon) in enumerate(lYM):
             elif var=="hgt":
                 a2num= a3num[iH:,:,:].sum(axis=0).astype(float32)
                 a2sum= a3sum[iH:,:,:].sum(axis=0).astype(float32)
-                a2var= ma.masked_invalid(a2sum/a2num)
+                a2var= ma.masked_invalid(a2sum/a2num)     # [m]
+                #a2var= ma.masked_invalid(a2sum/a2num) / 1000.    # [km]
             else:
                 print "check var",var
                 sys.exit()
@@ -253,10 +260,18 @@ for rtype in ["all"]:
         for iH in liH:    
             for season in lseason:
                 ik    = dik[season] 
-                a2dat =   d2dat[rtype,lndsea,region,iH][:,ik::12]\
-                         +d2dat[rtype,lndsea,region,iH][:,ik+1::12]\
-                         +d2dat[rtype,lndsea,region,iH][:,ik+2::12]
-        
+                if var=="num":
+                    a2dat =  d2dat[rtype,lndsea,region,iH][:,ik::12]\
+                            +d2dat[rtype,lndsea,region,iH][:,ik+1::12]\
+                            +d2dat[rtype,lndsea,region,iH][:,ik+2::12]
+
+                if var=="hgt":
+                     a3dat = array([\
+                             d2dat[rtype,lndsea,region,iH][:,ik::12]\
+                            ,d2dat[rtype,lndsea,region,iH][:,ik+1::12]\
+                            ,d2dat[rtype,lndsea,region,iH][:,ik+2::12]
+                            ])
+                     a2dat = ma.masked_equal(a3dat,0.0).mean(axis=0)
         
                 lielat= [[5,10],[10,15],[15,20],[20,25],[25,30],[30,35]] 
                 nx    = a2dat.shape[1]
@@ -284,7 +299,7 @@ for rtype in ["all"]:
 
                     a1out = a2dat[iy:ey].mean(axis=0)
                     a2out[iline] = a1out
-    
+
                     # Linear fit for all years
                     x     = arange(1998,2013+1)
                     y     = a1out # 1998-2013
@@ -310,7 +325,7 @@ for rtype in ["all"]:
                 la1pv  = [a1pv0,  a1pv1]
     
         
-                figPath = os.path.join(figDir, "plot.TS.stormH.%s.%s.%s.%s.%s.H%02d.png"%(var,season,rtype,lndsea,region,int(BinBnd[iH]/1000)))
+                figPath = os.path.join(figDir, "plot.TS.stormH.%s.%s.%s.%s.%s.%02dkm.png"%(var,season,rtype,lndsea,region,int(BinBnd[iH]/1000)))
                 stitle  = "stormH (%s) @%s %s %s >%02dkm"%(rtype, season, lndsea,region,int(BinBnd[iH]/1000)) 
                 legPath = os.path.join(figDir, "leg.plot.stormH.png")
                 lname   = ["%.1f-%.1f"%(ilat,elat) for (ilat,elat) in lielat]

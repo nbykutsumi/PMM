@@ -28,7 +28,9 @@ print lYM
 #ldattype = ["KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
 #ldattype = ["KuPR","GMI"]
 #ldattype = ["GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
-ldattype = ["KuPR","GMI"]
+#ldattype = ["GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
+ldattype = ["IMERG","IMERG.IR","IMERG.MW"]
+#ldattype = ["KuPR","GMI"]
 
 #dattype= "RA"
 #dattype= "GSMaP"
@@ -152,7 +154,8 @@ def ret_mmh(DTime, dattype):
 
     prj     = 'GPM.KuPR'
     prdLv   = 'L2'
-    prdVer  = '03'
+    #prdVer  = '03'
+    prdVer  = '05'
     baseDir = "/tank/utsumi/PMM/WNP.261x265/%s/%s/%s"%(prj,prdLv,prdVer)
 
     dataDir0 = baseDir  + "/%04d/%02d"%(Year,Mon)
@@ -169,15 +172,18 @@ def ret_mmh(DTime, dattype):
       a2pr1    = fromfile(dataPath1, float32).reshape(ny,nx)
       a2pr    = ma.masked_less(
                 array([a2pr0,a2pr1]),0.0
-                ).mean(axis=0)*60.*60.  # mm/s --> mm/h
+                #).mean(axis=0)*60.*60.  # mm/s --> mm/h
+                ).mean(axis=0)  # mm/h
     elif (exist0==True)&(exist1==False):
       a2pr    = ma.masked_less(
                 fromfile(dataPath0, float32).reshape(ny,nx), 0.0
-                )*60.*60.  # mm/s --> mm/h
+                #)*60.*60.  # mm/s --> mm/h
+                )           #  mm/h
     elif (exist0==False)&(exist1==True):
       a2pr    = ma.masked_less(
                 fromfile(dataPath1, float32).reshape(ny,nx), 0.0
-                )*60.*60.  # mm/s --> mm/h
+                #)*60.*60.  # mm/s --> mm/h
+                )          # mm/h
     else:
       raise MyIOException()
 
@@ -200,7 +206,8 @@ def ret_mmh(DTime, dattype):
 
     prj     = 'GPM.GMI'
     prdLv   = 'L2'
-    prdVer  = '03'
+    #prdVer  = '03'
+    prdVer  = '05'
     baseDir = "/tank/utsumi/PMM/WNP.261x265/%s/%s/%s"%(prj,prdLv,prdVer)
 
     dataDir0 = baseDir  + "/%04d/%02d"%(Year,Mon)
@@ -215,17 +222,24 @@ def ret_mmh(DTime, dattype):
     if (exist0==True)&(exist1==True):
       a2pr0    = fromfile(dataPath0, float32).reshape(ny,nx)
       a2pr1    = fromfile(dataPath1, float32).reshape(ny,nx)
+      #a2pr    = ma.masked_less(
+      #          array([a2pr0,a2pr1]), 0.0
+      #          ).mean(axis=0)*60.*60.  # mm/s --> mm/h
       a2pr    = ma.masked_less(
                 array([a2pr0,a2pr1]), 0.0
-                ).mean(axis=0)*60.*60.  # mm/s --> mm/h
+                ).mean(axis=0)  # mm/h
+
+
     elif (exist0==True)&(exist1==False):
       a2pr    = ma.masked_less(
                 fromfile(dataPath0, float32).reshape(ny,nx), 0.0
-                )*60.*60.  # mm/s --> mm/h
+                #)*60.*60.  # mm/s --> mm/h
+                )           # mm/h
     elif (exist0==False)&(exist1==True):
       a2pr    = ma.masked_less(
                 fromfile(dataPath1, float32).reshape(ny,nx), 0.0
-                )*60.*60.  # mm/s --> mm/h
+                #)*60.*60.  # mm/s --> mm/h
+                )           # mm/h
     else:
       raise MyIOException()
 
@@ -237,7 +251,8 @@ for dattype in ldattype:
   #---------
   if   dattype.split(".")[0] =="GSMaP":
     import myfunc.IO.GSMaP as GSMaP
-    gsmap = GSMaP.GSMaP(prj="standard", ver="v6", BBox=BBox)
+    #gsmap = GSMaP.GSMaP(prj="standard", ver="v6", BBox=BBox)
+    gsmap = GSMaP.GSMaP(prj="standard", ver="v7", BBox=BBox, compressed=True)
     LatOrg= gsmap.Lat
     LonOrg= gsmap.Lon
     us    = Regrid.UpScale()
@@ -245,7 +260,8 @@ for dattype in ldattype:
   
   elif dattype.split(".")[0] == "IMERG":
     import myfunc.IO.IMERG as IMERG
-    imerg = IMERG.IMERG(PRD="PROD",VER="V03",crd="sa", BBox=BBox)
+    #imerg = IMERG.IMERG(PRD="PROD",VER="V03",crd="sa", BBox=BBox)
+    imerg = IMERG.IMERG(PRD="PROD",VER="V04",crd="sa", BBox=BBox)
     LatOrg= imerg.Lat
     LonOrg= imerg.Lon
     us    = Regrid.UpScale()
@@ -293,7 +309,7 @@ for dattype in ldattype:
     a2oneint= ones([ny,nx],int32)
   
     for DTime in lDTime:
-      print DTime
+      print dattype,DTime
       try:
         a2pr    = ret_mmh(DTime, dattype=dattype)    # mm/h, forward
         a2pr    = ma.masked_equal(a2pr, miss)
@@ -345,7 +361,7 @@ for dattype in ldattype:
   
     # Save Monthly output
     #rootDir = "/tank/utsumi"
-    rootDir = "/home/utsumi/mnt/well.share"
+    rootDir = "/home/utsumi/mnt/wellshare"
     if   clVer == "JMA1":
       baseDir = rootDir + "/PMM/WNP.261x265/CL.JMA"
     elif clVer[:5] == "MyWNP":

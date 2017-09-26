@@ -8,10 +8,11 @@ import os
 iDTime  = datetime(2014,3,31,0)
 eDTime  = datetime(2016,1,2,0)
 
-#prj     = 'GPM.KuPR'
-#prdLv   = 'L2'
+prj     = 'GPM.KuPR'
+prdLv   = 'L2'
 #prdVer  = '03'
-#var     = 'NS/SLV/precipRateESurface'
+prdVer  = '05'
+var     = 'NS/SLV/precipRateESurface'
 
 #prj     = 'GPM.KaPR'
 #prdLv   = 'L2'
@@ -19,10 +20,10 @@ eDTime  = datetime(2016,1,2,0)
 ##var     = 'HS/SLV/precipRateESurface'
 #var     = 'MS/SLV/precipRateESurface'
 
-prj     = 'GPM.GMI'
-prdLv   = 'L2'
-prdVer  = '03'
-var     = 'S1/surfacePrecipitation'
+#prj     = 'GPM.GMI'
+#prdLv   = 'L2'
+#prdVer  = '05'
+#var     = 'S1/surfacePrecipitation'
 
 #prj     = "TRMM.PR"
 #prdLv   = "L2A25"
@@ -64,8 +65,9 @@ for DTime in lDTime:
 
   a2sum   = a2sum.T
   a2num   = a2num.T
-  a2pr    = ma.masked_invalid(a2sum/a2num).filled(miss_out)
-  a2pr    = a2pr / (60.*60.)   # mm/h --> mm/s
+  a2pr    = ma.masked_invalid(a2sum/a2num)
+  #a2pr    = a2pr / (60.*60.)   # mm/h --> mm/s
+  a2pr    = a2pr.filled(miss_out)
   #--- save ---------
   Year    = DTime.year
   Mon     = DTime.month
@@ -78,6 +80,7 @@ for DTime in lDTime:
 
   util.mk_dir(dataDir)
   a2pr.astype(float32).tofile(dataPath)
+  print "OUTPUT"
   print dataPath
     
   
