@@ -49,7 +49,8 @@ dclid   = cl.dclid
 LatUp   = cl.Lat
 LonUp   = cl.Lon
 
-llndsea = ["any","lnd","sea","cst"]
+#llndsea = ["any","lnd","sea","cst"]
+llndsea = ["sea"]
 #*******************************
 def loadData(dattype, lndsea, icl, lYM):
   lpr = deque([])

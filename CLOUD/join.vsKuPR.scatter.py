@@ -7,6 +7,8 @@ import Image
 #clVer = "MyWNP2"
 clVer = "MyWNP.M.3"
 
+logcont=True
+
 #ldattype = ["KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
 #ldattype = ["GMI","IMERG","GSMaP.MW","IMERG.MW","GSMaP.IR","IMERG.IR"]
 ldattype = ["GMI","GSMaP.MW","GSMaP.IR","IMERG.MW","IMERG.IR"]
@@ -42,7 +44,14 @@ for icl in [99]+[1,3,4]:
   da2dat = {}
   for lndsea in llndsea:
     for i,dattype in enumerate(ldattype):
-      figPath   = figDir  + "/scatter.%s.vsKuPR.%s.%s.png"%(dattype,lndsea,dclShortName[icl])
+      if logcont==False:
+        figPath   = figDir  + "/scatter.%s.vsKuPR.%s.%s.png"%(dattype,lndsea,dclShortName[icl])
+      elif logcont==True:
+        figPath   = figDir  + "/scatter.logcont.%s.vsKuPR.%s.%s.png"%(dattype,lndsea,dclShortName[icl])
+      else:
+        print "check logcont",logcont
+        sys.exit()
+
       iimg      = Image.open(figPath)
       a2array   = asarray(iimg)
       print shape(a2array)
@@ -57,8 +66,11 @@ for icl in [99]+[1,3,4]:
 
   a2oarray = vstack([a2line1, a2line2, a2line3, a2line4])
   oimg     = Image.fromarray(a2oarray)
-  
-  oPath    = figDir + "/join.scatter.vsKuPR.%s.png"%(dclShortName[icl])
+ 
+  if logcont==False: 
+    oPath    = figDir + "/join.scatter.vsKuPR.%s.png"%(dclShortName[icl])
+  elif logcont==True:
+    oPath    = figDir + "/join.scatter.logcont.vsKuPR.%s.png"%(dclShortName[icl])
   oimg.save(oPath)
   print oPath
   

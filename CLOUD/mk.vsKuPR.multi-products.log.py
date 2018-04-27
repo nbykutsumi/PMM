@@ -1,17 +1,34 @@
+import matplotlib
+matplotlib.use("Agg")
 from numpy import *
 from collections import deque
 import myfunc.util as util
 import matplotlib.pylab as plt
 import myfunc.IO.CLOUDTYPE as CLOUDTYPE
 
-iYM    = [2014,4]
-eYM    = [2015,6]
-#eYM    = [2014,4]
+
+expr = "std"
+#expr = "sht"
+#expr = "old"
+
+#logax = True
+logax = False
+
+if expr =="sht":
+    iYM    = [2014,4]
+    eYM    = [2014,10]
+else:
+    iYM    = [2014,4]
+    eYM    = [2015,6]
+    #eYM    = [2014,4]
+
 lYM    = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
 #ldattype = ["KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
 #ldattype = ["RA","GMI","IMERG.MW","IMERG.IR","GSMaP.MW","GSMaP.IR"]
-ldattype = ["GMI","IMERG","IMERG.MW","IMERG.IR","GSMaP","GSMaP.MW","GSMaP.IR"]
+#ldattype = ["GMI","IMERG","IMERG.MW","IMERG.IR","GSMaP","GSMaP.MW","GSMaP.IR"]
+ldattype = ["GMI","IMERG.MW","IMERG.IR","GSMaP.MW","GSMaP.IR"]
+#ldattype = ["GMI"]
 
 #clVer = "JMA1"
 clVer = "MyWNP.M.3"
@@ -28,7 +45,12 @@ if clVer   == "JMA1":
 elif clVer[:5] == "MyWNP":
   ver        = clVer[5:]
   cl         = CLOUDTYPE.MyCloudWNP(ver=ver)
-  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%s"%(ver)
+  if expr=="old":
+    ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%s/old@20170925"%(ver)
+  else:
+    ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%s"%(ver)
+
+
   ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP%s"%(ver)
 
 if clVer[5:8]==".M.":
@@ -49,6 +71,15 @@ LonUp   = cl.Lon
 
 #llndsea = ["any","lnd","sea","cst"]
 llndsea = ["sea","lnd"]
+
+dwidth = {}
+for dattype in ldattype:
+    if dattype in ["GMI"]:
+        dwidth[dattype] = 3
+    elif dattype in ["GSMaP.MW"]:
+        dwidth[dattype] = 1.2
+    else:
+        dwidth[dattype] = 2
 #*******************************
 def ret_ldatname(ldattype):
     ldatname = []
@@ -87,23 +118,43 @@ def loadKu(dattype, lndsea, icl, lYM):
 if Xvar == "KuPR": loadX = loadKu
 
 #*******************************
-vlim    = 40  # mm/hour
+if logax ==True:
+    vmin    = 0.05
+    vmax    = 100  # mm/hour
+elif logax==False:
+    vmin    = 0.
+    vmax    = 40  # mm/hour
+
+
 #cols    = plt.matplotlib.cm.jet(linspace(0,1,len(ldattype)))
-cols    = plt.matplotlib.cm.jet(linspace(0,1,len(ldattype)+1))
-#coldarks= [col*array([1,1,1,0.5]) for col in cols]
+#cols    = plt.matplotlib.cm.jet(linspace(0,1,len(ldattype)+1))
+cols  = {"KuPR":"k"
+        ,"GMI" :"0.2"
+        ,"IMERG":"dodgerblue"
+        ,"IMERG.MW":"royalblue"
+        ,"IMERG.IR":"limegreen"
+        ,"GSMaP":"red"
+        ,"GSMaP.MW":"magenta"
+        ,"GSMaP.IR":"darkorange"
+        }
 
 for lndsea in llndsea:
   for iicl, icl in enumerate(lcltype[1:] + [99]):
   #for icl in [99]:
     #** Figure **********
     figplot = plt.figure(figsize=(3,3))
-    axplot1  = figplot.add_axes([0.1,0.1,0.8,0.8])
-    axplot1.set_ylim(0.0, vlim)
-    axplot1.set_xlim(0.0, vlim)
+    axplot1  = figplot.add_axes([0.15,0.1,0.8,0.8])
+    axplot1.set_ylim(vmin, vmax)
+    axplot1.set_xlim(vmin, vmax)
+    if logax == True:
+        axplot1.set_xscale("log",nonposx="clip")
+        axplot1.set_yscale("log",nonposy="clip")
 
     # ticks
-    axplot1.xaxis.set_ticks(arange(0,vlim+1,5)) 
-    axplot1.yaxis.set_ticks(arange(0,vlim+1,5)) 
+    if logax==False:
+      axplot1.xaxis.set_ticks(arange(vmin,vmax+1,5))
+      axplot1.yaxis.set_ticks(arange(vmin,vmax+1,5))
+
 
     dmean = {}
     dstd  = {}
@@ -126,39 +177,54 @@ for lndsea in llndsea:
 
 
       # Average line
-      bins   = arange(0, 50,2)
-      #bins   = r_[arange(0, 10+0.1,2), arange(15,100,5)]
+      if logax==True:
+        lk     = arange(-2,2.6+0.01,0.2)
+        bins   = [10**k for k in lk]
+      else:
+        bins   = hstack([arange(-0.1,2,0.2),arange(2,50,2)])
       BINS   = zip(bins[:-1],bins[1:])
       dmean[dattype] = [ma.masked_where(logical_or( lref<binmin,  binmax<=lref), lpr).mean() for (binmin,binmax) in BINS]
       dstd[dattype]  = [ma.masked_where(logical_or( lref<binmin,  binmax<=lref), lpr).std() for (binmin,binmax) in BINS]
       lx     = [mean(BIN) for BIN in BINS]
 
+
     # Draw average lines
-    #lines = [axplot1.plot(lx,dmean[dattype],"-", linewidth=2, color=cols[idattype]) 
-    lines = [axplot1.plot(lx,dmean[dattype],"-", linewidth=2, color=cols[idattype+1]) 
+    #lines = [axplot1.plot(lx,dmean[dattype],"-", linewidth=dwidth[dattype], color=cols[idattype+1]) 
+    lines = [axplot1.plot(lx,dmean[dattype],"-", linewidth=dwidth[dattype], color=cols[dattype]) 
                 for idattype,dattype in enumerate(ldattype)]
 
-    ## Error Range
-    #for idattype, dattype in enumerate(ldattype):
-    #  lx_err = array(lx[2:3] + lx[5::2])+0.5*(i-2)
-    #  ly_err = dmean[dattype][2:3] + dmean[dattype][5::2]
-    #  lerr   = dstd[dattype][2:3] + dstd[dattype][5::2]
-    #  axplot1.errorbar(lx_err, ly_err, lerr, ecolor=coldarks[idattype]) 
-    #print "*"*50
-    #print "lx=",lx
-    #print "lx_err=",lx_err
-    #print "*"*50
 
     # Draw 1-1 line
-    axplot1.plot([0,100],[0,100],"--",color="k")
+    axplot1.plot([vmin,vmax],[vmin,vmax],"--",color="k")
 
+    # Add grid
+    plt.grid(which="major",linewidth=0.6)
+    plt.grid(which="minor",linewidth=0.6)
 
     # Add title
     stitle = "%04d/%02d-%04d/%02d CL=%s [%s]"%(iYM[0],iYM[1],eYM[0],eYM[1],dclShortName[icl], lndsea)
+
+    if expr !="std":
+        stitle = stitle + " %s"%(expr)
     plt.title(stitle, fontsize=10)
+
+
     # Save
-    figDir = ibaseDir + "/pict"
-    figPath= figDir  + "/lines.mulProd.vs%s.%s.%s.png"%(Xvar,lndsea,dclShortName[icl])
+    if expr =="std":
+        figDir = ibaseDir + "/pict"
+    elif expr=="sht":
+        figDir = ibaseDir + "/pict.sht"
+    elif expr=="old":
+        figDir = ibaseDir + "/pict.old"
+    else:
+        print "check expr",expr
+        sys.exit()
+
+
+    if logax==True:
+        figPath= figDir  + "/lines.mulProd.log.vs%s.%s.%s.png"%(Xvar,lndsea,dclShortName[icl])
+    else:
+        figPath= figDir  + "/lines.mulProd.vs%s.%s.%s.png"%(Xvar,lndsea,dclShortName[icl])
 
     util.mk_dir(figDir)
     plt.savefig(figPath)
@@ -169,9 +235,9 @@ for lndsea in llndsea:
     # Legend file
     if iicl==0:
       legPath = figDir + "/legend.mulProd.vs%s.png"%(Xvar)
-      figleg  = plt.figure(figsize=(2.2,2.4))
+      figleg  = plt.figure(figsize=(3,3))
       lines   = [line[0] for line in lines]   # 2D list to 1D list
-      figleg.legend(lines, ret_ldatname(ldattype))
+      figleg.legend(lines, ret_ldatname(ldattype), fontsize=15)
       figleg.savefig(legPath)
       plt.close()
       print legPath

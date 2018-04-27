@@ -14,16 +14,25 @@ import sys
 #clVer = "MyWNP3"
 clVer = "MyWNP.M.3"
 
-iYM = [2014,4]
-eYM = [2015,6]
-#iYM = [2014,4]
-#eYM = [2014,4]
+expr = "std"
+#expr = "old"
+#expr = "sht"
+
+if expr == "sht":
+    iYM = [2014,4]
+    eYM = [2014,10]
+else:
+    iYM = [2014,4]
+    eYM = [2015,6]
+    #iYM = [2014,4]
+    #eYM = [2014,4]
+
 
 lYM = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
 
 ldattype = ["KuPR","GMI","IMERG","IMERG.MW","IMERG.IR","GSMaP","GSMaP.MW","GSMaP.IR"]
-#ldattype = ["KuPR","GMI"]
+#ldattype = ["GSMaP.IR"]
 #ldattype = ["RA"]
 
 # 
@@ -41,7 +50,12 @@ elif clVer[:5] == "MyWNP":
   cl      = CLOUDTYPE.MyCloudWNP(ver=ver)
   ncltype = cl.ncl
   lcltype = cl.licl
-  ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%s"%(ver)
+  if expr =="old":
+    ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%s/old@20170925"%(ver)
+  else:
+    ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.My%s"%(ver)
+
+
   ibaseDirCL = rootDir + "/CLOUDTYPE/MyWNP%s"%(ver)
 
 
@@ -109,6 +123,8 @@ def ret_ldatname(ldattype):
     for dattype in ldattype:
         if dattype.split(".")[-1] == "MW":
             datname = dattype.split(".")[0]+".PMW"
+        elif dattype=="KuPR":
+            datname = "DPR-Ku"
         else:
             datname = dattype
         ldatname.append(datname)
@@ -137,6 +153,7 @@ def loadSum(Year,Mon,binPr):
   else:
     a3out = fromfile(iPath, float32).reshape(ncltype, ny, nx)
 
+  print iPath
   return ma.masked_where(a3dommask==-9999., a3out)
 
 def loadNum(Year,Mon,binPr):
@@ -192,11 +209,34 @@ def mk_Fig(lMid, dY, lndsea, icltype, figtype="pdf"):
   axplot  = figplot.add_axes([0.15, 0.10, 0.79,0.8])
 
   # Colors
-  colors = plt.matplotlib.cm.jet(linspace(0,1,len(ldattype)))
+  #colors = plt.matplotlib.cm.jet(linspace(0,1,len(ldattype)))
+  colors= {"KuPR":"k"
+          ,"GMI" :"0.2"
+          ,"IMERG":"dodgerblue"
+          ,"IMERG.MW":"royalblue"
+          ,"IMERG.IR":"limegreen"
+          ,"GSMaP":"red"
+          ,"GSMaP.MW":"magenta"
+          ,"GSMaP.IR":"darkorange"
+          }
+
 
   # Line style
-  linestyle=["--" if dattype in ["KuPR","GMI"] else "-"
-             for dattype in ldattype]
+  #linestyle=["--" if dattype in ["KuPR","GMI"] else "-"
+  #           for dattype in ldattype]
+
+  linestyle= {"KuPR":"--"
+             ,"GMI" :":"
+             ,"IMERG":"-"
+             ,"IMERG.MW":"-"
+             ,"IMERG.IR":"-"
+             ,"GSMaP":"-"
+             ,"GSMaP.MW":"-"
+             ,"GSMaP.IR":"-"
+             }
+
+
+
 
   # Line width
 #  linewidth = [0 if dattype in ["GSMaP.IR","GSMaP.MW"] else 4
@@ -207,8 +247,8 @@ def mk_Fig(lMid, dY, lndsea, icltype, figtype="pdf"):
 
   # Plot
   lines =[axplot.plot(lMid, dY[dattype,lndsea,icltype]
-              ,linewidth=linewidth[idattype], c=colors[idattype]
-              ,linestyle=linestyle[idattype])
+              ,linewidth=linewidth[idattype], c=colors[dattype]
+              ,linestyle=linestyle[dattype])
          for idattype, dattype in enumerate(ldattype)]
 
   # Axis
@@ -340,16 +380,24 @@ def mk_Fig(lMid, dY, lndsea, icltype, figtype="pdf"):
   stitle = "%s %04d/%02d-%04d/%02d CL=%s"\
              %(lndsea,iYM[0],iYM[1],eYM[0],eYM[1],dclName[icltype])
 
+  if   expr=="old":
+    stitle = stitle + " old"
+  elif expr=="sht":
+    stitle = stitle + " sht"
+
+
   if dommask !=None:
     stitle = stitle + " %sdom"%(dommask)
 
   plt.title(stitle, fontsize=10) 
 
   # Save figure
-  #sDir  = "/tank/utsumi/PMM/WNP.261x265/pict"
-  #sDir  = "/home/utsumi/mnt/wellshare/PMM/WNP.261x265/pict"
-  #sDir  = "/home/utsumi/mnt/wellshare/PMM/WNP.261x265/pict.MyCL"
-  sDir  = ibaseDir + "/pict"
+  if expr  =="std":
+      sDir  = ibaseDir + "/pict"
+  elif expr=="old":
+      sDir  = ibaseDir + "/pict.old"
+  elif expr=="sht":
+      sDir  = ibaseDir + "/pict.sht"
   util.mk_dir(sDir)
   if dommask==None:
     sPath = sDir + "/%s.%s.%s.png"%(figtype, lndsea, dclShortName[icltype]) 
@@ -361,9 +409,9 @@ def mk_Fig(lMid, dY, lndsea, icltype, figtype="pdf"):
   plt.close()
   # Legend file
   legPath = sDir + "/legend.pdfs.png"
-  figleg  = plt.figure(figsize=(2.2,3))
+  figleg  = plt.figure(figsize=(3,3))
   lines = [line[0] for line in lines]  # 2D list to 1D list
-  figleg.legend(lines, ret_ldatname(ldattype))
+  figleg.legend(lines, ret_ldatname(ldattype), fontsize=15)
   figleg.savefig(legPath)
  
   plt.close()
@@ -409,16 +457,18 @@ for dattype in ldattype:
     for icltype in lcltype + [99]:
       lMid, dPDF[dattype,lndsea,icltype] = ret_pdf(lbinPr, dNum[dattype,lndsea,icltype])
       lMid, dCnt[dattype,lndsea,icltype] = ret_Cnt(lbinPr, dNum[dattype,lndsea,icltype], dSum[dattype,lndsea,icltype], icltype)
+
+
 #-----------
 # Figure 
 for lndsea in llndsea:
   for icltype in lcltype + [99]:
     mk_Fig(lMid, dPDF, lndsea, icltype, figtype="pdf")
-    mk_Fig(lMid, dPDF, lndsea, icltype, figtype="pdf.focus")
+    #mk_Fig(lMid, dPDF, lndsea, icltype, figtype="pdf.focus")
     #mk_Fig(lMid, dPDF, lndsea, icltype, figtype="Weak.pdf")
     #mk_Fig(lMid, dPDF, lndsea, icltype, figtype="Heavy.pdf")
-    mk_Fig(lMid, dPDF, lndsea, icltype, figtype="log.Weak.pdf")
-    mk_Fig(lMid, dPDF, lndsea, icltype, figtype="log.Heavy.pdf")
-    mk_Fig(lMid, dCnt, lndsea, icltype, figtype="cnt")
-    mk_Fig(lMid, dCnt, lndsea, icltype, figtype="cnt.focus")
+    #mk_Fig(lMid, dPDF, lndsea, icltype, figtype="log.Weak.pdf")
+    #mk_Fig(lMid, dPDF, lndsea, icltype, figtype="log.Heavy.pdf")
+    #mk_Fig(lMid, dCnt, lndsea, icltype, figtype="cnt")
+    #mk_Fig(lMid, dCnt, lndsea, icltype, figtype="cnt.focus")
     #mk_Fig(lMid, dCnt, lndsea, icltype, figtype="cnt"

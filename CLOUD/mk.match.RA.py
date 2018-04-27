@@ -17,18 +17,37 @@ TrackFlag = False
 #clVer = "MyWNP3"
 clVer = "MyWNP.M.3"
 
-#iYM    = [2014,4]
-#eYM    = [2015,6]
 iYM    = [2014,4]
 eYM    = [2015,6]
+#iYM    = [2014,7]
+#eYM    = [2014,9]
 
 
 lYM    = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
 
+## test ----------------------
+#lYMtmp    = util.ret_lYM(iYM, eYM)
+#lYM = []
+#for YM in lYMtmp:
+#    Year,Mon = YM
+#    print Year,Mon
+#    if Year==2014:
+#        if Mon in [6,7,8,9,10,11,12]:
+#            continue
+#    elif Year==2015:
+#        if Mon in [1,2,3,4,5]:
+#            continue
+#    lYM.append(YM)
+##----------------------------
+
+
+
 #ldattype = ["RA","KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
 #ldattype = ["KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
-ldattype = ["GSMaP"]
+#ldattype = ["GSMaP.IR","GSMaP.MW","IMERG.IR","IMERG.MW"]
+#ldattype = ["IMERG","IMERG.IR","IMERG.MW"]
+ldattype = ["KuPR"]
 
 
 BBox    = [[-0.1, 113.875],[52.1, 180.125]]
@@ -40,7 +59,7 @@ if TrackFlag == False:
 
 
 #rootDir = "/tank/utsumi"
-rootDir = "/home/utsumi/mnt/well.share"
+rootDir = "/home/utsumi/mnt/wellshare"
 if clVer   == "JMA1":
   cl         = CLOUDTYPE.CloudWNP()
   ibaseDir   = rootDir + "/PMM/WNP.261x265/CL.JMA"
@@ -82,7 +101,7 @@ a2ramask  = fromfile(maskPath, float32).reshape(261,265)
 a2ramask  = ma.masked_equal(a2ramask, -9999.)
 
 # land sea mask
-landfracDir = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/MASK"
+landfracDir = "/home/utsumi/mnt/wellshare/PMM/WNP.261x265/MASK"
 landfracPath= landfracDir + "/landfrac.%dx%d"%(cl.ny, cl.nx)
 a2lndfrc    = fromfile(landfracPath, float32).reshape(261,265)
 
@@ -119,7 +138,8 @@ def ret_mmh(DTime, dattype):
     a2pr    = us.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
   elif dattype =="GSMaP.MW":
     a2sateinfo = gsmap.load_sateinfo(DTime)
-    a2prOrg = ma.masked_where(a2sateinfo <0,
+    #a2prOrg = ma.masked_where(a2sateinfo <0,  # version5
+    a2prOrg = ma.masked_where(a2sateinfo <=1,  # version7
                ma.masked_less(gsmap.load_mmh(DTime),0.0)
               ).filled(miss)    # mm/h, forward
 
@@ -127,7 +147,8 @@ def ret_mmh(DTime, dattype):
 
   elif dattype =="GSMaP.IR":
     a2sateinfo = gsmap.load_sateinfo(DTime)
-    a2prOrg = ma.masked_where(a2sateinfo >=0,
+    #a2prOrg = ma.masked_where(a2sateinfo >=0,
+    a2prOrg = ma.masked_where(a2sateinfo !=1,
                 ma.masked_less(gsmap.load_mmh(DTime),0.0)
               ).filled(miss)    # mm/h, forward
 
@@ -186,7 +207,8 @@ def ret_mmh(DTime, dattype):
 
     prj     = 'GPM.KuPR'
     prdLv   = 'L2'
-    prdVer  = '03'
+    #prdVer  = '03'
+    prdVer  = '05'
     baseDir = "/tank/utsumi/PMM/WNP.261x265/%s/%s/%s"%(prj,prdLv,prdVer)
 
     dataDir0 = baseDir  + "/%04d/%02d"%(Year,Mon)
@@ -233,7 +255,8 @@ def ret_mmh(DTime, dattype):
 
     prj     = 'GPM.GMI'
     prdLv   = 'L2'
-    prdVer  = '03'
+    #prdVer  = '03'
+    prdVer  = '05'
     baseDir = "/tank/utsumi/PMM/WNP.261x265/%s/%s/%s"%(prj,prdLv,prdVer)
 
     dataDir0 = baseDir  + "/%04d/%02d"%(Year,Mon)
@@ -272,7 +295,8 @@ for dattype in ldattype:
   #---------
   if   dattype.split(".")[0] =="GSMaP":
     import myfunc.IO.GSMaP as GSMaP
-    gsmap = GSMaP.GSMaP(prj="standard", ver="v6", BBox=BBox)
+    #gsmap = GSMaP.GSMaP(prj="standard", ver="v6", BBox=BBox)
+    gsmap = GSMaP.GSMaP(prj="standard", ver="v7", BBox=BBox, compressed=True)
     LatOrg= gsmap.Lat
     LonOrg= gsmap.Lon
     us    = Regrid.UpScale()
@@ -280,7 +304,9 @@ for dattype in ldattype:
   
   elif dattype.split(".")[0] == "IMERG":
     import myfunc.IO.IMERG as IMERG
-    imerg = IMERG.IMERG(PRD="PROD",VER="V03",crd="sa", BBox=BBox)
+    #imerg = IMERG.IMERG(PRD="PROD",VER="V03",crd="sa", BBox=BBox)
+    #imerg = IMERG.IMERG(PRD="PROD",VER="V04",crd="sa", BBox=BBox)
+    imerg = IMERG.IMERG(PRD="PROD",VER="V05B",crd="sa", BBox=BBox)
     LatOrg= imerg.Lat
     LonOrg= imerg.Lon
     us    = Regrid.UpScale()
@@ -394,7 +420,6 @@ for dattype in ldattype:
     lkeys = [[lndsea,icl] for lndsea in llndsea
                           for icl     in lcltype]
     for [lndsea,icl] in lkeys:
-      #baseDir  = "/home/utsumi/mnt/well.share/PMM/WNP.261x265"
       baseDir  = ibaseDir
       if TrackFlag ==True:
         sDir     = baseDir + "/Tr.VsRA.CL.%s/%04d"%(dattype,Year)

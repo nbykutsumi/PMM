@@ -4,8 +4,10 @@ from numpy import *
 from collections import deque
 import myfunc.util as util
 import matplotlib.pylab as plt
+import matplotlib.colors as colors
 import myfunc.IO.CLOUDTYPE as CLOUDTYPE
 import sys, os
+import math
 
 
 expr = "std"
@@ -25,10 +27,10 @@ lYM = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
 #ldattype = ["GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP.IR","GSMaP.MW","GSMaP"]
 #ldattype = ["GMI"]
 #ldattype = ["GMI","IMERG.IR","IMERG.MW","GSMaP.IR","GSMaP.MW"]
-#ldattype = ["IMERG.IR","IMERG.MW","GSMaP.IR","GSMaP.MW","GMI"]
+ldattype = ["IMERG.IR","IMERG.MW","GSMaP.IR","GSMaP.MW"]
 #ldattype = ["IMERG.IR","IMERG.MW"]
-#ldattype = ["GSMaP"]
-ldattype = ["GSMaP.IR"]
+#ldattype = ["GSMaP.IR"]
+#ldattype = ["IMERG.IR"]
 
 #clVer = "JMA1"
 clVer = "MyWNP.M.3"
@@ -36,13 +38,13 @@ clVer = "MyWNP.M.3"
 Xvar  = "KuPR"
 #Xvar  = "RA"
 
-#pdfflag = True
-pdfflag = False
+pdfflag = True
+#pdfflag = False
 
 #llndsea = ["any","lnd","sea","cst"]
 #llndsea = ["sea","lnd"]
-#llndsea = ["sea"]
-llndsea = ["sea","lnd"]
+llndsea = ["sea"]
+#llndsea = ["sea","lnd"]
 
 
 #rootDir = "/tank/utsumi"
@@ -169,11 +171,10 @@ for lndsea in llndsea:
       mbins  = (bins[:-1] + bins[1:])*0.5
       X,Y    = meshgrid(mbins, mbins)
   
-      #levels = arange(0.0005, 0.05, 0.002)
-      #levels = arange(0.0001, 0.1, 0.001)
-      #levels = arange(5, 10000, 100)
-      levels = arange(5, 3000, 100)
-      im=axplot1.contour(X,Y,H,levels,cmap="gist_ncar")
+      #levels = arange(5, 3000, 100)
+      levels = array([2**i for i in range(2,12+1)])
+      #im=axplot1.contour(X,Y,H,levels,cmap="gist_ncar")
+      im=axplot1.contour(X,Y,H,levels, norm=colors.LogNorm(vmin=levels[0], vmax=levels[-1]) ,cmap="gist_ncar")
 
       # Draw 1-1 line
       axplot1.plot([0,100],[0,100],"--",color="k")
@@ -256,7 +257,7 @@ for lndsea in llndsea:
       else:
         figDir = ibaseDir + "/pict.%s"%(expr)
 
-      figPath= figDir  + "/scatter.%s.vs%s.%s.%s.png"%(dattype,Xvar,lndsea,dclShortName[icl])
+      figPath= figDir  + "/scatter.logcont.%s.vs%s.%s.%s.png"%(dattype,Xvar,lndsea,dclShortName[icl])
     
       util.mk_dir(figDir)
       plt.savefig(figPath)
@@ -266,15 +267,20 @@ for lndsea in llndsea:
  
 
       # Colorbar
-      figcbar = plt.figure(figsize=(5,0.4))
-      axcbar  = figcbar.add_axes([0.1, 0.7, 0.8, 0.2])
+      figcbar = plt.figure(figsize=(6,0.4))
+      axcbar  = figcbar.add_axes([0.05, 0.7, 0.85, 0.2])
       #plt.colorbar(boundaries=levels, cax=axcbar, orientation="horizontal")
-      cb = mpl.colorbar.ColorbarBase(axcbar, boundaries=levels,orientation="horizontal", cmap="gist_ncar")
-      labels= arange(5,3000,400)
-      cb.set_ticks(labels+50)
+      #cb = mpl.colorbar.ColorbarBase(axcbar, boundaries=levels,orientation="horizontal", cmap="gist_ncar")
+      cb = mpl.colorbar.ColorbarBase(axcbar, boundaries=levels,orientation="horizontal", norm=colors.LogNorm(vmin=levels[0], vmax=levels[-1]), cmap="gist_ncar")
+      #labels= arange(5,3000,400)
+      #cb.set_ticks(labels+50)
+      loc = [x*(2**0.5) for x in levels]
+      #labels =["$2^{%d}$"%(math.log(x,2)) for x in levels]
+      labels = levels
+      cb.set_ticks(loc)
       cb.set_ticklabels(labels)
       plt.tick_params(labelsize=12)
 
-      cbarPath = figDir + "/cbar.scatter.vs%s.png"%(Xvar)
+      cbarPath = figDir + "/cbar.scatter.logcont.vs%s.png"%(Xvar)
       figcbar.savefig(cbarPath)
       plt.clf()

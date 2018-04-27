@@ -1,5 +1,3 @@
-import matplotlib
-matplotlib.use("Agg")
 from numpy import *
 import os, sys
 import myfunc.util         as util
@@ -9,8 +7,6 @@ import myfunc.IO.CloudSat  as CloudSat
 import myfunc.IO.CloudSat.util as CSutil
 import matplotlib.pyplot   as plt
 import matplotlib
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 
 #-- CloudSat ---
 prdLev  = "2B"
@@ -28,7 +24,7 @@ lz  = arange(-4810, 24950+1, 240) /1000. # [km]
 
 #-- JMA-Cloud ---
 clVer = "MyWNP.M.3"
-rootDir = "/home/utsumi/mnt/wellshare"
+rootDir = "/home/utsumi/mnt/well.share"
 if clVer[:5] == "MyWNP":
   ver        = clVer[5:]
   cl         = CLOUDTYPE.MyCloudWNP(ver=ver)
@@ -106,8 +102,8 @@ for Year,Mon in lYM:
 
 # Draw
 for clid in lclid[:-1]:
-  fig  = plt.figure(figsize=(3.2,1.4))
-  ax   = fig.add_axes([0.1,0.19,0.62,0.63])
+  fig  = plt.figure(figsize=(3.5,1.8))
+  ax   = fig.add_axes([0.1,0.15,0.78,0.64])
   x    = arange(len(lcsid)+1)[1:] -0.5   # don't show csid=0:no cloud
   #y    = arange(nbin+1) - 0.5
   y    = lz - (lz[1]-lz[0])*0.5      # height bin size=240 m
@@ -117,49 +113,29 @@ for clid in lclid[:-1]:
   print Z
   Z    = ma.masked_equal(Z,0) 
   Z    = Z / float(dEvents[clid]) * 100. # [%]
-  #cmap = "binary"
-  cmap = "jet"
+  cmap = "binary"
   if clid in [1,2]:
     im   = ax.pcolormesh(X, Y, Z, cmap=cmap, vmin=0, vmax=100)
   else:
     im   = ax.pcolormesh(X, Y, Z, cmap=cmap, vmin=0, vmax=50)
   
-  # Axis limit
-  #ax.set_ylim([0,y[-1]])
-  ax.set_ylim([0,20])
-  ax.set_xlim([x[0],x[-1]])
-
-  # X-tick label (for meshgrid)
-  lxlabel = [dcsShortName[i] for i in lcsid[1:]]
-  ax.set_xticks(x[:-1]+0.5)
-  ax.xaxis.set_ticklabels(lxlabel, fontsize=13)
-
   # Colorbar
-  divider = make_axes_locatable(ax)
-  cbpos= fig.add_axes([0.86,0.19,0.03,0.63])
-  cb   = plt.colorbar(im, cax=cbpos)
+  cb   = plt.colorbar(im)
   cb.ax.tick_params(labelsize=9)
 
-  # Total count profile
-  ax2  = fig.add_axes([0.75,0.19,0.07,0.63])
-  x2   = Z.sum(axis=1)
-  y2   = y
-  ax2.plot(x2,y2,"-",color="k",linewidth=2)
-  ax2.tick_params(labelleft="off")
-  #ax2.set_ylim([0,y[-1]]) 
-  ax2.set_ylim([0,20]) 
-  if clid in [1,2]:
-    xmax2 =100
-  else:
-    xmax2 =59
-  ax2.set_xlim([0,xmax2]) 
-
- 
+  # Axis limit
+  plt.ylim([0,y[-1]])
+  plt.xlim([x[0],x[-1]])
+  
+  # X-tick label
+  lxlabel = [dcsShortName[i] for i in lcsid]
+  ax.xaxis.set_ticklabels(lxlabel, fontsize=14)
+  
   # Title
-  plt.suptitle(dclName[clid])
+  plt.title(dclName[clid])
   
   # Vertical lines
-  [ax.plot([xx, xx],[y[0],y[-1]+1],"-",color="k",linewidth=0.8) for xx in x]
+  [ax.plot([xx, xx],[y[0],y[-1]+1],"-",color="k") for xx in x]
   
   # Save
   figDir  = os.path.join(ibaseDir,"pict")

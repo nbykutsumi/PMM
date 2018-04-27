@@ -5,8 +5,17 @@ from datetime import datetime, timedelta
 import myfunc.util as util
 import os
 
-iDTime  = datetime(2014,3,31,0)
-eDTime  = datetime(2016,1,2,0)
+#iDTime  = datetime(2014,3,31,0)
+#eDTime  = datetime(2016,1,2,0)
+
+iDTime  = datetime(2014,5,27,0)
+eDTime  = datetime(2014,6,1,0)
+
+#iDTime  = datetime(2015,6,1,0)
+#eDTime  = datetime(2015,7,1,0)
+
+
+
 
 prj     = 'GPM.KuPR'
 prdLv   = 'L2'

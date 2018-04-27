@@ -1,34 +1,23 @@
-import matplotlib as mpl
-mpl.use("Agg")
+import matplotlib
+matplotlib.use("Agg")
 from numpy import *
 from collections import deque
 import myfunc.util as util
 import matplotlib.pylab as plt
 import myfunc.IO.CLOUDTYPE as CLOUDTYPE
-import sys, os
 
-
-expr = "std"
-#expr = "old"
-#expr = "sht"
-
-if expr == "sht":
-    iYM    = [2014,4]
-    eYM    = [2014,10]
-else:
-    iYM    = [2014,4]
-    eYM    = [2015,6]
-    #eYM    = [2014,4]
+iYM    = [2014,4]
+eYM    = [2015,6]
+#eYM    = [2014,4]
 lYM    = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
 #ldattype = ["KuPR","GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP","GSMaP.IR","GSMaP.MW"]
 #ldattype = ["GMI","IMERG","IMERG.IR","IMERG.MW","GSMaP.IR","GSMaP.MW","GSMaP"]
-#ldattype = ["GMI"]
 #ldattype = ["GMI","IMERG.IR","IMERG.MW","GSMaP.IR","GSMaP.MW"]
-#ldattype = ["IMERG.IR","IMERG.MW","GSMaP.IR","GSMaP.MW","GMI"]
-#ldattype = ["IMERG.IR","IMERG.MW"]
+#ldattype = ["IMERG.IR","IMERG.MW","GSMaP.IR","GSMaP.MW"]
+ldattype = ["IMERG.MW","GSMaP.IR","GSMaP.MW"]
 #ldattype = ["GSMaP"]
-ldattype = ["GSMaP.IR"]
+#ldattype = ["IMERG.IR"]
 
 #clVer = "JMA1"
 clVer = "MyWNP.M.3"
@@ -41,8 +30,8 @@ pdfflag = False
 
 #llndsea = ["any","lnd","sea","cst"]
 #llndsea = ["sea","lnd"]
-#llndsea = ["sea"]
-llndsea = ["sea","lnd"]
+llndsea = ["sea"]
+#llndsea = ["sea","lnd"]
 
 
 #rootDir = "/tank/utsumi"
@@ -117,7 +106,8 @@ if   Xvar == "KuPR": loadX = loadKu
 elif Xvar == "RA":   loadX = loadRA
 
 #*******************************
-vlim    = 40  # mm/hour
+vmin    = 0.01
+vmax    = 100  # mm/hour
 #cols    = plt.matplotlib.cm.jet(linspace(0,1,len(ldattype)))
 #coldarks= [col*array([1,1,1,0.5]) for col in cols]
 
@@ -126,16 +116,17 @@ for lndsea in llndsea:
     for i, icl in enumerate(lcltype[1:] + [99]):
 
       if   pdfflag != True:
-        figplot = plt.figure(figsize=(4,4))
-        #axplot1  = figplot.add_axes([0.1,0.1,0.7,0.7])
-        axplot1  = figplot.add_axes([0.11,0.1,0.7,0.7])
-      elif pdfflag == True:
         figplot = plt.figure(figsize=(4.5,4.5))
-        #axplot1  = figplot.add_axes([0.1,0.1,0.6,0.6])
         axplot1  = figplot.add_axes([0.11,0.1,0.6,0.6])
 
-      axplot1.set_ylim(0.0, vlim)
-      axplot1.set_xlim(0.0, vlim)
+      elif pdfflag == True:
+        figplot = plt.figure(figsize=(4.5,4.5))
+        axplot1  = figplot.add_axes([0.11,0.1,0.6,0.6])
+
+      axplot1.set_xscale("log",nonposx="clip")
+      axplot1.set_yscale("log",nonposy="clip")
+      axplot1.set_ylim(vmin, vmax)
+      axplot1.set_xlim(vmin, vmax)
     
       # Load data
       if   icl != 99:
@@ -155,57 +146,60 @@ for lndsea in llndsea:
 
    
       # Average line
-      #bins   = r_[arange(0, 10+0.1,2), arange(15,100,5)]
-      bins   = arange(0,50,2)
+      lk     = arange(-2,2.6+0.01,0.2)
+      bins   = array([10**k for k in lk])
       BINS   = zip(bins[:-1],bins[1:])
       lmean  = [ma.masked_where(logical_or( lref<binmin,  binmax<=lref), lpr).mean() for (binmin,binmax) in BINS]
       lx     = [mean(BIN) for BIN in BINS]
       axplot1.plot(lx, lmean,"-", linewidth=2, color="k")
    
-      # Contour
-      bins   = arange(0, 50, 2)
-      H, ybins, xbins = histogram2d(lpr, lref, [bins, bins], normed=False)   # histogram2d(y,x) <-- keep this order of y and x !!!
+      ## Contour
+      #bins   = arange(0.02,100,1)
+      #H, ybins, xbins = histogram2d(lpr, lref, [bins, bins], normed=False)   # histogram2d(y,x) <-- keep this order of y and x !!!
   
-      mbins  = (bins[:-1] + bins[1:])*0.5
-      X,Y    = meshgrid(mbins, mbins)
-  
-      #levels = arange(0.0005, 0.05, 0.002)
-      #levels = arange(0.0001, 0.1, 0.001)
+      #mbins  = (bins[:-1] + bins[1:])*0.5
+      #X,Y    = meshgrid(mbins, mbins)
       #levels = arange(5, 10000, 100)
-      levels = arange(5, 3000, 100)
-      im=axplot1.contour(X,Y,H,levels,cmap="gist_ncar")
-
+      ##levels = [10**k for k in [-2,2.6+0.01,0.5]]
+      ##axplot1.contour(X,Y,H,levels,color="k")
+      ##axplot1.contour(X,Y,H,levels,cmap="jet")
+      #axplot1.contour(X,Y,H,levels,cmap="gist_ncar")
+   
       # Draw 1-1 line
-      axplot1.plot([0,100],[0,100],"--",color="k")
+      axplot1.plot([0.01,100],[0.01,100],"--",color="k")
+
 
       if pdfflag==True: 
         # PDF & CDF for precip --------
         #axplot2  = figplot.add_axes([0.77,0.1,0.16,0.6])
         axplot2  = figplot.add_axes([0.78,0.1,0.16,0.6])
+        axplot2.set_xscale("log",nonposx="clip")
+
   
         # PDF
-        bins     = arange(0,70,1)
+        bins     = arange(0,100,0.1)
         y, bins  = histogram(lpr, bins=bins, density=True)
         x        = (bins[:-1]+bins[1:])*0.5
         axplot2.plot(y, x, "-", color="k")
   
         # options
-        axplot2.set_ylim(0,vlim)
+        axplot2.set_ylim(vmin,vmax)
         #for itick, tick in enumerate(axplot2.xaxis.get_major_ticks()):
         #   if itick not in [0, len(axplot2.xaxis.get_major_ticks())-2]:
         #     tick.label.set_visible(False)
-  
+ 
         axplot2.tick_params(top="on",right="on",labelleft="off", direction="in", labelsize=14)
   
         # CDF
         axplot22 = axplot2.twiny()
+        axplot22.set_yscale("log",nonposy="clip")
         x        = sort(lpr)
         y        = cumsum(x)/sum(x)
         axplot22.plot(y, x, "--", color="red")
  
         # options
-        axplot22.set_ylim(0,vlim)
-        axplot22.set_xlim(0,1.0)
+        axplot22.set_ylim(vmin,vmax)
+        axplot22.set_xlim(0.0,1.0)
         labels   = list(axplot22.get_xticks())
         nlabels  = len(labels)
         for i in range(1,nlabels-1):
@@ -217,12 +211,12 @@ for lndsea in llndsea:
         #axplot3  = figplot.add_axes([0.1,0.77,0.6,0.16])
         axplot3  = figplot.add_axes([0.11,0.77,0.6,0.16])
   
-        bins     = arange(0,70,1)
+        bins     = arange(0,100,0.1)
         y, bins  = histogram(lref, bins=bins, density=True)
         x        = (bins[:-1]+bins[1:])*0.5
         axplot3.plot(x, y, "-", color="k")
         # options
-        axplot3.set_xlim(0,vlim)
+        axplot3.set_xlim(vmin,vmax)
         axplot3.tick_params(labelbottom="off",direction="in", labelsize=14)
   
         # CDF
@@ -232,7 +226,7 @@ for lndsea in llndsea:
         axplot32.plot(x,y, "--", color="red")
   
         # options
-        axplot32.set_xlim(0,vlim)
+        axplot32.set_xlim(vmin,vmax)
         axplot32.set_ylim(0,1.0)
         #labels   = list(axplot32.get_yticks())
         #nlabels  = len(labels)
@@ -245,18 +239,10 @@ for lndsea in llndsea:
 
       # Add title
       stitle = "%04d/%02d-%04d/%02d %s CL=%s [%s]"%(iYM[0],iYM[1],eYM[0],eYM[1],dattype, dclShortName[icl], lndsea)
-
-      if expr !="std":
-        stitle = stitle + " %s"%(expr)
-
       plt.title(stitle, fontsize=10)
       # Save
-      if expr=="std":
-        figDir = ibaseDir + "/pict"
-      else:
-        figDir = ibaseDir + "/pict.%s"%(expr)
-
-      figPath= figDir  + "/scatter.%s.vs%s.%s.%s.png"%(dattype,Xvar,lndsea,dclShortName[icl])
+      figDir = ibaseDir + "/pict"
+      figPath= figDir  + "/scatter.log.%s.vs%s.%s.%s.png"%(dattype,Xvar,lndsea,dclShortName[icl])
     
       util.mk_dir(figDir)
       plt.savefig(figPath)
@@ -265,16 +251,3 @@ for lndsea in llndsea:
       #plt.close()
  
 
-      # Colorbar
-      figcbar = plt.figure(figsize=(5,0.4))
-      axcbar  = figcbar.add_axes([0.1, 0.7, 0.8, 0.2])
-      #plt.colorbar(boundaries=levels, cax=axcbar, orientation="horizontal")
-      cb = mpl.colorbar.ColorbarBase(axcbar, boundaries=levels,orientation="horizontal", cmap="gist_ncar")
-      labels= arange(5,3000,400)
-      cb.set_ticks(labels+50)
-      cb.set_ticklabels(labels)
-      plt.tick_params(labelsize=12)
-
-      cbarPath = figDir + "/cbar.scatter.vs%s.png"%(Xvar)
-      figcbar.savefig(cbarPath)
-      plt.clf()

@@ -14,8 +14,8 @@ from mpl_toolkits.basemap import Basemap
 #clVer = "MyWNP3"
 clVer = "MyWNP.M.3"
 
-#iYM    = [2014,4]
-#eYM    = [2015,6]
+#iYM    = [2014,7]
+#eYM    = [2014,9]
 iYM    = [2014,4]
 eYM    = [2015,6]
 
@@ -23,13 +23,29 @@ eYM    = [2015,6]
 lYM    = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [11,12,1,2,3]]
 
+## test ----------------------
+#lYMtmp    = util.ret_lYM(iYM, eYM)
+#lYM = []
+#for YM in lYMtmp:
+#    Year,Mon = YM
+#    print Year,Mon
+#    if Year==2014:
+#        if Mon in [6,7,8,9,10,11,12]:
+#            continue
+#    elif Year==2015:
+#        if Mon in [1,2,3,4,5]:
+#            continue
+#    lYM.append(YM)
+##----------------------------
+
 #ldattype = ["RA","KuPR","GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
 #ldattype = ["GSMaP","IMERG"]
 #ldattype = ["GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
-#ldattype = ["GMI","GSMaP.IR","GSMaP.MW","IMERG.IR","IMERG.MW"]
+#ldattype = ["GMI","GSMaP","GSMaP.IR","GSMaP.MW","IMERG","IMERG.IR","IMERG.MW"]
+ldattype = ["GMI","GSMaP.IR","GSMaP.MW","IMERG.IR","IMERG.MW"]
 #ldattype = ["GSMaP.IR","GSMaP.MW","IMERG.IR","IMERG.MW"]
-ldattype = ["IMERG.IR","IMERG.MW"]
-
+#ldattype = ["IMERG","IMERG.IR","IMERG.MW"]
+#ldattype = ["GMI"]
 
 BBox    = [[-0.1, 113.875],[52.1, 180.125]]
 ny,nx   = 261, 265
@@ -109,7 +125,8 @@ def ret_mmh(DTime, dattype):
     a2pr    = us.upscale(a2prOrg, pergrid=False, miss_in=miss, miss_out=miss)
   elif dattype =="GSMaP.MW":
     a2sateinfo = gsmap.load_sateinfo(DTime)
-    a2prOrg = ma.masked_where(a2sateinfo <0,
+    #a2prOrg = ma.masked_where(a2sateinfo <0,  # version5
+    a2prOrg = ma.masked_where(a2sateinfo <=1,  # version7
                ma.masked_less(gsmap.load_mmh(DTime),0.0)
               ).filled(miss)    # mm/h, forward
 
@@ -117,7 +134,8 @@ def ret_mmh(DTime, dattype):
 
   elif dattype =="GSMaP.IR":
     a2sateinfo = gsmap.load_sateinfo(DTime)
-    a2prOrg = ma.masked_where(a2sateinfo >=0,
+    #a2prOrg = ma.masked_where(a2sateinfo >=0,
+    a2prOrg = ma.masked_where(a2sateinfo !=1,
                 ma.masked_less(gsmap.load_mmh(DTime),0.0)
               ).filled(miss)    # mm/h, forward
 
@@ -281,7 +299,8 @@ for dattype in ldattype:
   elif dattype.split(".")[0] == "IMERG":
     import myfunc.IO.IMERG as IMERG
     #imerg = IMERG.IMERG(PRD="PROD",VER="V03",crd="sa", BBox=BBox)
-    imerg = IMERG.IMERG(PRD="PROD",VER="V04",crd="sa", BBox=BBox)
+    #imerg = IMERG.IMERG(PRD="PROD",VER="V04",crd="sa", BBox=BBox)
+    imerg = IMERG.IMERG(PRD="PROD",VER="V05B",crd="sa", BBox=BBox)
     LatOrg= imerg.Lat
     LonOrg= imerg.Lon
     us    = Regrid.UpScale()
