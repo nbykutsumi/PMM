@@ -61,12 +61,15 @@ for YM in lYM:
         fileName = os.path.basename(srcPath)
         gNum     = fileName[12:12+5]
 
+        #if int(gNum) < 95262: continue
+
         Dat  = gpm.load_var_granule(srcPath, var)
         Lat  = gpm.load_var_granule(srcPath, "Latitude")
         Lon  = gpm.load_var_granule(srcPath, "Longitude")
         dtime= gpm.load_dtime_granule(srcPath)
         rangeBinNum= gpm.load_var_granule(srcPath, "rangeBinNum")
-
+        eSurf= gpm.load_var_granule(srcPath, "e_SurfRain")
+        nSurf= gpm.load_var_granule(srcPath, "nearSurfRain")
  
 
         #print rangeBinNum.shape
@@ -92,10 +95,12 @@ for YM in lYM:
             LonTmp= Lon[a1mask]
             dtimeTmp = dtime[a1mask]
             rangeBinNumTmp = rangeBinNum[a1mask]
+            eSurfTmp = eSurf[a1mask]
+            nSurfTmp = nSurf[a1mask]
 
             if len(dtimeTmp) <2: continue
             sDTime = dtimeTmp[0]
-            eDTime = dtimeTmp[1]
+            eDTime = dtimeTmp[-1]
 
             stime  = "%04d%02d%02d%02d%02d%02d"%(sDTime.year, sDTime.month, sDTime.day, sDTime.hour, sDTime.minute, sDTime.second)    
             etime  = "%04d%02d%02d%02d%02d%02d"%(eDTime.year, eDTime.month, eDTime.day, eDTime.hour, eDTime.minute, eDTime.second)    
@@ -115,9 +120,14 @@ for YM in lYM:
             dtimePath= outDir + "/dtime.%s-%s.%s.npy"%(stime,etime,gNum)
             prcpPath = outDir + "/prcp.%s-%s.%s.npy"%(stime,etime,gNum)
             rbinPath = outDir + "/rangeBinNum.%s-%s.%s.npy"%(stime,etime,gNum)
+            eSurfPath = outDir + "/eSurf.%s-%s.%s.npy"%(stime,etime,gNum)
+            nSurfPath = outDir + "/nSurf.%s-%s.%s.npy"%(stime,etime,gNum)
             np.save(latPath,  LatTmp.astype(float32))
             np.save(lonPath,  LonTmp.astype(float32))
+            np.save(dtimePath,dtimeTmp)
             np.save(prcpPath, DatTmp.astype(int16))
             np.save(rbinPath, rangeBinNumTmp.astype(int16))
+            np.save(eSurfPath,eSurfTmp.astype(float32))
+            np.save(nSurfPath,nSurfTmp.astype(float32))
 
             print prcpPath

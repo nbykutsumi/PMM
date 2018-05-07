@@ -31,7 +31,7 @@ SUBROUTINE point2map(a1dat, a1lon_obs, a1lat_obs, a1lon_map, a1lat_map, power, n
   integer                               ix, iy, iobs
 
   !-- out --
-  double precision,dimension(ny,nx)  :: a2out
+  double precision,dimension(nx,ny)  :: a2out
   !f2py intent(out)                     a2out
 
   !--------------
@@ -47,8 +47,8 @@ SUBROUTINE point2map(a1dat, a1lon_obs, a1lat_obs, a1lon_map, a1lat_map, power, n
         lat1 = a1lat_obs(iobs)
         v    = a1dat(iobs)
 
-        dist = hubeny(lat0, lon0, lat1, lon1) /1000d0  ! km
-        w    = 1d0 / dist**power
+        dist = hubeny(lat0, lon0, lat1, lon1) /1000d0 ! km
+        w    = 1d0 / (dist**power + 1d-3)   ! 1d-3 is to avoid dividing by zero
         w_sum = w_sum + w
         wv_sum= wv_sum + w * v
 
@@ -57,7 +57,9 @@ SUBROUTINE point2map(a1dat, a1lon_obs, a1lat_obs, a1lon_map, a1lat_map, power, n
 
 
     end do
+
   end do
+
 
 RETURN
 END SUBROUTINE point2map

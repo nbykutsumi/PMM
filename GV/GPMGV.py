@@ -153,7 +153,7 @@ class GPMGV(object):
                 if gName not in dgNames[domain]:   
                      dgNames[domain].append(gName)
 
-            dnwCode[key] = nwCode
+            dnwCode[domain] = nwCode
             dlatlon[key] = [lat,lon]
             diYM[key]    = [iYear,iMon]
             deYM[key]    = [eYear,eMon]

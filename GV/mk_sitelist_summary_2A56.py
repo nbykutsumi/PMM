@@ -80,7 +80,8 @@ lk  = arange(len(lYM))
 sout = ""
 for key in lkey:
     domain = key
-    region, nwname = key.split("-")[:2]
+    region, nwName = key.split("-")[:2]
+    nwCode = dnwCode[key]
     dYM[key] = sorted(dYM[key])
     sYM = min(dYM[key])
     eYM = max(dYM[key])
