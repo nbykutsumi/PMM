@@ -46,7 +46,6 @@ for line in lines[1:]:
     dBBox[key]  = [[lllat,lllon],[urlat,urlon]]
     dyyyymm[key]= lyyyymm
 
-
 #----------------------------
 for YM in lYM:
     Year,Mon = YM
@@ -69,7 +68,7 @@ for YM in lYM:
         dtime= gpm.load_dtime_granule(srcPath)
         rangeBinNum= gpm.load_var_granule(srcPath, "rangeBinNum")
         eSurf= gpm.load_var_granule(srcPath, "e_SurfRain")
-        nSurf= gpm.load_var_granule(srcPath, "nearSurfRain")
+        #nSurf= gpm.load_var_granule(srcPath, "nearSurfRain")
  
 
         #print rangeBinNum.shape
@@ -96,7 +95,7 @@ for YM in lYM:
             dtimeTmp = dtime[a1mask]
             rangeBinNumTmp = rangeBinNum[a1mask]
             eSurfTmp = eSurf[a1mask]
-            nSurfTmp = nSurf[a1mask]
+            #nSurfTmp = nSurf[a1mask]
 
             if len(dtimeTmp) <2: continue
             sDTime = dtimeTmp[0]
@@ -121,13 +120,13 @@ for YM in lYM:
             prcpPath = outDir + "/prcp.%s-%s.%s.npy"%(stime,etime,gNum)
             rbinPath = outDir + "/rangeBinNum.%s-%s.%s.npy"%(stime,etime,gNum)
             eSurfPath = outDir + "/eSurf.%s-%s.%s.npy"%(stime,etime,gNum)
-            nSurfPath = outDir + "/nSurf.%s-%s.%s.npy"%(stime,etime,gNum)
+            #nSurfPath = outDir + "/nSurf.%s-%s.%s.npy"%(stime,etime,gNum)
             np.save(latPath,  LatTmp.astype(float32))
             np.save(lonPath,  LonTmp.astype(float32))
             np.save(dtimePath,dtimeTmp)
             np.save(prcpPath, DatTmp.astype(int16))
             np.save(rbinPath, rangeBinNumTmp.astype(int16))
             np.save(eSurfPath,eSurfTmp.astype(float32))
-            np.save(nSurfPath,nSurfTmp.astype(float32))
+            #np.save(nSurfPath,nSurfTmp.astype(float32))
 
             print prcpPath

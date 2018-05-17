@@ -13,27 +13,34 @@ import matplotlib.pyplot as plt
 
 
 
-gv = GPMGV.GPMGV()
+iYM = [2014,4]
+eYM = [2014,9]
+lYM = util.ret_lYM(iYM,eYM)
 
+
+#ldomain = ['BRAZIL-INP', 'BRAZIL-LBA', 'CALIFORNIA-ERK', 'DARWIN-CSC', 'FLORIDA-KAM-E', 'FLORIDA-KAM-W', 'FLORIDA-KAP', 'FLORIDA-KP2', 'FLORIDA-KSC', 'FLORIDA-NNN', 'FLORIDA-SFL-N', 'FLORIDA-SFL-S', 'FLORIDA-STJ', 'FLORIDA-TFB', 'FRANCE-HyMeX-E', 'FRANCE-HyMeX-W', 'IOWA-IFloodS', 'IOWA-IFloodS_APU_Gauges', 'IOWA-SFB', 'KWAJALEIN-KWA', 'KWAJALEIN-RMI', 'MARYLAND-GSFC', 'MARYLAND-PCMK-N', 'MARYLAND-PCMK-S', 'N.Carolina-IPHEx_Duke', 'N.Carolina-IPHEx_NASA', 'OKLAHOMA-MC3E', 'TEXAS-HAR', 'VIRGINIA-HFD', 'VIRGINIA-NASA-C', 'VIRGINIA-NASA-NE', 'VIRGINIA-NASA-SE', 'VIRGINIA-NASA-W', 'VIRGINIA-NSWD-N', 'VIRGINIA-NSWD-S', 'VIRGINIA-WFF', 'WASHINGTON-OLYMPEX_NASA', 'WASHINGTON-OLYMPEX_STDALN']
+
+ldomain = ['FLORIDA-SFL-S', 'FLORIDA-STJ', 'FLORIDA-TFB', 'FRANCE-HyMeX-E', 'FRANCE-HyMeX-W', 'IOWA-IFloodS', 'IOWA-IFloodS_APU_Gauges', 'IOWA-SFB', 'KWAJALEIN-KWA', 'KWAJALEIN-RMI', 'MARYLAND-GSFC', 'MARYLAND-PCMK-N', 'MARYLAND-PCMK-S', 'N.Carolina-IPHEx_Duke', 'N.Carolina-IPHEx_NASA', 'OKLAHOMA-MC3E', 'TEXAS-HAR', 'VIRGINIA-HFD', 'VIRGINIA-NASA-C', 'VIRGINIA-NASA-NE', 'VIRGINIA-NASA-SE', 'VIRGINIA-NASA-W', 'VIRGINIA-NSWD-N', 'VIRGINIA-NSWD-S', 'VIRGINIA-WFF', 'WASHINGTON-OLYMPEX_NASA', 'WASHINGTON-OLYMPEX_STDALN']
+
+#ldomain = ['FLORIDA-SFL-N']
+#ldomain = ['FLORIDA-STJ']
+#ldomain = ['N.Carolina-IPHEx_Duke']
+#ldomain = gv.domains
+ldomain = sorted(ldomain)
+print ldomain
+
+res = 0.01
+miss= -9999.
+thdist = 2.5  # km
+
+gv = GPMGV.GPMGV()
 gv.load_sitelist_reclassified()
 satebaseDir = '/home/utsumi/mnt/wellshare/GPMGV/L2A25'
 gaugebaseDir= '/work/a01/utsumi/data/GPMGV/2A56'
 
 gvmapbaseDir= '/home/utsumi/mnt/wellshare/GPMGV/GVMAP'
 
-ldomain = ['FLORIDA-STJ']
-#ldomain = ['MARYLAND-GSFC']
-#ldomain = gv.domains
-print ldomain
-iYM = [2014,1]
-eYM = [2014,1]
-#eYM = [2014,9]
-lYM = util.ret_lYM(iYM,eYM)
-res = 0.02
-miss= -9999.
-
 dgName = gv.ret_ddomYM2gName()
-
 
 def load_gauge(domain, gName, Year,Mon):
     if len(domain.split('-'))==2:
@@ -50,25 +57,48 @@ def load_gauge(domain, gName, Year,Mon):
     
     #-- 2a56 type --
     if len(lgaugePath)==0:
-        ssearch  = gaugeDir + '/%s-%s-%04d%02d.2a56'%(nwName, gName, Year, Mon)
+        ssearch  = gaugeDir + '/%s-%s-%04d%02d.2a56'%(nwName.split('_')[0], gName, Year, Mon)
         lgaugePath= glob.glob(ssearch)
     if len(lgaugePath) !=0:
         gaugePath = lgaugePath[0] 
     else:
         print 'no file',domain,gName,YM
+        print 'search=',ssearch
+        print 'in',gaugeDir
         sys.exit()
 
     # load
     sfx = gaugePath.split('.')[-1]
     if sfx =='asc':
         head, aDTime, aPrcp = gv.load_obsfile_asc(gaugePath)
-    elif sfx =='2a26':
-        head, aDTime, aPrcp = gv.load_obsfile_asc(gaugePath)
+    elif sfx =='2a56':
+        head, aDTime, aPrcp = gv.load_obsfile_2a56(gaugePath)
     else:
         print 'Check gauge file',gaugePath
         sys.exit()
 
     return aPrcp
+
+
+def ret_a2mindist(domain, Year, Mon):
+    lgName = dgName[domain, Year, Mon]
+    a1lat  = []
+    a1lon  = []
+    for gName in lgName:
+        lat, lon = gv.dlatlon[domain,gName]
+        a1lat.append(lat) 
+        a1lon.append(lon) 
+    a2mindist = gv_fsub.point2mindistmap(a1lon, a1lat, a1lon_map, a1lat_map).T.astype(float32)
+    return a2mindist
+
+
+def dtime_round_Mnt(DTime):
+    year = DTime.year
+    mon  = DTime.month
+    day  = DTime.day
+    hour = DTime.hour
+    mnt  = DTime.minute
+    return datetime(year,mon,day,hour,mnt)
 
 
 
@@ -115,6 +145,17 @@ for domain in ldomain:
         Year   = YM[0]
         Mon    = YM[1]
 
+        if (domain,Year,Mon) not in dgName.keys():
+            print 'no obs',domain,Year,Mon
+            continue
+        #-- distance from nearest gauge -
+        a2mindist = ret_a2mindist(domain, Year, Mon)
+        gvmapDir  = gvmapbaseDir + '/%s/%04d%02d'%(domain,Year,Mon)
+        util.mk_dir(gvmapDir)
+        distPath  = gvmapDir + '/map.mindist.%s.%04d%02d.npy'%(domain,Year,Mon)
+        np.save(distPath, a2mindist)
+        print 'make minimum distance file'
+        print distPath
 
         #-- check satellite overpass time
         sateDir = satebaseDir + '/%s/%04d%02d'%(domain, Year, Mon) 
@@ -125,17 +166,25 @@ for domain in ldomain:
         lsatePath = glob.glob(ssearch)
         lsatePath = sorted(lsatePath)
 
+
         ltime = []
         for satePath in lsatePath:
             fileName = os.path.basename(satePath)
             ietime  = fileName.split('.')[1]
+
+            ##--- test -----
+            #if ietime != '20140102172040-20140102172120': continue
+            #print fileName
+            ##--------------
+
+
             itime   = ietime.split('-')[0]
             etime   = ietime.split('-')[1] 
             iYear,iMon,iDay,iHour,iMnt,iSec = int(itime[:4]), int(itime[4:6]), int(itime[6:8]), int(itime[8:10]), int(itime[10:12]), int(itime[12:14])
             eYear,eMon,eDay,eHour,eMnt,eSec = int(etime[:4]), int(etime[4:6]), int(etime[6:8]), int(etime[8:10]), int(etime[10:12]), int(etime[12:14])
         
-            iDTime = datetime(iYear,iMon,iDay,iHour,iMnt)
-            eDTime = datetime(eYear,eMon,eDay,eHour,eMnt)
+            iDTime = dtime_round_Mnt(datetime(iYear,iMon,iDay,iHour,iMnt))
+            eDTime = dtime_round_Mnt(datetime(eYear,eMon,eDay,eHour,eMnt))
             lDTimeTmp = util.ret_lDTime(iDTime,eDTime,timedelta(seconds=60))
             for DTimeTmp in lDTimeTmp:
                 if DTimeTmp not in ltime:
@@ -147,7 +196,7 @@ for domain in ldomain:
             continue
 
         #-- add offset to ltime ----
-        offset_bef = 4   # minutes
+        offset_bef = 9   # minutes
         offset_aft = 31  # minutes
 
 
@@ -179,26 +228,49 @@ for domain in ldomain:
             if DTime.month != Mon:
                 continue
 
+
             imin = int( (DTime - DTime0).total_seconds() /60 )
 
-            a1lat = []
-            a1lon = []
-            a1dat = []
+            a1latGd = []  # only dood data
+            a1lonGd = []
+            a1datGd = []
+
+            a1latAll = []  # All data (inc. low quality flagged)
+            a1lonAll = []
+            a1datAll = []   
+
+
             for gName in lgName:
-                a1lat.append(dLat[gName])
-                a1lon.append(dLon[gName])
-                a1dat.append(daPrcp[gName][imin])
+                a1latAll.append(dLat[gName])
+                a1lonAll.append(dLon[gName])
+                a1datAll.append(abs(daPrcp[gName][imin]))
 
+                if daPrcp[gName][imin] >=0:
+                    a1latGd.append(dLat[gName])
+                    a1lonGd.append(dLon[gName])
+                    a1datGd.append(daPrcp[gName][imin])
 
-            a1lat = array(a1lat)
-            a1lon = array(a1lon)
-            a1dat = array(a1dat)
-   
-            print DTime, a1dat.max() 
-            if a1dat.max() ==0.0:
-                a2gv = array([miss]).astype(float32)
+            if max(a1datAll) ==0.0:
+                a2gvAll = array([miss]).astype(float32)
             else:
-                a2gv = gv_fsub.point2map(a1dat, a1lon, a1lat, a1lon_map, a1lat_map, 3).T.astype(float32)
+                a2gvAll = gv_fsub.point2map_distmask(a1datAll, a1lonAll, a1latAll, a1lon_map, a1lat_map, 3, thdist).T.astype(float32)
+
+
+            if max(a1datGd) ==0.0:
+                a2gvGd = array([miss]).astype(float32)
+            else:
+                a2gvGd = gv_fsub.point2map_distmask(a1datGd, a1lonGd, a1latGd, a1lon_map, a1lat_map, 3, thdist).T.astype(float32)
+ 
+
+            ##--- test -----
+            #a2gvAll  = ma.masked_less(a2gvAll.astype(int32),0)*0 + DTime.hour*100 + DTime.minute
+            #a2gvGd   = ma.masked_less(a2gvGd.astype(int32),0)*0 + DTime.hour*100 + DTime.minute
+
+            #a2gvAll  = a2gvAll.data
+            #a2gvGd   = a2gvGd.data
+            ##--------------
+
+
     
 
             gvmapDir  = gvmapbaseDir + '/%s/%04d%02d'%(domain,Year,Mon)
@@ -210,9 +282,13 @@ for domain in ldomain:
             Hour = DTime.hour
             Mnt  = DTime.minute
 
-            gvmapPath = gvmapDir + '/map.%s.%04d%02d%02d.%02d%02d.npy'%(domain,Year,Mon,Day,Hour,Mnt)
-            np.save(gvmapPath, a2gv)
-            print gvmapPath
+            gvmapPathAll = gvmapDir + '/map.All.%s.%04d%02d%02d.%02d%02d.npy'%(domain,Year,Mon,Day,Hour,Mnt)
+
+            gvmapPathGd = gvmapDir + '/map.Gd.%s.%04d%02d%02d.%02d%02d.npy'%(domain,Year,Mon,Day,Hour,Mnt)
+
+            np.save(gvmapPathAll, a2gvAll)
+            np.save(gvmapPathGd,  a2gvGd)
+            print gvmapPathAll
 
 
 

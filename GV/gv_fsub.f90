@@ -7,6 +7,115 @@ CONTAINS
 ! SUBROUTINE & FUNCTION
 !**********************************************************
 !*****************************************************************
+SUBROUTINE gauge_match_pyxy(a2satelon, a2satelat, glon, glat, thdist, nx, ny, a1x, a1y)
+  implicit none
+
+  !-----------
+  integer                               nx, ny
+  !-- input --
+  double precision,dimension(nx,ny)  :: a2satelon, a2satelat
+  !f2py intent(in)                      a2satelon, a2satelat
+  double precision                      glon, glat, thdist
+  !f2py intent(in)                      glon, glat, thdist
+
+  !-- output--
+  integer,dimension(nx*ny)           :: a1x, a1y
+  !f2py intent(out)                     a1x, a1y
+
+  !-- calc --
+  integer                               x, y, nout
+  double precision                      lon, lat, dist
+  !--
+
+  a1x  = -9999
+  a1y  = -9999
+ 
+  nout = 0 
+  do y = 1,ny
+    do x = 1, nx
+      lon = a2satelon(x,y)
+      lat = a2satelat(x,y)
+      dist = hubeny(glat, glon, lat, lon) /1000d0 ! km
+      if (dist .le. thdist) then
+        nout = nout +1
+        a1x(nout) = x -1   ! index for python
+        a1y(nout) = y -1   ! index for python
+      end if
+    end do
+  end do 
+
+RETURN
+END SUBROUTINE gauge_match_pyxy
+
+!*****************************************************************
+SUBROUTINE point2map_distmask(a1dat, a1lon_obs, a1lat_obs, a1lon_map, a1lat_map, power, thdist, nobs, nx, ny, a2out)
+
+  implicit none
+  !------------------------------------
+  integer                               ny, nx, nobs
+  
+  !-- input --
+  double precision,dimension(nobs)   :: a1dat, a1lon_obs, a1lat_obs
+  !f2py intent(in)                      a1dat, a1lon_obs, a1lat_obs
+  double precision,dimension(nx)     :: a1lon_map
+  !f2py intent(in)                      a1lon_map
+
+  double precision,dimension(ny)     :: a1lat_map
+  !f2py intent(in)                      a1lat_map
+
+  double precision                      power
+  !f2py intent(in)                      power
+  double precision                      thdist  ! km
+  !f2py intent(in)                      thdist
+
+  !-- calc --
+  double precision                      v, w, w_sum, wv_sum, dist, dist_min
+  double precision                      lon0, lat0, lon1, lat1
+  integer                               ix, iy, iobs
+
+  !-- out --
+  double precision,dimension(nx,ny)  :: a2out
+  !f2py intent(out)                     a2out
+
+  !--------------
+  do ix = 1,nx
+    do iy = 1,ny
+      lon0 = a1lon_map(ix)
+      lat0 = a1lat_map(iy) 
+
+      wv_sum =0d0
+      w_sum  =0d0
+      dist_min= 1d5
+      do iobs = 1,nobs
+        lon1 = a1lon_obs(iobs)
+        lat1 = a1lat_obs(iobs)
+        v    = a1dat(iobs)
+        dist = hubeny(lat0, lon0, lat1, lon1) /1000d0 ! km
+        w    = 1d0 / (dist**power + 1d-3)   ! 1d-3 is to avoid dividing by zero
+        w_sum = w_sum + w
+        wv_sum= wv_sum + w * v
+        
+        if (dist.lt.dist_min)then
+          dist_min = dist
+        end if
+
+      end do
+      if (dist_min .le. thdist)then
+        a2out(ix,iy) = wv_sum / w_sum
+      else
+        a2out(ix,iy) = -9999d0
+      end if
+
+    end do
+
+  end do
+
+
+RETURN
+END SUBROUTINE point2map_distmask
+!*****************************************************************
+
+
 SUBROUTINE point2map(a1dat, a1lon_obs, a1lat_obs, a1lon_map, a1lat_map, power, nobs, nx, ny, a2out)
 
   implicit none
@@ -64,6 +173,59 @@ SUBROUTINE point2map(a1dat, a1lon_obs, a1lat_obs, a1lon_map, a1lat_map, power, n
 RETURN
 END SUBROUTINE point2map
 !*****************************************************************
+SUBROUTINE point2mindistmap(a1lon_obs, a1lat_obs, a1lon_map, a1lat_map, nobs, nx, ny, a2out)
+
+  implicit none
+  !------------------------------------
+  integer                               ny, nx, nobs
+  
+  !-- input --
+  double precision,dimension(nobs)   :: a1lon_obs, a1lat_obs
+  !f2py intent(in)                      a1lon_obs, a1lat_obs
+  double precision,dimension(nx)     :: a1lon_map
+  !f2py intent(in)                      a1lon_map
+
+  double precision,dimension(ny)     :: a1lat_map
+  !f2py intent(in)                      a1lat_map
+
+  !-- calc --
+  double precision                      dist, dist_min
+  double precision                      lon0, lat0, lon1, lat1
+  integer                               ix, iy, iobs
+
+  !-- out --
+  double precision,dimension(nx,ny)  :: a2out
+  !f2py intent(out)                     a2out
+
+  !--------------
+  do ix = 1,nx
+    do iy = 1,ny
+      lon0 = a1lon_map(ix)
+      lat0 = a1lat_map(iy) 
+
+      dist_min = 1d5
+      do iobs = 1,nobs
+        lon1 = a1lon_obs(iobs)
+        lat1 = a1lat_obs(iobs)
+
+        dist = hubeny(lat0, lon0, lat1, lon1) /1000d0 ! km
+        if (dist .lt. dist_min) then
+            dist_min = dist
+        end if
+      end do
+
+      a2out(ix,iy) = dist_min
+
+    end do
+  end do
+
+
+RETURN
+END SUBROUTINE point2mindistmap
+!*****************************************************************
+
+
+
 FUNCTION hubeny(lat1, lon1, lat2, lon2)
   implicit none
   !-- for input -----------

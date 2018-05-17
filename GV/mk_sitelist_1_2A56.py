@@ -10,8 +10,8 @@ rootDir = "/work/a01/utsumi/data/GPMGV/%s"%(fformat)
 
 lregionPath = glob.glob(rootDir + "/*")
 
-#allFlag = True
-allFlag = False
+allFlag = True
+#allFlag = False
 summaryFlag = True
 #summaryFlag = False
 
@@ -22,6 +22,7 @@ for regionPath in lregionPath:
     regionName= regionPath.split("/")[-1]
     lnwPath = glob.glob(regionPath + "/*")
 
+    #for nwPath in ['/work/a01/utsumi/data/GPMGV/2A56/VIRGINIA/HFD']:
     for nwPath in lnwPath:
         nwName= nwPath.split("/")[-1]
         #if not nwName == "IPHEx_NASA": continue
@@ -52,12 +53,13 @@ for regionPath in lregionPath:
                     #print sfx,regionName, nwName, nwCode, gaugeID, lat, lon, Year, Mon
 
                 elif sfx=="2a56":
+                    fName = os.path.basename(srcPath)
+                    gaugeID = fName.split('-')[1]
                     f=open(srcPath,"r")
                     line=f.readline()
                     line     = line.split()
                     nwCode   = line[1]
-                    gaugeID  = line[2]
-
+                    #gaugeID  = line[2]
                     line = f.readline()   # read labels
                     line = f.readline()   # read first data line                    
                     line = line.split()
@@ -119,7 +121,6 @@ for srcPath in lsrcPath:
             dnwCode[regionName, nwName, gName] = nwCode
             dYM    [regionName, nwName, gName] = [[Year,Mon]]
         
-
 
 lkey = dlatlon.keys()
 lkey = sorted(lkey)
