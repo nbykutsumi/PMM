@@ -3,15 +3,16 @@ matplotlib.use('Agg')
 from numpy import *
 from datetime import datetime, timedelta
 from collections import deque
+from gv_fsub import *
 import GPMGV
 import numpy as np
 import myfunc.util as util
 import matplotlib.pyplot as plt
 import sys, os
 
-calc = True
-#calc = False
-iYM = [2013,4]
+#calc = True
+calc = False
+iYM = [2011,8]
 eYM = [2014,9]
 lYM = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
@@ -24,21 +25,24 @@ gv.load_sitelist_reclassified()
 dgName = gv.ret_ddomYM2gName()
 
 ldomain = gv.domains
-#ldomain = ['FLORIDA-STJ','FLORIDA-SFL-N','N.Carolina-IPHEx_Duke','N.Carolina-IPHEx_NASA','KWAJALEIN-KWA']
+ldomain = ['FLORIDA-STJ','FLORIDA-SFL-N','N.Carolina-IPHEx_Duke','N.Carolina-IPHEx_NASA','KWAJALEIN-KWA']
 #ldomain = ['FLORIDA-STJ']
 
-offset_bef = 15  # 'bef' should be identical to that in mk_match.py
-offset_aft = 30
+offset_bef = 15  # 'bef' should be identical to what is used in mk_match.py
+#offset_aft = 45
 
+ldt  = [1, 5,10,15,20,25,30,35]
+ldh  = [1, 5,10,15,20,25]
 
-nt = offset_aft + offset_bef +1
-nh = 20
-#nh = 5
+nt  = len(ldt)
+nh  = len(ldh)
 
-#lprtype = ['heavy','extreme','mod']
 lprtype = ['mod','heavy','extreme']
+#lprtype = ['mod']
 dlthpr = {'mod':[-0.1,10], 'heavy':[10,50],'extreme':[50,9999]}
 ldattype = ['rain','cc','bias','brat','rmse','num','gv']
+
+miss    = -9999.
 
 da2rain = {prtype: empty([nh,nt]) for prtype in lprtype}
 da2gv   = {prtype: empty([nh,nt]) for prtype in lprtype}
@@ -48,7 +52,7 @@ da2bias = {prtype: empty([nh,nt]) for prtype in lprtype}
 da2brat = {prtype: empty([nh,nt]) for prtype in lprtype}
 da2num  = {prtype: empty([nh,nt],int32) for prtype in lprtype}
 
-for idt, dt in enumerate(range(-offset_bef, offset_aft+1)):
+for idt, dt in enumerate(ldt):
     if calc != True:
         continue
 
@@ -83,11 +87,14 @@ for idt, dt in enumerate(range(-offset_bef, offset_aft+1)):
             aprof  = np.load(profPath)
             aesurf = np.load(eSurfPath)
             ansurf = np.load(nSurfPath)
-            agv    = np.load(gvPath)[:,idt]
             ansurfbin= np.load(nSurfBinPath)
-  
-            for ih in range(nh):
-                asate  = aprof[:,ih]
+
+            a2gv   = abs(np.load(gvPath))
+            agv   = gv_fsub.mean_slice_negativemask(a2gv.T, ansurfbin, dt)
+ 
+            for ih,dh in enumerate(ldh):
+                asate    = gv_fsub.mean_slice_negativemask(aprof.T, ansurfbin, dh)
+
                 #-- mask when both satellite and gv are zero
                 amsk1    = ma.masked_equal(asate,0).mask
                 amsk2    = ma.masked_equal(agv,0).mask
@@ -168,7 +175,7 @@ for prtype in lprtype:
     util.mk_dir(outDir)
 
     for dattype in ldattype:  
-        datPath= outDir + '/dt-lev.%s.%s.npy'%(dattype, prtype)
+        datPath= outDir + '/nt-nlev.%s.%s.npy'%(dattype, prtype)
 
         if dattype=='cc':
             a2dat = da2cc[prtype]
@@ -196,11 +203,11 @@ for prtype in lprtype:
 
     for dattype in ldattype:
 
-        datPath=outDir + '/dt-lev.%s.%s.npy'%(dattype, prtype)
+        datPath=outDir + '/nt-nlev.%s.%s.npy'%(dattype, prtype)
         a2dat  = np.load(datPath)
     
         fig = plt.figure(figsize=(4,8))
-        a1t  = range(-offset_bef, offset_aft+1)
+        a1t  = ldt
 
 
         print '-'*50
@@ -233,7 +240,7 @@ for prtype in lprtype:
             if dattype in ['cc','bias','brat']:
                 plt.plot([-10,50],[0,0],'--',color='k', linewidth=0.5)
 
-            plt.xlim([-6,31])
+            plt.xlim([ldt[0]-1,ldt[-1]+1])
 
 
 
@@ -244,7 +251,7 @@ for prtype in lprtype:
         stitle  = '%s %s'%(prtype, dattype)
         plt.title(stitle)        
         figDir  = '/work/a01/utsumi/GPMGV/fig'
-        figPath = figDir + '/plot.dt-lev.%s.%s.png'%(dattype, prtype)
+        figPath = figDir + '/plot.nt-nlev.%s.%s.png'%(dattype, prtype)
         plt.savefig(figPath)
         print figPath
         plt.clf()

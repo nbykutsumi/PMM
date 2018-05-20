@@ -6,6 +6,51 @@ CONTAINS
 !**********************************************************
 ! SUBROUTINE & FUNCTION
 !**********************************************************
+SUBROUTINE mean_slice_negativemask(a2in, a1iidxpy, nxave, nx, ny, a1out)
+  implicit none
+  !-------------
+  integer                 nx, ny
+  !--- input ---
+  double precision,dimension(nx,ny)  :: a2in
+  !f2py intent(in)                      a2in
+  integer,dimension(ny)              :: a1iidxpy
+  !f2py intent(in)                      a1iidxpy
+  integer                               nxave
+  !f2py intent(in)                      nxave
+  !--- output --
+  double precision,dimension(ny)     :: a1out
+  !f2py intent(out)                     a1out
+  !--- calc ----
+  integer                               x,y
+  integer                               ix,ex,num
+  double precision                      vsum
+  double precision,parameter         :: miss=-9999d0 
+  !-------------
+  a1out= miss
+  do y = 1,ny
+    vsum = 0d0
+    num  = 0
+    ix   = a1iidxpy(y)+1
+    ex   = ix +  nxave -1
+    if (ex.gt.nx)then
+      ex = nx
+    end if
+
+    do x = ix,ex
+      if (a2in(x,y) .ge. 0d0)then
+        vsum = vsum + a2in(x,y)
+        num  = num + 1
+      end if
+    end do
+    if (num.gt.0)then
+      a1out(y) = vsum/num
+    else
+      a1out(y) = miss
+    end if
+  end do
+  !-------------
+  return
+END SUBROUTINE
 !*****************************************************************
 SUBROUTINE gauge_match_pyxy(a2satelon, a2satelat, glon, glat, thdist, nx, ny, a1x, a1y)
   implicit none

@@ -11,9 +11,12 @@ prdVer  = "07"
 #var     = "e_SurfRain"
 var     = "rain"
 
-iYM = [2014,1]
-eYM = [2014,9]
+iYM = [1998,1]
+eYM = [2012,7]
 lYM = util.ret_lYM(iYM,eYM)
+
+lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
+lYM = lYM[::-1]
 
 gpm = GPM.L2A25(version=prdVer)
 
@@ -48,10 +51,12 @@ for line in lines[1:]:
 
 #----------------------------
 for YM in lYM:
+    print YM
     Year,Mon = YM
     lsrcPath = gpm.list_granule(Year,Mon)
     lsrcPath = sorted(lsrcPath)
     for srcPath in lsrcPath:
+        print srcPath
         if compressed==False:
             if srcPath[-3:]==".gz": continue
         else:

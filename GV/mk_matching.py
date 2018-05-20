@@ -12,9 +12,11 @@ from decimal import Decimal, ROUND_HALF_UP, ROUND_HALF_DOWN
 from gv_fsub import *
 
 
-iYM = [2014,4]
+iYM = [2013,4]
 eYM = [2014,9]
 lYM = util.ret_lYM(iYM, eYM)
+lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
+print lYM
 
 gv = GPMGV.GPMGV()
 gv.load_sitelist_reclassified()
@@ -25,16 +27,17 @@ ldomain = gv.domains
 #ldomain = ['FLORIDA-STJ']
 
 #ldomain = ['BRAZIL-INP', 'BRAZIL-LBA', 'CALIFORNIA-ERK', 'DARWIN-CSC', 'FLORIDA-KAM-E', 'FLORIDA-KAM-W', 'FLORIDA-KAP', 'FLORIDA-KP2', 'FLORIDA-KSC', 'FLORIDA-NNN', 'FLORIDA-SFL-N', 'FLORIDA-SFL-S', 'FLORIDA-STJ', 'FLORIDA-TFB', 'FRANCE-HyMeX-E', 'FRANCE-HyMeX-W', 'IOWA-IFloodS', 'IOWA-IFloodS_APU_Gauges', 'IOWA-SFB', 'KWAJALEIN-KWA', 'KWAJALEIN-RMI', 'MARYLAND-GSFC', 'MARYLAND-PCMK-N', 'MARYLAND-PCMK-S', 'N.Carolina-IPHEx_Duke', 'N.Carolina-IPHEx_NASA', 'OKLAHOMA-MC3E', 'TEXAS-HAR', 'VIRGINIA-HFD', 'VIRGINIA-NASA-C', 'VIRGINIA-NASA-NE', 'VIRGINIA-NASA-SE', 'VIRGINIA-NASA-W', 'VIRGINIA-NSWD-N', 'VIRGINIA-NSWD-S', 'VIRGINIA-WFF', 'WASHINGTON-OLYMPEX_NASA', 'WASHINGTON-OLYMPEX_STDALN']
-ldomain = ['VIRGINIA-HFD', 'VIRGINIA-NASA-C', 'VIRGINIA-NASA-NE', 'VIRGINIA-NASA-SE', 'VIRGINIA-NASA-W', 'VIRGINIA-NSWD-N', 'VIRGINIA-NSWD-S', 'VIRGINIA-WFF', 'WASHINGTON-OLYMPEX_NASA', 'WASHINGTON-OLYMPEX_STDALN']
+#ldomain = ['VIRGINIA-HFD', 'VIRGINIA-NASA-C', 'VIRGINIA-NASA-NE', 'VIRGINIA-NASA-SE', 'VIRGINIA-NASA-W', 'VIRGINIA-NSWD-N', 'VIRGINIA-NSWD-S', 'VIRGINIA-WFF', 'WASHINGTON-OLYMPEX_NASA', 'WASHINGTON-OLYMPEX_STDALN']
 
 #ldomain = ['IOWA-SFB']
 
 res = 0.02
 miss= -9999.
 offset_bef = 15    # minutes
-offset_aft = 30   # minutes
+offset_aft = 45    # minutes
 ldMnt = range(-offset_bef, offset_aft+1)
 
+nlev  = 40
 
 thdist  = 2.5 # km
 lgvtype = ['All','Gd']
@@ -356,13 +359,13 @@ for domain in ldomain:
                     # DTime
                     a1dtime  = array([dtime0]* len(a1satelat))
 
-                    # profile of 20 range bins above ground
-                    a2profout= empty([a2profile.shape[0], 20]).astype(int16)
+                    # profile of nlev range bins above ground
+                    a2profout= empty([a2profile.shape[0], nlev]).astype(int16)
                     for iy in range(a2profile.shape[0]):
                         groundbin     = a1groundbin[iy]
-                        if (20<=groundbin)&(groundbin <=80):
+                        if (nlev<=groundbin)&(groundbin <=80):
                             ''' set 20 levels above ground. Note that range bin with ground level is not included. '''
-                            a1tmp  = a2profile[iy, groundbin-20:groundbin]
+                            a1tmp  = a2profile[iy, groundbin-nlev:groundbin]
                             a2profout[iy] = a1tmp[::-1] # flip order. New order: Low level to High level.
 
                         else:

@@ -12,8 +12,9 @@ import sys, os
 calc = True
 #calc = False
 iYM = [2014,4]
-eYM = [2014,9]
+eYM = [2014,4]
 lYM = util.ret_lYM(iYM, eYM)
+lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
 
 gv = GPMGV.GPMGV()
 gv.load_sitelist_reclassified()
@@ -21,10 +22,10 @@ gv.load_sitelist_reclassified()
 dgName = gv.ret_ddomYM2gName()
 
 ldomain = gv.domains
-ldomain = ['FLORIDA-STJ','FLORIDA-SFL-N','N.Carolina-IPHEx_Duke','N.Carolina-IPHEx_NASA','KWAJALEIN-KWA']
-#ldomain = ['FLORIDA-STJ']
+#ldomain = ['FLORIDA-STJ','FLORIDA-SFL-N','N.Carolina-IPHEx_Duke','N.Carolina-IPHEx_NASA','KWAJALEIN-KWA']
+ldomain = ['FLORIDA-STJ']
 
-offset_bef = 15
+offset_bef = 15  # 'bef' should be identical to what is used in mk_match.py
 offset_aft = 30
 
 
@@ -33,17 +34,11 @@ nt = len(lrdt)
 nh = 20
 
 #lprtype = ['heavy','extreme','mod']
-lprtype = ['mod']
+lprtype = ['mod','heavy']
 dlthpr = {'mod':[-0.1,10], 'heavy':[10,50],'extreme':[50,9999]}
-#ldattype = ['rain','cc','bias','brat','rmse','num']
-ldattype = ['rmse']
+ldattype = ['rain','cc','bias','brat','rmse','num']
+#ldattype = ['rmse']
 
-da1rain = {prtype: empty([len(lrdt)]) for prtype in lprtype}
-da1cc   = {prtype: empty([len(lrdt)]) for prtype in lprtype}
-da1rmse = {prtype: empty([len(lrdt)]) for prtype in lprtype}
-da1bias = {prtype: empty([len(lrdt)]) for prtype in lprtype}
-da1brat = {prtype: empty([len(lrdt)]) for prtype in lprtype}
-da1num  = {prtype: empty([len(lrdt)],int32) for prtype in lprtype}
 
 dansurf    = {rdt:deque([]) for rdt in lrdt} 
 dagv       = {rdt:deque([]) for rdt in lrdt}
@@ -64,6 +59,7 @@ for idt, dt in enumerate(range(-offset_bef, offset_aft+1)):
             print domain, 'dt=',dt,YM
             # load data
             srcbaseDir = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25'
+
             srcDir     = srcbaseDir + '/%s/%04d%02d'%(domain, Year,Mon)
     
             profPath  = srcDir  + '/prof.npy'
@@ -72,13 +68,26 @@ for idt, dt in enumerate(range(-offset_bef, offset_aft+1)):
             gvPath    = srcDir  + '/gvprcp.npy'
             nSurfBinPath = srcDir  + '/nSurfBin.npy'
     
-            #aprof  = np.load(profPath)
+            if not os.path.exists(profPath):
+                print 'no file',profPath
+                print 'for',domain,YM
+                print 'skip'
+                continue
+
+
+            aprof  = np.load(profPath)
             #aesurf = np.load(eSurfPath)
             ansurf = np.load(nSurfPath)
             agv    = np.load(gvPath)[:,idt]
             ansurfbin= np.load(nSurfBinPath)
- 
+
             asate  = ansurf
+
+            #aidxTmp = range(len(agv))
+            #ansurf2 = aprof[aidxTmp,ansurfbin]
+            #for i in range(len(ansurf)):
+            #    print agv[i],ansurf[i], ansurf2[i]
+
             #-- mask when both satellite and gv are zero
             amsk1    = ma.masked_equal(asate,0).mask
             amsk2    = ma.masked_equal(agv,0).mask
@@ -93,28 +102,39 @@ for idt, dt in enumerate(range(-offset_bef, offset_aft+1)):
             amsk     = amskzero + amskmiss
 
             aidxTmp  = arange(len(amsk)).astype(int32)
+
+            print dt, aidxTmp.shape, asate.shape
             aidxTmp  = ma.masked_where(amsk, aidxTmp).compressed()
         
-            asateTmp     = asate[aidxTmp] 
             #aesurfTmp    = aesurf[aidxTmp]
-            ansurfTmp    = ansurf[aidxTmp]
+            ansurfTmp    = asate[aidxTmp]
             agvTmp       = agv[aidxTmp]
             ansurfbinTmp = ansurfbin[aidxTmp]
             artime       = ansurfbinTmp + 1
             ardt         = dt - artime 
+
+
             #------------------
             for irdt, rdt in enumerate(lrdt):
 
                 aidxTmp2  = arange(len(ansurfTmp))
-                aidxTmp2  = ma.masked_where(ardt==rdt, aidxTmp2).compressed()
+                aidxTmp2  = ma.masked_where(ardt != rdt, aidxTmp2).compressed()
 
                 dansurf[rdt].extend( ansurfTmp[aidxTmp2] )
                 dagv[rdt] .extend( agvTmp [aidxTmp2] )
   
 
- 
-    
+
+da1rain = {prtype: empty([len(lrdt)]) for prtype in lprtype}
+da1cc   = {prtype: empty([len(lrdt)]) for prtype in lprtype}
+da1rmse = {prtype: empty([len(lrdt)]) for prtype in lprtype}
+da1bias = {prtype: empty([len(lrdt)]) for prtype in lprtype}
+da1brat = {prtype: empty([len(lrdt)]) for prtype in lprtype}
+da1num  = {prtype: empty([len(lrdt)],int32) for prtype in lprtype}
+
 for irdt, rdt in enumerate(lrdt): 
+    if calc != True: continue
+
     ansurf= array(dansurf[rdt]) *0.01  # mm/h
     agv   = array(dagv[rdt])
     #- nsurf vs gv --
@@ -125,8 +145,7 @@ for irdt, rdt in enumerate(lrdt):
         #amsk      = ma.masked_outside(agv, thmin, thmax).mask
         ansurfTmp  = ma.masked_where(amsk, ansurf ).compressed()
         agvTmp    = ma.masked_where(amsk, agv   ).compressed()
-        ansurfTmp = ma.masked_where(amsk, ansurf).compressed()
-    
+
          
         cc     = np.corrcoef(ansurfTmp, agvTmp)[0,1]
         rmse   = np.sqrt( ((ansurfTmp- agvTmp)**2).mean() )
@@ -136,12 +155,12 @@ for irdt, rdt in enumerate(lrdt):
         num    = len(ansurfTmp)
         rain   = ansurfTmp.mean()
 
+        da1rain[prtype][irdt] = rain
         da1cc  [prtype][irdt] = cc
         da1rmse[prtype][irdt] = rmse
         da1bias[prtype][irdt] = bias
         da1brat[prtype][irdt] = brat
         da1num [prtype][irdt] = num       
-        da1rain[prtype][irdt] = rain
 
 
 #--- save data ----
@@ -158,7 +177,7 @@ for prtype in lprtype:
         if dattype=='cc':
             a1dat = da1cc[prtype]
         elif dattype=='rmse':
-            a11at = da1rmse[prtype]
+            a1dat = da1rmse[prtype]
             print 'rmse max',da1rmse[prtype].max()
         elif dattype=='bias':
             a1dat = da1bias[prtype]
@@ -182,18 +201,19 @@ for prtype in lprtype:
 
         datPath=outDir + '/dt-nsurf.%s.%s.npy'%(dattype, prtype)
         a1dat  = np.load(datPath)
-    
         fig = plt.figure(figsize=(4,3))
-        at  = lrdt
+        a1t  = lrdt
 
+        print '-'*50
+        print dattype, a1dat
 
         ax = fig.add_axes([0.15, 0.1, 0.8, 0.8])
-        ay = a1dat
+        a1y = ma.masked_invalid(a1dat)
 
-        if np.isnan(ay.sum()):
-            ay = zeros(len(at))
+        if len(a1y.compressed())==0:
+            a1y = zeros(len(a1t))
         
-        ax.plot(at, ay, '-', zorder=10)
+        ax.plot(a1t, a1y, '-', zorder=10)
 
 
         # ylim
