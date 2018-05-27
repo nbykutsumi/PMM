@@ -6,6 +6,44 @@ CONTAINS
 !**********************************************************
 ! SUBROUTINE & FUNCTION
 !**********************************************************
+SUBROUTINE extract_slice_clusterprof(a2in, a1iidxpy, nxout, nx, ny, a2out)
+  implicit none
+  !-------------
+  integer                       nx, ny
+  !--- input ---
+  real,dimension(nx,ny)      :: a2in
+  !f2py intent(in)              a2in
+  integer,dimension(ny)      :: a1iidxpy
+  !f2py intent(in)              a1iidxpy
+  integer                       nxout
+  !f2py intent(in)              nxout
+  !--- output --
+  real,dimension(nxout,ny)   :: a2out
+  !f2py intent(out)             a2out
+  !--- calc ----
+  integer                       x,y, x0
+  integer                       ix,ex,num
+  real,parameter             :: miss=-9999
+  !-------------
+  a2out= miss
+  do y = 1,ny
+    num  = 0
+    ix   = a1iidxpy(y)+1
+    ex   = ix +  nxout -1
+    if (ex.gt.nx)then
+      ex = nxout
+    end if
+
+    x0 = 0
+    do x = ix,ex
+      x0 = x0+1
+      a2out(x0,y) = a2in(x,y)
+    end do
+  end do
+  !-------------
+  return
+END SUBROUTINE
+!**********************************************************
 SUBROUTINE mean_slice_negativemask(a2in, a1iidxpy, nxave, nx, ny, a1out)
   implicit none
   !-------------

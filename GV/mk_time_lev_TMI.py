@@ -10,39 +10,63 @@ import myfunc.util as util
 import matplotlib.pyplot as plt
 import sys, os
 
-#calc = True
-calc = False
-iYM = [2011,8]
-eYM = [2014,9]
+
+calc = True
+#calc = False
+iYM = [2014,10]
+eYM = [2014,10]
 lYM = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
+lYM = lYM[::-1]
 print lYM
 
-
+prdName = '2A-CLIM'
 gv = GPMGV.GPMGV()
 gv.load_sitelist_reclassified()
 
 dgName = gv.ret_ddomYM2gName()
 
 ldomain = gv.domains
-ldomain = ['FLORIDA-STJ','FLORIDA-SFL-N','N.Carolina-IPHEx_Duke','N.Carolina-IPHEx_NASA','KWAJALEIN-KWA']
+#ldomain = ['FLORIDA-STJ','FLORIDA-SFL-N','N.Carolina-IPHEx_Duke','N.Carolina-IPHEx_NASA','KWAJALEIN-KWA']
 #ldomain = ['FLORIDA-STJ']
 
-offset_bef = 15  # 'bef' should be identical to what is used in mk_match.py
-#offset_aft = 45
+offset_bef = 15  # 'bef' should be identical to that in mk_match.py
+offset_aft = 30
 
-ldt  = [1, 5,10,15,20,25,30,35]
-ldh  = [1, 5,10,15,20,25]
 
-nt  = len(ldt)
-nh  = len(ldh)
+nt = offset_aft + offset_bef +1
+nh = 18  # 0.5 - 10km, at most.
+#nh = 5
 
-lprtype = ['mod','heavy','extreme']
-#lprtype = ['mod']
+lprtype = ['heavy']
+#lprtype = ['mod','heavy','extreme']
 dlthpr = {'mod':[-0.1,10], 'heavy':[10,50],'extreme':[50,9999]}
 ldattype = ['rain','cc','bias','brat','rmse','num','gv']
 
-miss    = -9999.
+#-- cluserProfile --
+
+obaseDir = "/home/utsumi/mnt/wellshare/GPMGV/%s"%(prdName)
+clusterProfPath = obaseDir + "/clusterProf.npy"
+a4clusterProf = np.load(clusterProfPath)
+
+#------------------------------------------------
+def ret_aprof(a4clusterProf, atIndex, aprofNum, aprofScale, agroundBin):
+    lspecies = [0,2,3,4]
+
+    a3out = empty([len(lspecies),len(profNum),28]).astype(float32)
+
+    for ispecies in lspecies:
+        a1profNum  = profNum[:,ispecies] -1
+        a1profScale= profScale[:,ispecies]
+        a2prof = a1profScale.reshape(-1,1) * a4clusterProf[a1profNum,:,a1tIndex,ispecies]
+        a3out[ispecies] = a2prof
+
+    a2prof = a3out.sum(axis=0)
+    a2out  = gv_fsub.extract_slice_clusterprof(a2prof.T, agroundBin, nh).T 
+
+    return a2out
+
+#------------------------------------------------
 
 da2rain = {prtype: empty([nh,nt]) for prtype in lprtype}
 da2gv   = {prtype: empty([nh,nt]) for prtype in lprtype}
@@ -52,7 +76,7 @@ da2bias = {prtype: empty([nh,nt]) for prtype in lprtype}
 da2brat = {prtype: empty([nh,nt]) for prtype in lprtype}
 da2num  = {prtype: empty([nh,nt],int32) for prtype in lprtype}
 
-for idt, dt in enumerate(ldt):
+for idt, dt in enumerate(range(-offset_bef, offset_aft+1)):
     if calc != True:
         continue
 
@@ -70,31 +94,46 @@ for idt, dt in enumerate(ldt):
                 continue
             print domain, 'dt=',dt,YM
             # load data
-            srcbaseDir = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25'
+            srcbaseDir = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.%s'%(prdName)
             srcDir     = srcbaseDir + '/%s/%04d%02d'%(domain, Year,Mon)
     
-            profPath  = srcDir  + '/prof.npy'
-            eSurfPath = srcDir  + '/eSurf.npy'
-            nSurfPath = srcDir  + '/nSurf.npy'
-            gvPath    = srcDir  + '/gvprcp.npy'
-            nSurfBinPath = srcDir  + '/nSurfBin.npy'
-   
-            if not os.path.exists(profPath):
-                print 'no file',profPath
+            gvPath        = srcDir  + '/gvprcp.npy'
+            qFlagPath     = srcDir  + '/qFlag.npy'
+            profNumPath   = srcDir  + '/profNum.npy'
+            profScalePath = srcDir  + '/profScale.npy'
+            tIndexPath    = srcDir  + '/tIndex.npy'
+    
+            eSurfPath    = srcDir + '/eSurf.npy'
+            mlPrcpPath   = srcDir + '/mlPrecip.npy'
+            groundBinPath= srcDir + '/groundBin.npy'
+            satelatPath  = srcDir + '/sateLat.npy'
+            satelonPath  = srcDir + '/sateLon.npy'
+            glatPath     = srcDir + '/gLat.npy'
+            glonPath     = srcDir + '/gLon.npy'
+    
+            gNamePath    = srcDir + '/gName.npy'
+            dtimePath    = srcDir + '/dtime.npy'
+
+
+            if not os.path.exists(profNumPath):
+                print 'no file',profNumPath
                 print 'skip', domain, YM
                 continue
  
-            aprof  = np.load(profPath)
+            aprofNum   = np.load(profNumPath)
+            aprofScale = np.load(profScalePath)
+            atIndex    = np.load(tIndexPath)
+
+            aprof     = ret_aprof(a4clusterProf, tIndex, profNum, profScale, agroundBin) 
+
+            # ----- from here ----
+
             aesurf = np.load(eSurfPath)
-            ansurf = np.load(nSurfPath)
-            ansurfbin= np.load(nSurfBinPath)
-
-            a2gv   = abs(np.load(gvPath))
-            agv   = gv_fsub.mean_slice_negativemask(a2gv.T, ansurfbin, dt)
- 
-            for ih,dh in enumerate(ldh):
-                asate    = gv_fsub.mean_slice_negativemask(aprof.T, ansurfbin, dh)
-
+            agv    = np.load(gvPath)[:,idt]
+            agroundBin= np.load(groundBinPath)
+  
+            for ih in range(nh):
+                asate  = aprof[:,ih]
                 #-- mask when both satellite and gv are zero
                 amsk1    = ma.masked_equal(asate,0).mask
                 amsk2    = ma.masked_equal(agv,0).mask
@@ -175,7 +214,7 @@ for prtype in lprtype:
     util.mk_dir(outDir)
 
     for dattype in ldattype:  
-        datPath= outDir + '/nt-nlev.%s.%s.npy'%(dattype, prtype)
+        datPath= outDir + '/dt-lev.%s.%s.npy'%(dattype, prtype)
 
         if dattype=='cc':
             a2dat = da2cc[prtype]
@@ -196,77 +235,18 @@ for prtype in lprtype:
         np.save(datPath, a2dat)
         print datPath
 
-
 #--- figure -------
+
 for prtype in lprtype:
     outDir = '/home/utsumi/mnt/wellshare/GPMGV/dt-lev-PR/ndom.%02d.%04d.%02d-%04d.%02d'%(len(ldomain), iYM[0], iYM[1], eYM[0], eYM[1])
 
     for dattype in ldattype:
 
-        datPath=outDir + '/nt-nlev.%s.%s.npy'%(dattype, prtype)
-        a2dat  = np.load(datPath)
-    
-        fig = plt.figure(figsize=(8,4))
-        ax  = fig.add_axes([0.15, 0.1, 0.8, 0.8])
-        a1t  = ldt
-
-        wbar = 0.7/nh
-        print '-'*50
-        for ih, dh in enumerate(ldh):
-            a1y = a2dat[ih,:]
-            a1y = ma.masked_invalid(a1y)
-            a1x = arange(nt) -0.35 +ih*wbar
-            ax.bar(a1x, a1y, width=wbar, tick_label=ldt, align='center', label='%d bins'%(dh))
-            #if ih !=0:
-            #    ax.tick_params(labelbottom='off') 
-
-        # legend
-        plt.legend()
-        # ylim
-        if dattype in ['cc']:
-            ymin = -1.2
-            ymax = 1.2
-            plt.ylim([ymin,ymax])
-
-        elif dattype in ['rain','gv','rmse','num']:
-            ymin = 0
-            ymax = ma.masked_invalid(a2dat).max()*1.1
-            plt.ylim([ymin,ymax])
-
-        elif dattype in ['bias','brat']:
-            ymax = abs(ma.masked_invalid(a2dat)).max()*1.1
-            ymin = -ymax
-            plt.ylim([ymin,ymax])
-
-
-        #- zero line ---
-        if dattype in ['cc','bias','brat']:
-            plt.plot([-10,50],[0,0],'--',color='k', linewidth=0.5)
-
-        plt.xlim([a1x[0]-1,a1x[-1]+2])
-
-
-        stitle  = '%s %s'%(prtype, dattype)
-        plt.title(stitle)        
-        figDir  = '/work/a01/utsumi/GPMGV/fig'
-        figPath = figDir + '/bar.nt-nlev.%s.%s.png'%(dattype, prtype)
-        plt.savefig(figPath)
-        print figPath
-        plt.clf()
-
-
-'''
-#--- figure -------
-for prtype in lprtype:
-    outDir = '/home/utsumi/mnt/wellshare/GPMGV/dt-lev-PR/ndom.%02d.%04d.%02d-%04d.%02d'%(len(ldomain), iYM[0], iYM[1], eYM[0], eYM[1])
-
-    for dattype in ldattype:
-
-        datPath=outDir + '/nt-nlev.%s.%s.npy'%(dattype, prtype)
+        datPath=outDir + '/dt-lev.%s.%s.npy'%(dattype, prtype)
         a2dat  = np.load(datPath)
     
         fig = plt.figure(figsize=(4,8))
-        a1t  = ldt
+        a1t  = range(-offset_bef, offset_aft+1)
 
 
         print '-'*50
@@ -299,7 +279,7 @@ for prtype in lprtype:
             if dattype in ['cc','bias','brat']:
                 plt.plot([-10,50],[0,0],'--',color='k', linewidth=0.5)
 
-            plt.xlim([ldt[0]-1,ldt[-1]+1])
+            plt.xlim([-6,31])
 
 
 
@@ -310,9 +290,11 @@ for prtype in lprtype:
         stitle  = '%s %s'%(prtype, dattype)
         plt.title(stitle)        
         figDir  = '/work/a01/utsumi/GPMGV/fig'
-        figPath = figDir + '/plot.nt-nlev.%s.%s.png'%(dattype, prtype)
+        figPath = figDir + '/plot.dt-lev.%s.%s.png'%(dattype, prtype)
         plt.savefig(figPath)
         print figPath
         plt.clf()
     
-'''
+
+
+

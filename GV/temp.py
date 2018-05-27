@@ -1,15 +1,20 @@
 from numpy import *
 from gv_fsub import *
 import numpy as np
+import myfunc.IO.GPM as GPM
+import myfunc.util as util
+import os, sys
 
-dx   =4
-a2in = arange(3*5).reshape(3,5)
 
-a2in[0,1] = -99
-a1idxTmp = [0,1,2]
+a2in = arange(4*4).reshape(4,4)
 
-a1ave = gv_fsub.mean_slice_negativemask(a2in.T, a1idxTmp, dx)
+a1groundBin = [0,1,2,3]
+nxout = 3
 
+a2out= gv_fsub.extract_slice_clusterprof(a2in.T, a1groundBin, nxout).T
 
 print a2in
-print a1ave
+print ''
+print a1groundBin
+print ''
+print a2out
