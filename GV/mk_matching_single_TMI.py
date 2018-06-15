@@ -8,14 +8,13 @@ import myfunc.util as util
 import GPMGV
 import os, sys
 import glob
-import pickle
 from decimal import Decimal, ROUND_HALF_UP, ROUND_HALF_DOWN
 from gv_fsub import *
 from bisect import bisect_left
 
 
-iYM = [2005,4]
-eYM = [2014,10]
+iYM = [2009,4]
+eYM = [2009,6]
 lYM = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
 lYM = lYM[::-1]
@@ -28,7 +27,6 @@ dgName  = gv.ret_ddomYM2gName()
 
 ldomain = gv.domains
 #ldomain = ['FLORIDA-STJ']
-#ldomain = ['FLORIDA-SFL-N']
 
 #ldomain = ['BRAZIL-INP', 'BRAZIL-LBA', 'CALIFORNIA-ERK', 'DARWIN-CSC', 'FLORIDA-KAM-E', 'FLORIDA-KAM-W', 'FLORIDA-KAP', 'FLORIDA-KP2', 'FLORIDA-KSC', 'FLORIDA-NNN', 'FLORIDA-SFL-N', 'FLORIDA-SFL-S', 'FLORIDA-STJ', 'FLORIDA-TFB', 'FRANCE-HyMeX-E', 'FRANCE-HyMeX-W', 'IOWA-IFloodS', 'IOWA-IFloodS_APU_Gauges', 'IOWA-SFB', 'KWAJALEIN-KWA', 'KWAJALEIN-RMI', 'MARYLAND-GSFC', 'MARYLAND-PCMK-N', 'MARYLAND-PCMK-S', 'N.Carolina-IPHEx_Duke', 'N.Carolina-IPHEx_NASA', 'OKLAHOMA-MC3E', 'TEXAS-HAR', 'VIRGINIA-HFD', 'VIRGINIA-NASA-C', 'VIRGINIA-NASA-NE', 'VIRGINIA-NASA-SE', 'VIRGINIA-NASA-W', 'VIRGINIA-NSWD-N', 'VIRGINIA-NSWD-S', 'VIRGINIA-WFF', 'WASHINGTON-OLYMPEX_NASA', 'WASHINGTON-OLYMPEX_STDALN']
 #ldomain = ['VIRGINIA-HFD', 'VIRGINIA-NASA-C', 'VIRGINIA-NASA-NE', 'VIRGINIA-NASA-SE', 'VIRGINIA-NASA-W', 'VIRGINIA-NSWD-N', 'VIRGINIA-NSWD-S', 'VIRGINIA-WFF', 'WASHINGTON-OLYMPEX_NASA', 'WASHINGTON-OLYMPEX_STDALN']
@@ -40,9 +38,7 @@ offset_aft = 45    # minutes
 ldMnt = range(-offset_bef, offset_aft+1)
 
 nlev  = 19 # at highest 10 km
-#thdist  = 2.5 # km
-#thdist  = 7.5 # km
-thdist  = 15 # km
+thdist  = 2.5 # km
 ddtime_1min = timedelta(seconds=60)
 
 satebaseDir = '/home/utsumi/mnt/wellshare/GPMGV/%s'%(prdName)
@@ -186,9 +182,10 @@ def ret_elevation(lat,lon):
 
 #*******************************************************
 
-for YM in lYM:
-    Year, Mon = YM
-    for domain in ldomain:
+for domain in ldomain:
+    for YM in lYM:
+        Year, Mon = YM
+
         if (domain,Year,Mon) not in dgName.keys():
             continue
 
@@ -249,28 +246,6 @@ for YM in lYM:
         agroundBin= []
 
         agv    = []
-
-
-        #-- empty container for pool
-        pqFlag     = []
-        pprofNum   = []
-        ptIndex    = []
-        pprofScale = []
-        peSurf     = []  # surface precip by GPROF
-        pmlPrcp    = []  # most likely surface precip by GPROF
-        psatelat = []
-        psatelon = []
-        pglat    = []
-        pglon    = []
-        pgName   = []
-        pdtime   = [] 
-        pgroundBin= []
-        pgelev    = []
-
-        pgv    = []
-        pngv   = []  # only for pool
-
-
         #for satePath in lsatePath:
         for satePath in lsatePath:
             print satePath
@@ -332,20 +307,8 @@ for YM in lYM:
                 if idtime_offset.month != Mon: continue
                 if edtime_offset.month != Mon: continue
 
-
-
-                # Dictionary for pooling 
-                lxy     = []
-                dngv    = {}
-                dla1gv  = {} 
-                dlgName = {} 
-                dlglat  = {} 
-                dlglon  = {} 
-                dlgelev = {} 
-
-
+ 
                 # gauge loop--- 
-
                 lgName  = dgName[domain, Year, Mon]
                 for gName in lgName:
 
@@ -421,96 +384,6 @@ for YM in lYM:
                     # groundBin 
                     agroundBin.append(a1groundbin)
 
-                    #**********************
-                    # pool gauge obs in the same
-                    # satellite footprint (xy)
-                    #**********************
-                    for xy in zip(a1xsate, a1ysate):
-                        if xy not in lxy:
-                            lxy.append(xy)
-                            dngv[xy]   = 1
-                            dla1gv[xy] = [a1gvTmp]
-                            dlgName[xy]= [gName]
-                            dlglat[xy] = [glat]
-                            dlglon[xy] = [glon]
-                            dlgelev[xy]= [delev[gName]]
-
-                        else:
-                            dngv[xy] = dngv[xy]+1
-                            dla1gv[xy].append(a1gvTmp)
-                            dlgName[xy].append(gName)
-                            dlglat[xy].append(glat)
-                            dlglon[xy].append(glon)
-                            dlgelev[xy].append(delev[gName])
-                #-- shrink pooled data --
-
-                if len(lxy)==0: continue
-
-                for xy in lxy:
-                    if dngv[xy]==1:
-                        a1gvTmp = array(dla1gv[xy][0])
-                        elev =dlgelev[xy][0]
-
-                    else:
-                        a2gvTmp = array(dla1gv[xy])
-
-                        a2gvAbsTmp= abs(a2gvTmp)
-                        a1gvTmp = a2gvAbsTmp.mean(axis=0)
-                         
-                        a1nnega = ma.masked_less(a2gvTmp,0).mask.sum(axis=0)
-                        a1gvTmp = (ma.masked_where(a1nnega==0, a1gvTmp)*(-1)).data
-
-                        elev = mean(dlgelev[xy])
-
-                    # append pooled pauge info to be pickled
-                    pgv.append(a1gvTmp)
-                    groundBin = bisect_left(a1hgtTop, elev)
-                    pgroundBin.append(groundBin)
-                    pngv.append(dngv[xy])
-
-                    pglat .append(dlglat[xy])
-                    pglon .append(dlglon[xy])
-                    pgName.append(dlgName[xy])
-                    pgelev.append(dlgelev[xy])
-
-
-
- 
-
-                # extract satellite for pool
-                a1xsate, a1ysate = zip(*lxy)
-
-                #-------------------------------------
-                # extract from satellite data for pool
-                #-------------------------------------
-                p1qFlag  = a2qFlagTmp[a1ysate, a1xsate] 
-                p1eSurf  = a2eSurfTmp[a1ysate, a1xsate] 
-                p1mlPrcp = a2mlPrcpTmp[a1ysate, a1xsate] 
-                p1tIndex = a2tIndexTmp[a1ysate, a1xsate] 
-                p2profNum= a3profNum[a1ysate,a1xsate,:]
-                p2profScale= a3profScale[a1ysate,a1xsate,:]
-
-                # lat & lon for pool
-                p1satelat= a2satelatTmp[a1ysate, a1xsate]
-                p1satelon= a2satelonTmp[a1ysate, a1xsate]                     
-
-                # DTime for pool
-                p1dtime  = array([dtime0]* len(p1satelat))
-
-                # append to container for pool
-
-                pqFlag.append(p1qFlag)
-                pprofNum.append(p2profNum)
-                pprofScale.append(p2profScale)
-                ptIndex.append(p1tIndex)
-
-                peSurf.append(p1eSurf)
-                pmlPrcp.append(p1mlPrcp)
-
-                psatelat.append(p1satelat)
-                psatelon.append(p1satelon)
-                pdtime.append(p1dtime)
-
 
 
         # make output array
@@ -533,28 +406,9 @@ for YM in lYM:
         agName   = concatenate(agName)
         adtime   = concatenate(adtime)
 
-
-        # make output array for pool
-        pgv        = array(pgv).astype(float32)
- 
-        pqFlag     = concatenate(pqFlag,axis=0)
-        pprofNum   = concatenate(pprofNum,axis=0)
-        pprofScale = concatenate(pprofScale,axis=0)
-        ptIndex    = concatenate(ptIndex, axis=0)
-
-        peSurf     = concatenate(peSurf)
-        pmlPrcpf   = concatenate(pmlPrcp)
-        #pgroundBin = concatenate(pgroundBin)  # no need to concatenate
-
-        psatelat = concatenate(psatelat).astype(float32)
-        psatelon = concatenate(psatelon).astype(float32)
-
-        pdtime   = concatenate(pdtime)
-        #sys.exit()       
-
         # save satellite obs to file
         obaseDir = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.%s'%(prdName)
-        outDir   = obaseDir + '/%.1fkm/%s/%04d%02d'%(thdist, domain, Year,Mon)
+        outDir   = obaseDir + '/%s/%04d%02d'%(domain, Year,Mon)
         util.mk_dir(outDir)
 
         ogvPath        = outDir + '/gvprcp.npy'
@@ -596,53 +450,4 @@ for YM in lYM:
         np.save(odtimePath,   adtime)
 
         print oprofNumPath
-
-
-        # save satellite obs to file for pool
-        pgvPath        = outDir + '/p_gvprcp.npy'
-        pqFlagPath     = outDir + '/p_qFlag.npy'
-        pprofNumPath   = outDir + '/p_profNum.npy'
-        pprofScalePath = outDir + '/p_profScale.npy'
-        ptIndexPath    = outDir + '/p_tIndex.npy'
-
-        peSurfPath    = outDir + '/p_eSurf.npy'
-        pmlPrcpPath   = outDir + '/p_mlPrecip.npy'
-        pgroundBinPath= outDir + '/p_groundBin.npy'
-        psatelatPath  = outDir + '/p_sateLat.npy'
-        psatelonPath  = outDir + '/p_sateLon.npy'
-        pdtimePath    = outDir + '/p_dtime.npy'
-        pngvPath      = outDir + '/p_ngv.npy'
-
-        pglatPath     = outDir + '/p_gLat.pickle'
-        pglonPath     = outDir + '/p_gLon.pickle'
-        pgNamePath    = outDir + '/p_gName.pickle'
-
-        #---------------------
-
-        np.save(pgvPath,    pgv)
-        np.save(pqFlagPath,    pqFlag)
-        np.save(pprofNumPath,    pprofNum)
-        np.save(pprofScalePath,    pprofScale)
-        np.save(ptIndexPath,    ptIndex)
-        np.save(peSurfPath, peSurf)
-        np.save(pmlPrcpPath, pmlPrcp)
-        np.save(pgroundBinPath, pgroundBin)
-
-
-        np.save(psatelatPath, psatelat)
-        np.save(psatelonPath, psatelon)
-        np.save(pdtimePath,   pdtime)
-        np.save(pngvPath,   pngv)
-
-        # pickling
-        with open(pglatPath, 'wb') as f:
-            pickle.dump(pglat, f) 
-
-        with open(pglonPath, 'wb') as f:
-            pickle.dump(pglon, f) 
-
-        with open(pgNamePath, 'wb') as f:
-            pickle.dump(pgName, f) 
-
-
 

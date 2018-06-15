@@ -10,11 +10,11 @@ import os, sys
 import glob
 from decimal import Decimal, ROUND_HALF_UP, ROUND_HALF_DOWN
 from gv_fsub import *
-import pickle
+
 
 #iYM = [2010,4]
 #eYM = [2012,10]
-iYM = [2005,10]
+iYM = [2014,10]
 eYM = [2014,10]
 
 lYM = util.ret_lYM(iYM, eYM)
@@ -43,8 +43,7 @@ ldMnt = range(-offset_bef, offset_aft+1)
 
 nlev  = 40
 
-#thdist  = 2.5 # km
-thdist  = 5.0 # km
+thdist  = 2.5 # km
 lgvtype = ['All','Gd']
 
 ddtime_1min = timedelta(seconds=60)
@@ -188,85 +187,6 @@ def load_gauge(domain, gName, Year,Mon):
     return aPrcp
 
 
-def load_gtopo(lat,lon):
-    orogDir  = "/data1/hjkim/GTOPO30"
-
-    ullat = int( (lat - (-60))/50. )*50. + 50 -60.
-    ullon = int( (lon - (-180))/40.)*40. -180.
-
-    if ullat >0:
-        SN = "N"
-    else:
-        SN = "S"
-
-    if ullon >180:
-        WE = "W"
-    elif (-180<ullon)&(ullon<0):
-        WE = "W"
-    else:
-        WE = "E"
-
-    #orogPath = orogDir + "/E060N40.DEM"
-    orogPath = orogDir + "/%s%03d%s%02d.DEM"%(WE, abs(ullon), SN, abs(ullat))
-    dmwPath  = orogDir + "/%s%03d%s%02d.DMW"%(WE, abs(ullon), SN, abs(ullat))
-    print dmwPath
-    """
-    BYTEORDER      M
-    LAYOUT       BIL
-    NROWS         6000
-    NCOLS         4800
-    NBANDS        1
-    NBITS         16
-    BANDROWBYTES         9600
-    TOTALROWBYTES        9600
-    BANDGAPBYTES         0
-    NODATA        -9999
-    ULXMAP        60.00416666666667
-    ULYMAP        39.99583333333333
-    XDIM          0.00833333333333
-    YDIM          0.00833333333333
-    """
-
-    ny, nx = 6000, 4800
-    a = flipud(fromfile(orogPath, "int16").byteswap().reshape(ny,nx))
-
-    # load DMW file
-    f=open(dmwPath, "r"); lines=f.readlines(); f.close()
-    lonmin = float(lines[4])
-    latmax = float(lines[5])
-    lonmax = lonmin + 0.00833333333333*(nx-1)
-    latmin = latmax - 0.00833333333333*(ny-1)
-
-    dlat = 0.00833333333333
-    dlon = 0.00833333333333
-    para = {}
-    para["ny"] = ny
-    para["nx"] = nx
-    para["lllat"]=latmin
-    para["lllon"]=lonmin
-    para["urlat"]=latmax
-    para["urlon"]=lonmax
-    para["dlat" ]=dlat
-    para["dlon" ]=dlon
-
-    para["Lat"]  = arange(latmin,latmax+0.5*dlat, dlat)
-    para["Lon"]  = arange(lonmin,lonmax+0.5*dlon, dlon)
-
-    return a,para
-
-
-
-
-
-def ret_elevation(lat,lon):
-    a2elev, para = load_gtopo(lat, lon)
-    lllat= para['lllat']
-    lllon= para['lllon']
-    dlat = para['dlat']
-    dlon = para['dlon']
-    y    = int((lat - lllat)/dlat)
-    x    = int((lon - lllon)/dlon)
-    return a2elev[y,x]
 
 #*******************************************************
 dnynx, dBBox, dBBoxBnd = ret_dBBoxes(res)
@@ -295,13 +215,6 @@ for domain in ldomain:
             daPrcp[gName] = load_gauge(domain, gName, Year, Mon)
         
 
-        #-- load elevation data
-        delev   = {}
-        for gName in lgName:
-            lat = dLat[gName]
-            lon = dLon[gName]
-            delev[gName] = ret_elevation(lat,lon)
-
         #-- satellite overpass
         sateDir = satebaseDir + '/%s/%04d%02d'%(domain, Year, Mon)
 
@@ -325,24 +238,9 @@ for domain in ldomain:
         aglon    = []
         agName   = []
         adtime   = [] 
+
+
         agv    = []
-
-        #-- empty container for pol
-        pprof  = []
-        peSurf = []
-        pnSurf = []
-        pnSurfBin= []
-        psatelat = []
-        psatelon = []
-        pglat    = []
-        pglon    = []
-        pgName   = []
-        pdtime   = [] 
-        pgelev   = []
-        pgv    = []
-        pngv   = [] # only for pool
-
-
         #for satePath in lsatePath:
         for satePath in lsatePath:
             print satePath
@@ -412,17 +310,7 @@ for domain in ldomain:
                 if idtime_offset.month != Mon: continue
                 if edtime_offset.month != Mon: continue
 
-
-
-                # Dictionary for pooling
-                lxy     = []
-                dngv    = {}
-                dla1gv  = {}
-                dlgName = {}
-                dlglat  = {}
-                dlglon  = {}
-                dlgelev = {}
-
+ 
                 # gauge loop--- 
                 lgName  = dgName[domain, Year, Mon]
                 for gName in lgName:
@@ -437,11 +325,6 @@ for domain in ldomain:
 
                     if len(a1xsate)==0:
                         continue
-
-                    #-------------------------------------
-                    # elevation and groundbin
-                    #-------------------------------------
-                    a1elev = (ones(len(a1xsate))*delev[gName]).astype(float32)
 
                     #-------------------------------------
                     # gauge data
@@ -508,103 +391,6 @@ for domain in ldomain:
                     # corrected nSurfBin 
                     anSurfBin.append(a1groundbin-a1nsurfbin-1)
 
-                    #**********************
-                    # pool gauge obs in the same
-                    # satellite footprint (xy)
-                    #**********************
-                    for xy in zip(a1xsate, a1ysate):
-                        if xy not in lxy:
-                            lxy.append(xy)
-                            dngv[xy]   = 1
-                            dla1gv[xy] = [a1gvTmp]
-                            dlgName[xy]= [gName]
-                            dlglat[xy] = [glat]
-                            dlglon[xy] = [glon]
-                            dlgelev[xy]= [delev[gName]]
-
-                        else:
-                            dngv[xy] = dngv[xy]+1
-                            dla1gv[xy].append(a1gvTmp)
-                            dlgName[xy].append(gName)
-                            dlglat[xy].append(glat)
-                            dlglon[xy].append(glon)
-                            dlgelev[xy].append(delev[gName])
-
-                #-- shrink pooled data --
-                if len(lxy)==0: continue
-
-                for xy in lxy:
-                    if dngv[xy]==1:
-                        a1gvTmp = array(dla1gv[xy][0])
-
-                    else:
-                        a2gvTmp = array(dla1gv[xy])
-
-                        a2gvAbsTmp= abs(a2gvTmp)
-                        a1gvTmp = a2gvAbsTmp.mean(axis=0)
-
-                        a1nnega = ma.masked_less(a2gvTmp,0).mask.sum(axis=0)
-                        a1gvTmp = (ma.masked_where(a1nnega==0, a1gvTmp)*(-1)).data
-                        elev = mean(dlgelev[xy])
-
-
-                    # append pooled pauge info to be pickled
-                    pgv.append(a1gvTmp)
-                    pngv.append(dngv[xy])
-
-                    pglat .append(dlglat[xy])
-                    pglon .append(dlglon[xy])
-                    pgName.append(dlgName[xy])
-                    pgelev.append(dlgelev[xy])
-
-
-                # extract satellite for pool
-                a1xsate, a1ysate = zip(*lxy)
-
-                #-------------------------------------
-                # extract from satellite data for pool
-                #-------------------------------------
-                p2profile= a3sateprcpTmp[a1ysate, a1xsate,:] 
-                p1eSurf  = a2eSurfTmp[a1ysate, a1xsate] 
-                # bins
-                p1groundbin= a3rangebin[a1ysate, a1xsate,2]
-                p1nsurfbin = a3rangebin[a1ysate, a1xsate,6]
-
-                # near surface rain
-                a1ytmp   = range(p2profile.shape[0])
-                p1nSurf  = p2profile[a1ytmp,p1nsurfbin]
-
-                # lat & lon
-                p1satelat= a2satelatTmp[a1ysate, a1xsate]
-                p1satelon= a2satelonTmp[a1ysate, a1xsate]                     
-                # DTime
-                p1dtime  = array([dtime0]* len(p1satelat))
-
-                # profile of nlev range bins above ground
-                p2profout= empty([p2profile.shape[0], nlev]).astype(int16)
-                for iy in range(p2profile.shape[0]):
-                    groundbin     = p1groundbin[iy]
-                    if (nlev<=groundbin)&(groundbin <=80):
-                        ''' set 20 levels above ground. Note that range bin with ground level is not included. '''
-                        a1tmp  = p2profile[iy, groundbin-nlev:groundbin]
-                        p2profout[iy] = a1tmp[::-1] # flip order. New order: Low level to High level.
-
-                    else:
-                        p2profout[iy] = -8888
-
-
-                # append to container for pool
-                pprof.append(p2profout)
-                peSurf.append(p1eSurf)
-                pnSurf.append(p1nSurf)
-
-                psatelat.append(p1satelat)
-                psatelon.append(p1satelon)
-                pdtime.append(p1dtime)
-
-                # corrected nSurfBin 
-                pnSurfBin.append(p1groundbin-p1nsurfbin-1)
-
 
 
         # make output array
@@ -623,23 +409,9 @@ for domain in ldomain:
         adtime   = concatenate(adtime)
         
 
-        # make output array for pool
-        pgv     = array(pgv).astype(float32)
-        pngv    = array(pngv).astype(int16)
-        pprof   = concatenate(pprof, axis=0).astype(int16)
-        peSurf  = concatenate(peSurf).astype(float32)
-        pnSurf  = concatenate(pnSurf).astype(int16)
-        pnSurfBin  = concatenate(pnSurfBin).astype(int16)
-
-        psatelat = concatenate(psatelat).astype(float32)
-        psatelon = concatenate(psatelon).astype(float32)
-        pdtime   = concatenate(pdtime)
- 
-
         # save satellite obs to file
         obaseDir = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25'
-        outDir   = obaseDir + '/%.1fkm/%s/%04d%02d'%(thdist, domain, Year,Mon)
-
+        outDir   = obaseDir + '/%s/%04d%02d'%(domain, Year,Mon)
         util.mk_dir(outDir)
         oprofPath  = outDir  + '/prof.npy'
         oeSurfPath = outDir  + '/eSurf.npy'
@@ -674,48 +446,4 @@ for domain in ldomain:
 
         print aprof.shape
         print oprofPath
-
-
-        # save satellite obs to file for pool
-        pprofPath  = outDir  + '/p_prof.npy'
-        peSurfPath = outDir  + '/p_eSurf.npy'
-        pnSurfPath = outDir  + '/p_nSurf.npy'
-        pgvPath    = outDir  + '/p_gvprcp.npy'
-        pngvPath   = outDir  + '/p_ngv.npy'
-        pnSurfBinPath = outDir + '/p_nSurfBin.npy'
-        psatelatPath  = outDir + '/p_sateLat.npy'
-        psatelonPath  = outDir + '/p_sateLon.npy'
-        pdtimePath    = outDir + '/p_dtime.npy'
-
-
-        pglatPath     = outDir + '/p_gLat.pickle'
-        pglonPath     = outDir + '/p_gLon.pickle'
-        pgNamePath    = outDir + '/p_gName.pickle'
-        #---------------------
-
-        np.save(pprofPath, pprof)
-        np.save(peSurfPath, peSurf)
-        np.save(pnSurfPath, pnSurf)
-        np.save(pgvPath,    pgv)
-        np.save(pngvPath,   pngv)
-        np.save(pnSurfBinPath, pnSurfBin)
-
-
-        np.save(psatelatPath, psatelat)
-        np.save(psatelonPath, psatelon)
-        np.save(pdtimePath,   pdtime)
-
-        # pickling
-        with open(pglatPath, 'wb') as f:
-            pickle.dump(pglat, f)
-
-        with open(pglonPath, 'wb') as f:
-            pickle.dump(pglon, f)
-
-        with open(pgNamePath, 'wb') as f:
-            pickle.dump(pgName, f)
-
-
-        print pprofPath
-
 

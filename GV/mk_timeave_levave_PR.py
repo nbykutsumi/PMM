@@ -3,12 +3,14 @@ matplotlib.use('Agg')
 from numpy import *
 from datetime import datetime, timedelta
 from collections import deque
+from gv_fsub import *
 import GPMGV
 import numpy as np
 import myfunc.util as util
 import matplotlib.pyplot as plt
 import sys, os
 from matplotlib import rcParams, cycler
+
 
 calc = True
 #calc = False
@@ -21,10 +23,13 @@ print lYM
 #thdist = 2.5
 thdist = 5.0
 minNum = 3
-
-prdName = 'L2A25'
 basepr = 'gv'
 #basepr = 'sate'
+
+
+
+prdName = 'L2A25'
+
 gv = GPMGV.GPMGV()
 gv.load_sitelist_reclassified()
 
@@ -35,18 +40,18 @@ ldomain = gv.domains
 #ldomain = ['FLORIDA-STJ']
 
 offset_bef = 15  # 'bef' should be identical to that in mk_match.py
-offset_aft = 30
+#offset_aft = 30
 
-
-nt = offset_aft + offset_bef +1
-nh = 20
+ldt  = [1, 5,10,15,20,25,30,35]
+ldh  = [1, 5,10,15,20,25,30,35]
+nt = len(ldt)
+nh = len(ldh)
 #nh = 5
 
-#lprtype = ['heavy','extreme','mod']
-lprtype = ['all','light','mod','heavy']
+lprtype = ['mod']
+#lprtype = ['all','light','mod','heavy']
 dlthpr = {'all':[-0.1,999],'light':[-0.1,2],'mod':[2,10], 'heavy':[10,50],'extreme':[50,9999]}
 ldattype = ['rain','cc','bias','brat','rmse','num','gv']
-#ldattype = ['rain']
 
 da2rain = {prtype: empty([nh,nt]) for prtype in lprtype}
 da2gv   = {prtype: empty([nh,nt]) for prtype in lprtype}
@@ -105,12 +110,16 @@ for domain in ldomain:
         angv   = np.load(ngvPath)
         ansurfbin= np.load(nSurfBinPath)
 
-        asate  = aprof[:,:nh]
+        asate  = aprof
 
         #-- mean array for masks
-        a1sateAll = ma.masked_less(asate, 0).mean(axis=1)
-        a1gvAll   = ma.masked_less(agv,0).mean(axis=1)
+        a1idx0    = zeros(aprof.shape[0])
+        a1sateAll = gv_fsub.mean_slice_negativemask(aprof.T, a1idx0, ldh[-1])
+        a1idx15   = ones(agv.shape[0])*15
+        a1gvAll   = gv_fsub.mean_slice_negativemask(agv.T, a1idx15, ldt[-1])
+        a1gvAll   = ma.masked_less(agv[:,15:],0).mean(axis=1)
         a1sateMin = asate.min(axis=1)
+
 
         #-- mask when both satellite and gv are zero
         amsk1    = ma.masked_equal(a1sateAll,0).mask
@@ -144,19 +153,18 @@ for domain in ldomain:
         a1nsurfbin.extend(ansurfbinTmp)
 
 if calc ==True:
-    a2gv   = concatenate(a2gv,axis=0)
-    a2prof = concatenate(a2prof,axis=0)
     a1esurf= array(a1esurf)
     a1nsurf= array(a1nsurf)*0.01 #mm/h
     a1nsurfbin= array(a1nsurfbin)
-        
-#----
+    a2gv   = concatenate(a2gv,axis=0)
+    a2prof = concatenate(a2prof,axis=0) *0.01
+    a2joinprof= concatenate([a1esurf.reshape(-1,1) ,a2prof], axis=1)
 
+#----
 for prtype in lprtype:
 
-    # mask with eSurf --
+    # mask with nSurf --
     thmin, thmax = dlthpr[prtype]
-
     if basepr=='sate':
         amskP = ma.masked_outside(a1esurf, thmin, thmax).mask
 
@@ -164,18 +172,23 @@ for prtype in lprtype:
         a1gvNow= a2gv[:,15]
         amskP = ma.masked_outside(a1gvNow, thmin, thmax).mask
 
-
-    for ih in [-99] + range(nh): 
+    #--- vertical layer loop ---
+    ih = -1
+    for dh in [-99] + ldh: 
         if calc == False: continue
     
-        if ih == -99:
+        if dh == -99:
             a1prof = a1esurf
         else:
-            a1prof = a2prof[:,ih]  *0.01  # mm/h
+            ih     = ih + 1
+            a1idx0 = zeros(a2prof.shape[0])
+            a1prof = gv_fsub.mean_slice_negativemask(a2joinprof.T, a1idx0, dh+1)
     
-        # mask when sate is missing
+
+        # mask events when sate is missing
         amsk1 = ma.masked_less(a1prof,0).mask
         amskMiss = amsk1
+
 
         # overlay masks
         if (amskMiss is False) or (amskMiss is True):
@@ -184,10 +197,12 @@ for prtype in lprtype:
             amskP    = array([False]*len(a1prof))
 
         amsk  = amskMiss + amskP
-  
-        for it in range(nt):
-            a1gv = a2gv[:,it]
-
+    
+        #--- averating time loop ---
+        for it,dt in enumerate(ldt):
+            a1idx15 = ones(a2gv.shape[0])*15
+            a1gv   = gv_fsub.mean_slice_negativemask(a2gv.T, a1idx15, dt)
+    
             a1profTmp = ma.masked_where(amsk, a1prof ).compressed()
             a1gvTmp   = ma.masked_where(amsk, a1gv   ).compressed()
        
@@ -200,8 +215,8 @@ for prtype in lprtype:
             num    = len(a1profTmp)
             rain   = a1profTmp.mean()
             gv     = a1gvTmp.mean()
-   
-            if ih==-99:
+  
+            if dh==-99:
                 de1cc  [prtype][it] = cc
                 de1rmse[prtype][it] = rmse
                 de1bias[prtype][it] = bias
@@ -228,8 +243,8 @@ for prtype in lprtype:
     util.mk_dir(outDir)
     
     for dattype in ldattype:  
-        datPath= outDir + '/dt-lev.base.%s.%s.%s.npy'%(basepr, dattype, prtype)
-        esPath = outDir + '/dt-eSurf.base.%s.%s.%s.npy'%(basepr, dattype, prtype)
+        datPath= outDir + '/nt-nlev.simple.base.%s.%s.%s.npy'%(basepr,dattype, prtype)
+        esPath = outDir + '/nt-eSurf.simple.base.%s.%s.%s.npy'%(basepr,dattype, prtype)
     
         if dattype=='cc':
             a2dat = da2cc[prtype]
@@ -259,43 +274,42 @@ for prtype in lprtype:
         print datPath
     
 
-#-- Figure in one panel ------------
+#--- Figure -------
 for prtype in lprtype:
     outDir = '/home/utsumi/mnt/wellshare/GPMGV/dt-lev-%s/dist.%.1fkm.ndom.%02d.%04d.%02d-%04d.%02d'%(prdName, thdist, len(ldomain), iYM[0], iYM[1], eYM[0], eYM[1])
 
     for dattype in ldattype:
 
-        datPath=outDir + '/dt-lev.base.%s.%s.%s.npy'%(basepr,dattype, prtype)
-        esPath =outDir + '/dt-eSurf.base.%s.%s.%s.npy'%(basepr, dattype, prtype)
-
+        datPath=outDir + '/nt-nlev.simple.base.%s.%s.%s.npy'%(basepr, dattype, prtype)
+        esPath =outDir + '/nt-eSurf.simple.base.%s.%s.%s.npy'%(basepr, dattype, prtype)
+        a1es   = np.load(esPath)
         a2dat  = np.load(datPath)
-        e1dat  = np.load(esPath)
 
-        fig = plt.figure(figsize=(4,8))
-        ax  = fig.add_axes([0.15, 0.1, 0.8, 0.8])
+        fig = plt.figure(figsize=(8,4))
+        ax  = fig.add_axes([0.15, 0.1, 0.8, 0.78])
+        a1t  = ldt
 
-        a1t  = range(-offset_bef, offset_aft+1)
-
-        cmap = plt.get_cmap('coolwarm')
-
-        lh = range(nh)[2:]
-        for itmp,ih in enumerate(lh):
+        wbar = 0.7/(nh+1)
+        print '-'*50
+        # plot eSurf ---
+        a1y  = a1es
+        a1x  = arange(nt) -0.01 -wbar
+        ax.bar(a1x, a1y, width=wbar, tick_label=ldt, align='center', label='eSurf')
+        # plot average --
+        for ih, dh in enumerate(ldh):
             a1y = a2dat[ih,:]
             a1y = ma.masked_invalid(a1y)
+            a1x = arange(nt) -0.01 +ih*wbar
+            ax.bar(a1x, a1y, width=wbar, tick_label=ldt, align='center', label='%d bins'%(dh))
+            #if ih !=0:
+            #    ax.tick_params(labelbottom='off')
 
-            ax.plot(a1t, a1y, '-', c=cmap(float(itmp)/len(lh)), zorder=10, label='%d'%(ih))
-
-        # eSurf
-        a1y = ma.masked_invalid(e1dat)
-        ax.plot(a1t, a1y, '--', zorder=10, label='eSurf', color='k')
         # legend
-        ax.legend()
-
-
+        plt.legend()
         # ylim
         if dattype in ['cc']:
             ymin = -0.1
-            ymax = 0.8
+            ymax = 1.0
             plt.ylim([ymin,ymax])
 
         elif dattype in ['rain','gv','rmse','num']:
@@ -313,81 +327,21 @@ for prtype in lprtype:
         if dattype in ['cc','bias','brat']:
             plt.plot([-10,50],[0,0],'--',color='k', linewidth=0.5)
 
-        plt.xlim([-6,31])
+        plt.xlim([a1x[0]-1,a1x[-1]+2])
 
 
-        # title
-        stitle  = '%s %.1fkm minNum=%d %s'%(prtype, thdist, minNum, dattype)
-        stitle  = stitle + '\n' + 'base:%s %04d.%02d-%04d.%02d'%(basepr, iYM[0],iYM[1],eYM[0],eYM[1])
+        stitle  = 'basepr=%s %s %s'%(basepr, dattype, prtype)
+        stitle  = stitle + '\n' + '%04d.%02d-%04d.%02d'%(iYM[0],iYM[1],eYM[0],eYM[1])
+
         plt.title(stitle)
         figDir  = '/work/a01/utsumi/GPMGV/fig'
-        figPath = figDir + '/plot.dt-lev.onebox.%s.%.1fkm.minNum.%d.base.%s.%s.%s.png'%(prdName, thdist, minNum, basepr, dattype, prtype)
+        figPath = figDir + '/bar.nt-nlev.simple.%s.%.1fkm.minNum.%d.base.%s.%s.%s.png'%(prdName, thdist,minNum, basepr, dattype, prtype)
         plt.savefig(figPath)
         print figPath
         plt.clf()
 
 
 
-'''
-#--- figure : multi-rows -------
-
-for prtype in lprtype:
-    outDir = '/home/utsumi/mnt/wellshare/GPMGV/dt-lev-%s/ndom.%02d.%04d.%02d-%04d.%02d'%(prdName, len(ldomain), iYM[0], iYM[1], eYM[0], eYM[1])
-
-    for dattype in ldattype:
-
-        datPath=outDir + '/dt-lev.%s.%s.npy'%(dattype, prtype)
-        a2dat  = np.load(datPath)
-    
-        fig = plt.figure(figsize=(4,8))
-        a1t  = range(-offset_bef, offset_aft+1)
 
 
-        print '-'*50
-        for ih in range(nh):
-            ax = fig.add_axes([0.15, 0.1 + 0.8/nh*ih, 0.8, 0.8/nh])
-            a1y = a2dat[ih,:]
-            a1y = ma.masked_invalid(a1y)
-
-            ax.plot(a1t, a1y, '-', zorder=10)
-
-
-            # ylim
-            if dattype in ['cc']:
-                ymin = -1.2
-                ymax = 1.2
-                plt.ylim([ymin,ymax])
-
-            elif dattype in ['rain','gv','rmse','num']:
-                ymin = 0
-                ymax = ma.masked_invalid(a2dat).max()*1.1
-                plt.ylim([ymin,ymax])
-
-            elif dattype in ['bias','brat']:
-                ymax = abs(ma.masked_invalid(a2dat)).max()*1.1
-                ymin = -ymax
-                plt.ylim([ymin,ymax])
-
-
-            #- zero line ---
-            if dattype in ['cc','bias','brat']:
-                plt.plot([-10,50],[0,0],'--',color='k', linewidth=0.5)
-
-            plt.xlim([-6,31])
-
-
-
-            if ih !=0:
-                ax.tick_params(labelbottom='off') 
-
-
-        stitle  = '%s %s'%(prtype, dattype)
-        plt.title(stitle)        
-        figDir  = '/work/a01/utsumi/GPMGV/fig'
-        figPath = figDir + '/plot.dt-lev.simple.%s.%s.%s.png'%(prdName, dattype, prtype)
-        plt.savefig(figPath)
-        print figPath
-        plt.clf()
-    
-'''
 

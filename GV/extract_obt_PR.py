@@ -11,8 +11,8 @@ prdVer  = "07"
 #var     = "e_SurfRain"
 var     = "rain"
 
-iYM = [1998,1]
-eYM = [2012,7]
+iYM = [2014,10]
+eYM = [2014,10]
 lYM = util.ret_lYM(iYM,eYM)
 
 lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]

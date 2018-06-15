@@ -10,8 +10,8 @@ prdName = '2A-CLIM'
 prdVer  = 'V05'
 minorVer= 'A'
 
-iYM = [2014,4]
-eYM = [2014,10]
+iYM = [1998,4]
+eYM = [2007,7]
 lYM = util.ret_lYM(iYM,eYM)
 
 lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
@@ -60,6 +60,9 @@ for YM in lYM:
         fileName = os.path.basename(srcPath)
         gNum     = fileName.split('.')[-3]
         print gNum
+
+        if gNum in ['065997','054976']:
+            continue
 
         #if int(gNum) < 95262: continue
 

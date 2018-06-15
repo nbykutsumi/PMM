@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 import sys, os
 from matplotlib import rcParams, cycler
 
-calc = True
-#calc = False
+#calc = True
+calc = False
 iYM = [2005,4]
 eYM = [2014,10]
 lYM = util.ret_lYM(iYM, eYM)
@@ -40,7 +40,6 @@ offset_aft = 30
 
 nt = offset_aft + offset_bef +1
 nh = 20
-#nh = 5
 
 #lprtype = ['heavy','extreme','mod']
 lprtype = ['all','light','mod','heavy']
@@ -48,6 +47,22 @@ dlthpr = {'all':[-0.1,999],'light':[-0.1,2],'mod':[2,10], 'heavy':[10,50],'extre
 ldattype = ['rain','cc','bias','brat','rmse','num','gv']
 #ldattype = ['rain']
 
+
+#-----------------------------------------------------
+def running_mean(a1dat):
+    n = len(a1dat)
+    vfirst= a1dat[0]*2./3  + a1dat[1]*1./3
+    vlast = a1dat[-1]*2./3 + a1dat[-2]*1./3
+    a1out = empty(n, float32)
+    for i in range(1,n-1):
+        a1out[i] = a1dat[i-1:i+1].mean()
+
+    a1out[0] = vfirst
+    a1out[-1] = vlast
+    return a1out
+
+
+#-----------------------------------------------------
 da2rain = {prtype: empty([nh,nt]) for prtype in lprtype}
 da2gv   = {prtype: empty([nh,nt]) for prtype in lprtype}
 da2cc   = {prtype: empty([nh,nt]) for prtype in lprtype}
@@ -153,6 +168,7 @@ if calc ==True:
 #----
 
 for prtype in lprtype:
+    if calc != True: continue
 
     # mask with eSurf --
     thmin, thmax = dlthpr[prtype]
@@ -165,6 +181,7 @@ for prtype in lprtype:
         amskP = ma.masked_outside(a1gvNow, thmin, thmax).mask
 
 
+    #for ih in [-99] + range(nh): 
     for ih in [-99] + range(nh): 
         if calc == False: continue
     
@@ -278,24 +295,32 @@ for prtype in lprtype:
 
         cmap = plt.get_cmap('coolwarm')
 
-        lh = range(nh)[2:]
-        for itmp,ih in enumerate(lh):
-            a1y = a2dat[ih,:]
-            a1y = ma.masked_invalid(a1y)
-
-            ax.plot(a1t, a1y, '-', c=cmap(float(itmp)/len(lh)), zorder=10, label='%d'%(ih))
-
         # eSurf
         a1y = ma.masked_invalid(e1dat)
-        ax.plot(a1t, a1y, '--', zorder=10, label='eSurf', color='k')
+        ax.plot(a1t, a1y, '--', zorder=10, label='eSurf', color='k', linewidth=2)
+
+        #lh = range(nh)[2:]
+        lh = [2,4,8,12,16]
+
+        for itmp,ih in enumerate(lh):
+            #a1yA = a2dat[ih,:]
+            #a1yB = a2dat[ih+1,:]
+            #a1y  = (a1yA + a1yB)*0.5
+            a1y = a2dat[ih,:]
+            a1y = ma.masked_invalid(a1y)
+            a1y = running_mean(a1y)
+
+            ax.plot(a1t, a1y, '-', c=cmap(float(itmp)/len(lh)), label='%.1f'%(ih*0.25), linewidth=2)
+
         # legend
-        ax.legend()
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles[::-1], labels[::-1])
 
 
         # ylim
         if dattype in ['cc']:
-            ymin = -0.1
-            ymax = 0.8
+            ymin = 0.0
+            ymax = 0.6
             plt.ylim([ymin,ymax])
 
         elif dattype in ['rain','gv','rmse','num']:
@@ -321,7 +346,7 @@ for prtype in lprtype:
         stitle  = stitle + '\n' + 'base:%s %04d.%02d-%04d.%02d'%(basepr, iYM[0],iYM[1],eYM[0],eYM[1])
         plt.title(stitle)
         figDir  = '/work/a01/utsumi/GPMGV/fig'
-        figPath = figDir + '/plot.dt-lev.onebox.%s.%.1fkm.minNum.%d.base.%s.%s.%s.png'%(prdName, thdist, minNum, basepr, dattype, prtype)
+        figPath = figDir + '/plot.dt-lev.runmean.%s.%.1fkm.minNum.%d.base.%s.%s.%s.png'%(prdName, thdist, minNum, basepr, dattype, prtype)
         plt.savefig(figPath)
         print figPath
         plt.clf()
