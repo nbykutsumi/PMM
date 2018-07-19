@@ -36,12 +36,9 @@ offset_bef = 15  # 'bef' should be identical to what is used in mk_match.py
 #offset_aft = 45
 
 #lprtype = ['all','mod','heavy','extreme']
-lprtype = ['light','mod','heavy']
-#lprtype = ['mod']
-dlthpr = {'all':[-0.1,999],'light':[-0.1,2],'mod':[2,10], 'heavy':[10,50],'extreme':[50,9999]}
-ldattype = ['rain','cc','bias','brat','rmse','num','gv']
-
-
+#lprtype = ['light','mod','heavy']
+lprtype = ['wetevent']
+dlthpr = {'wetevent':[0.1,999],'all':[-0.1,999],'light':[-0.1,2],'mod':[2,10], 'heavy':[10,50],'extreme':[50,9999]}
 
 miss    = -9999.
 

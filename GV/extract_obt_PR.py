@@ -4,6 +4,7 @@ import os, sys
 import myfunc.IO.GPM as GPM
 from datetime import datetime, timedelta
 import numpy as np
+import socket
 
 #prj      = "TRMM.PR"
 prdName = "L2A25"
@@ -11,7 +12,7 @@ prdVer  = "07"
 #var     = "e_SurfRain"
 var     = "rain"
 
-iYM = [2014,10]
+iYM = [2005,4]
 eYM = [2014,10]
 lYM = util.ret_lYM(iYM,eYM)
 
@@ -19,10 +20,21 @@ lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
 lYM = lYM[::-1]
 
 gpm = GPM.L2A25(version=prdVer)
+gpm2a23 = GPM.L2A23(version=prdVer)
 
 compressed = False
+
+hostname = socket.gethostname()
+if hostname == 'mizu':
+    #listDir  = "/work/a01/utsumi/data/GPMGV/sitelist"
+    listDir  = '/home/utsumi/mnt/wellshare/data/GPMGV/sitelist'
+    obaseDir = "/home/utsumi/mnt/wellshare/GPMGV/%s"%(prdName)
+
+elif hostname=='well':
+    listDir  = '/media/disk2/share/data/GPMGV/sitelist'
+    obaseDir = "/media/disk2/share/GPMGV/%s"%(prdName)
+
 #-- read sitelist_summary ---
-listDir  = "/work/a01/utsumi/data/GPMGV/sitelist"
 listPath = listDir + "/sitelist_summary.csv"
 f = open(listPath, "r"); lines=f.readlines(); f.close()
 
@@ -67,14 +79,14 @@ for YM in lYM:
 
         #if int(gNum) < 95262: continue
 
-        Dat  = gpm.load_var_granule(srcPath, var)
         Lat  = gpm.load_var_granule(srcPath, "Latitude")
         Lon  = gpm.load_var_granule(srcPath, "Longitude")
         dtime= gpm.load_dtime_granule(srcPath)
-        rangeBinNum= gpm.load_var_granule(srcPath, "rangeBinNum")
-        eSurf= gpm.load_var_granule(srcPath, "e_SurfRain")
-        #nSurf= gpm.load_var_granule(srcPath, "nearSurfRain")
- 
+        #Dat  = gpm.load_var_granule(srcPath, var)
+        #rangeBinNum= gpm.load_var_granule(srcPath, "rangeBinNum")
+        #eSurf= gpm.load_var_granule(srcPath, "e_SurfRain")
+        ##nSurf= gpm.load_var_granule(srcPath, "nearSurfRain")
+        rainType= gpm2a23.load_var_granule(srcPath, "rainType") 
 
         #print rangeBinNum.shape
         #print rangeBinNum[:,:,3]
@@ -94,13 +106,14 @@ for YM in lYM:
             a1mask= ~a1mask   # masked =True --> masked=False
             if a1mask.sum()==0: continue
  
-            DatTmp= Dat[a1mask]
             LatTmp= Lat[a1mask]
             LonTmp= Lon[a1mask]
             dtimeTmp = dtime[a1mask]
-            rangeBinNumTmp = rangeBinNum[a1mask]
-            eSurfTmp = eSurf[a1mask]
-            #nSurfTmp = nSurf[a1mask]
+            #DatTmp= Dat[a1mask]
+            #rangeBinNumTmp = rangeBinNum[a1mask]
+            #eSurfTmp = eSurf[a1mask]
+            ##nSurfTmp = nSurf[a1mask]
+            rainTypeTmp = rainType[a1mask]
 
             if len(dtimeTmp) <2: continue
             sDTime = dtimeTmp[0]
@@ -111,9 +124,7 @@ for YM in lYM:
 
  
             # save
-            print key, DatTmp.shape, DatTmp.max()
-            #obaseDir = "/work/a01/utsumi/GPMGV/%s"%(prdName)
-            obaseDir = "/home/utsumi/mnt/wellshare/GPMGV/%s"%(prdName)
+            print key
             outDir   = obaseDir + "/%s"%(key)
             util.mk_dir(outDir)
             outDir   = outDir + "/%04d%02d"%(Year,Mon)
@@ -126,12 +137,15 @@ for YM in lYM:
             rbinPath = outDir + "/rangeBinNum.%s-%s.%s.npy"%(stime,etime,gNum)
             eSurfPath = outDir + "/eSurf.%s-%s.%s.npy"%(stime,etime,gNum)
             #nSurfPath = outDir + "/nSurf.%s-%s.%s.npy"%(stime,etime,gNum)
-            np.save(latPath,  LatTmp.astype(float32))
-            np.save(lonPath,  LonTmp.astype(float32))
-            np.save(dtimePath,dtimeTmp)
-            np.save(prcpPath, DatTmp.astype(int16))
-            np.save(rbinPath, rangeBinNumTmp.astype(int16))
-            np.save(eSurfPath,eSurfTmp.astype(float32))
-            #np.save(nSurfPath,nSurfTmp.astype(float32))
+            rainTypePath = outDir + "/rainType.%s-%s.%s.npy"%(stime,etime,gNum)
 
-            print prcpPath
+            #np.save(latPath,  LatTmp.astype(float32))
+            #np.save(lonPath,  LonTmp.astype(float32))
+            #np.save(dtimePath,dtimeTmp)
+            #np.save(prcpPath, DatTmp.astype(int16))
+            #np.save(rbinPath, rangeBinNumTmp.astype(int16))
+            #np.save(eSurfPath,eSurfTmp.astype(float32))
+            ##np.save(nSurfPath,nSurfTmp.astype(float32))
+            np.save(rainTypePath,rainTypeTmp.astype(int16))
+
+            print rainTypePath

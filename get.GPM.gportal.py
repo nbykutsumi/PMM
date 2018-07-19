@@ -12,7 +12,7 @@ elif hostname=="well":
 
 #iYM     = [2014,4]
 #eYM     = [2015,6]
-iYM     = [1998,4]
+iYM     = [2014,10]
 eYM     = [2014,10]
 
 lYM	= util.ret_lYM(iYM,eYM)
@@ -24,8 +24,9 @@ ow  = False # OverWrite
 #prj	= ["TRMM","TRMM.PR","L3A25","07"]
 #prj	= ["TRMM","TRMM.PR","L2A23","07"]
 #prj	= ["TRMM","TRMM.PR","L2A25","07"]
-prj	= ["TRMM","TRMM.TMI","L2A12","07"]
-#prj	= ["GPM","GPM.KuPR","L2","05"]
+#prj	= ["TRMM","TRMM.TMI","L2A12","07"]
+prj	= ["GPM","GPM.KuPR","L2","05"]
+#prj	= ["GPM","GPM.DPR","L2","05"]
 #prj	= ["GPM","GPM.GMI","L2","05"]
 sate	= prj[0]
 sensor	= prj[1]
