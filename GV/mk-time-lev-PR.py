@@ -23,10 +23,14 @@ print lYM
 thdist = 5.0
 minNum = 3
 
-#cls = 'RH'
-cls = 'RainType'
+cls = 'RH'
+#cls = 'RainType'
 
 prdName = 'L2A25'
+
+nozero = 'nozero'
+#nozero = 'withzero'
+
 gv = GPMGV.GPMGV()
 gv.load_sitelist_reclassified()
 
@@ -102,8 +106,8 @@ for clstype in lclstype:
 
     csvDir = '/home/utsumi/mnt/wellshare/GPMGV/dt-lev-%s/dist.%.1fkm.ndom.%02d.%04d.%02d-%04d.%02d'%(prdName, thdist, len(ldomain), iYM[0], iYM[1], eYM[0], eYM[1])
 
-    joinprofPath = csvDir + '/%s.joinprof.%s.csv'%(cls, clstype)
-    gvPath       = csvDir + '/%s.gv.%s.csv'%(cls, clstype)
+    joinprofPath = csvDir + '/%s.%s.joinprof.%s.csv'%(cls, nozero, clstype)
+    gvPath       = csvDir + '/%s.%s.gv.%s.csv'%(cls, nozero, clstype)
 
     a2joinprof = load_csv(joinprofPath)
     a2gv       = load_csv(gvPath)
@@ -178,7 +182,7 @@ for clstype in lclstype:
             a1y = running_mean(a1y)
    
             mycm= cmap(float(itmp)/len(lh)) 
-            ax.plot(a1t, a1y, '-', c=mycm, label='%.1f'%(ih*0.25), linewidth=2)
+            ax.plot(a1t, a1y, '-', c=mycm, label='%.1fkm'%(ih*0.25), linewidth=2)
 
 
             #-- find peak or bottom ---

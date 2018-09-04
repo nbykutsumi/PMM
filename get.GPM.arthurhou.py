@@ -7,6 +7,7 @@ import socket
 
 hostname  = "arthurhou.pps.eosdis.nasa.gov"
 irootDir = "/gpmallversions"
+#irootDir = "/sm/730/gpmdata"
 
 myhost = socket.gethostname()
 if  myhost =="mizu":
@@ -16,13 +17,13 @@ elif myhost =="well":
 
 #GPM/TRMM.TMI/L2A12/07/2014/
 
-#iYM       = [1998, 4]
-#eYM       = [2014, 10]
+iYM       = [2017, 12]
+eYM       = [2017, 12]
 
-iYM       = [2009, 6]
-eYM       = [2009, 6]
+#iYM       = [2009, 6]
+#eYM       = [2009, 6]
 lYM       = util.ret_lYM(iYM, eYM)
-lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
+#lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
 lYM = lYM[::-1]
 print lYM
 
@@ -37,6 +38,18 @@ prdName   = spec[2]
 prj       = spec[3]
 ver       = spec[4]
 minorver  = spec[5]
+
+#iDay      = 1
+#spec      = ["GPM","GMI","1C","1C","V05","A"]
+#sate      = spec[0]
+#sensor    = spec[1]
+#prdName   = spec[2]
+#prj       = spec[3]
+#ver       = spec[4]
+#minorver  = spec[5]
+
+
+
 
 myid      = "nbyk.utsumi@gmail.com"
 mypass    = "nbyk.utsumi@gmail.com"
@@ -57,7 +70,7 @@ for YM in lYM:
   Year, Mon = YM
 
   eDay = calendar.monthrange(Year,Mon)[1]
-  lDay = range(1,eDay+1)
+  lDay = range(iDay,eDay+1)
   for Day in lDay:
     #if (datetime(2014,7,23)<datetime(Year,Mon,Day))and(datetime(Year,Mon,Day) < datetime(2015,4,1)):continue
 
@@ -68,6 +81,8 @@ for YM in lYM:
     mk_dir(oDir)
     #--- list --------------
     lPath = ftp.nlst(iDir)
+    print iDir
+    print lPath
     for sPath in lPath:
       fName = os.path.basename(sPath)
       prdNameTmp, sateTmp, sensorTmp, algFullTmp, dtime, gNum, verFullTmp, sfx = fName.split('.')

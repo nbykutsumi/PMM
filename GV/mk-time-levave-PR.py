@@ -27,6 +27,9 @@ cls = 'RH'
 #cls = 'RainType'
 
 prdName = 'L2A25'
+nozero  = 'nozero'
+nozero  = 'withzero'
+
 gv = GPMGV.GPMGV()
 gv.load_sitelist_reclassified()
 
@@ -102,8 +105,8 @@ for clstype in lclstype:
 
     csvDir = '/home/utsumi/mnt/wellshare/GPMGV/dt-lev-%s/dist.%.1fkm.ndom.%02d.%04d.%02d-%04d.%02d'%(prdName, thdist, len(ldomain), iYM[0], iYM[1], eYM[0], eYM[1])
 
-    profavePath  = csvDir + '/%s.profave.%s.csv'%(cls, clstype)
-    gvPath       = csvDir + '/%s.gv.%s.csv'%(cls, clstype)
+    profavePath  = csvDir + '/%s.%s.profave.%s.csv'%(cls, nozero, clstype)
+    gvPath       = csvDir + '/%s.%s.gv.%s.csv'%(cls, nozero, clstype)
 
     a2profave  = load_csv(profavePath)
     a2gv       = load_csv(gvPath)

@@ -23,16 +23,18 @@ nhead  = 173172 # Bytes
 #nhead  = 0
 res    = 30.0   # arc seconds
 
+LatUp  = arange(-59.95,59.95+0.01,0.1)
+LonUp  = arange(0.05, 359.95+0.01,0.1)
 
 #LatUp  = arange(-89.95,89.95+0.01,0.1)
 #LonUp  = arange(0.05, 359.95+0.01,0.1)
 
-LatUp  = arange(-37+0.25,37-0.25+0.01,0.5)
-LonUp  = arange(0.0+1.0, 360-1.0+0.01,2.0)
+#LatUp  = arange(-37+0.25,37-0.25+0.01,0.5)
+#LonUp  = arange(0.0+1.0, 360-1.0+0.01,2.0)
 
 #BBox   = [[-89.95, 0.5],[89.95, 359.95]]  # degree
 #BBox    = [[-0.1, 113.875],[52.1, 180.125]]  # degree
-BBox    = [[-37, 0],[37, 360]]  # degree
+BBox    = [[-60, 0],[60, 360]]  # degree
 
 
 llLAT_sec = -323985. -15.0   # arc seconds, lower boundary of the grid box

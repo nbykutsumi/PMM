@@ -25,13 +25,16 @@ figtype = 'bar'
 corrFlag= 'CR'
 #corrFlag= 'NO'
 
-cls = 'RH'
-#cls = 'RainType'
+#cls = 'RH'
+cls = 'RainType'
 
 #thdist = 2.5
 thdist = 5.0
 minNum = 3
 prdName = 'L2A25'
+
+nozero = 'nozero'
+#nozero = 'withzero'
 
 gv = GPMGV.GPMGV()
 gv.load_sitelist_reclassified()
@@ -86,10 +89,10 @@ for clstype in lclstype:
 
     csvDir = '/home/utsumi/mnt/wellshare/GPMGV/dt-lev-%s/dist.%.1fkm.ndom.%02d.%04d.%02d-%04d.%02d'%(prdName, thdist, len(ldomain), iYM[0], iYM[1], eYM[0], eYM[1])
 
-    joinprofPath = csvDir + '/%s.joinprof.%s.csv'%(cls, clstype)
-    gvPath       = csvDir + '/%s.gv.%s.csv'%(cls, clstype)
-    profavePath  = csvDir + '/%s.profave.%s.csv'%(cls, clstype)
-    gvavePath    = csvDir + '/%s.gvave.%s.csv'%(cls, clstype)
+    joinprofPath = csvDir + '/%s.%s.joinprof.%s.csv'%(cls, nozero, clstype)
+    gvPath       = csvDir + '/%s.%s.gv.%s.csv'%(cls, nozero, clstype)
+    profavePath  = csvDir + '/%s.%s.profave.%s.csv'%(cls, nozero, clstype)
+    gvavePath    = csvDir + '/%s.%s.gvave.%s.csv'%(cls, nozero, clstype)
    
     a2joinprof = load_csv(joinprofPath)
     a2gv       = load_csv(gvPath)[:,15:]
@@ -199,8 +202,12 @@ for clstype in lclstype:
             plt.ylim([ymin,ymax])
 
         elif dattype in ['brat']:
-            ymax = 0.15
-            ymin = -0.45
+            if clstype in ['conv','dry']:
+                ymax = 0.45
+                ymin = -0.45
+            else:
+                ymax = 0.15
+                ymin = -0.45
             plt.ylim([ymin,ymax])
 
 

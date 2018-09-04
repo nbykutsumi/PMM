@@ -185,23 +185,23 @@ for prtype in lprtype:
 
 
     # figure  plain profile -------------
-    fig = plt.figure(figsize=(4,3))
+    fig = plt.figure(figsize=(4.2,3))
     ax  = fig.add_axes([0.1, 0.1, 0.8, 0.7])
     
     a1y = (arange(nh) +1)*0.25
    
     imin = 4 
-    ax.plot(dmean['all'][imin:],a1y[imin:],'-',color='k', label='all')
+    ax.plot(dmean['all'][imin:],a1y[imin:],'-',color='k', label='unclassified')
     ax.plot(dstd['all'][imin:], a1y[imin:],'--',color='k')
     ax.plot(desurf['all'], 0.1, 'v', color='k')
     
 
     
-    ax.plot(dmean['conv'][imin:],a1y[imin:],'-',color='r', label='conv')
+    ax.plot(dmean['conv'][imin:],a1y[imin:],'-',color='r', label='convective')
     ax.plot(dstd['conv'][imin:], a1y[imin:],'--',color='r')
     ax.plot(desurf['conv'], 0.1, 'v', color='r')
     
-    ax.plot(dmean['strat'][imin:],a1y[imin:],'-',color='b', label='strat')    
+    ax.plot(dmean['strat'][imin:],a1y[imin:],'-',color='b', label='stratiform')    
     ax.plot(dstd['strat'][imin:],a1y[imin:],'--',color='b')    
     ax.plot(desurf['strat'], 0.1, 'v', color='b')
    
@@ -221,20 +221,20 @@ for prtype in lprtype:
 
 
     # figure cumave -------------
-    fig = plt.figure(figsize=(4,3))
+    fig = plt.figure(figsize=(4.2,3))
     ax  = fig.add_axes([0.1, 0.1, 0.8, 0.7])
     
     a1y = arange(nh+1)*0.25
     
-    ax.plot(dcumave['all'],a1y,'-',color='k', label='all')
+    ax.plot(dcumave['all'],a1y,'-',color='k', label='unclassified')
     ax.plot(dcumstd['all'], a1y,'--',color='k')
     ax.plot(desurf['all'], 0.1, 'v', color='k')
     
-    ax.plot(dcumave['conv'],a1y,'-',color='r', label='conv')
+    ax.plot(dcumave['conv'],a1y,'-',color='r', label='convective')
     ax.plot(dcumstd['conv'], a1y,'--',color='r')
     ax.plot(desurf['conv'], 0.1, 'v', color='r')
     
-    ax.plot(dcumave['strat'],a1y,'-',color='b', label='strat')
+    ax.plot(dcumave['strat'],a1y,'-',color='b', label='stratiform')
     ax.plot(dcumstd['strat'],a1y,'--',color='b')
     ax.plot(desurf['strat'], 0.1, 'v', color='b')
 
@@ -254,16 +254,16 @@ for prtype in lprtype:
 
 
     # figure: count  -------------
-    fig = plt.figure(figsize=(4,3))
+    fig = plt.figure(figsize=(4.2,3))
     ax  = fig.add_axes([0.1, 0.1, 0.8, 0.7])
     
     a1y = (arange(nh) +1)*0.25
     
-    ax.plot(dcount['all'],a1y,'-',color='k', label='all')
+    ax.plot(dcount['all'],a1y,'-',color='k', label='unclassified')
     
-    ax.plot(dcount['conv'],a1y,'-',color='r', label='conv')
+    ax.plot(dcount['conv'],a1y,'-',color='r', label='convective')
     
-    ax.plot(dcount['strat'],a1y,'-',color='b', label='strat')    
+    ax.plot(dcount['strat'],a1y,'-',color='b', label='stratatiform')    
     
     # legend
     plt.legend()

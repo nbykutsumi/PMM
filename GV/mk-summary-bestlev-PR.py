@@ -16,13 +16,14 @@ figtype = 'bar'
 #corrFlag= 'CR'
 corrFlag= 'NO'
 
-#cls = 'RH'
-cls = 'RainType'
-
 #thdist = 2.5
 thdist = 5.0
 minNum = 3
 prdName = 'L2A25'
+
+nozero = 'nozero'
+#nozero = 'withzero'
+
 gv = GPMGV.GPMGV()
 gv.load_sitelist_reclassified()
 
@@ -76,6 +77,32 @@ def load_bestlev(srcPath,dattype='cc', ntime=1):
     rdif    = (abs(satelev)-abs(esurf))/abs(esurf)
 
     return ibest, rdif
+
+def load_2ndbestlev(srcPath,dattype='cc', ntime=1):
+    f=open(srcPath,'r'); lines= f.readlines(); f.close()
+
+    esurf = float(lines[1].strip().split(',')[ntime+1])
+
+    lmetrics = []
+    lidx     = []
+    for iline, line in enumerate(lines[1:]):
+        metric = abs(float(line.strip().split(',')[ntime+1]))
+        lmetrics.append(metric)
+        lidx.append(iline)
+
+    x = zip(lmetrics, lidx)
+    x.sort(key=lambda x: x[0])
+    if dattype=='cc':
+        x2nd = x[-2]
+    else:
+        x2nd = x[1]
+
+    satemetric = x2nd[0]
+    i2nd    = x2nd[1]
+    rdif    = (abs(satemetric)-abs(esurf))/abs(esurf)
+
+    return i2nd, rdif
+ 
  
 
 #-------------------------------
@@ -88,6 +115,9 @@ for ntime in lntime:
 
     drdif  = {}
     dibest = {}
+
+    drdif2 = {}
+    dibest2= {}
     for cls in lcls:
         lclstype = dlclstype[cls]
         for clstype in lclstype:
@@ -96,11 +126,18 @@ for ntime in lntime:
                 csvPath = figDir + '/table.nt-nlev.%s.%.1fkm.minNum.%d.%s.%s.%s.%s.csv'%(prdName, thdist,minNum, dattype, corrFlag, cls, clstype)
     
                 ibest, rdif = load_bestlev(csvPath, dattype=dattype, ntime=ntime)
-   
                 print cls, clstype, dattype, ibest 
                 drdif [dattype,clstype] = rdif
                 dibest[dattype,clstype] = ibest
  
+
+                if dattype=='brat':
+                    ibest2, rdif2 = load_2ndbestlev(csvPath, dattype=dattype, ntime=ntime)
+                    drdif2 [dattype,clstype] = rdif2
+                    dibest2[dattype,clstype] = ibest2
+                    print '-----2nd----------'
+                    print dattype, clstype, rdif2, ibest2
+
     #-- sout ---
     sout  = sout + '\n' 
     sout  = sout + 'time=%d'%(time) + '\n'
@@ -126,6 +163,30 @@ for ntime in lntime:
     
         sline = '%' + ',' +  ','.join(map(str, line))
         sout  = sout + sline + '\n'
+
+    #-- 2nd best --
+    sout = sout + '\n'
+    sout = sout + '2nd' + '\n'
+    for dattype in ['brat']:
+        line = []
+
+        for clstype in ['all','hum','dry','conv','strat']:
+            ibest = dibest2[dattype,clstype]
+            lev = 0.25*ldh[ibest]
+            line.append(lev)
+    
+        sline = dattype + ',' +  ','.join(map(str, line))
+        sout  = sout + sline + '\n'
+ 
+
+        line = []
+        for clstype in ['all','hum','dry','conv','strat']:
+            rdif = drdif2[dattype,clstype]*100
+            line.append(rdif)
+    
+        sline = '%' + ',' +  ','.join(map(str, line))
+        sout  = sout + sline + '\n'
+
 
    
 outPath = figDir + '/summary.%s.bestlev.csv'%(corrFlag)

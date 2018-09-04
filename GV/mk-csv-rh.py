@@ -26,6 +26,9 @@ thdist = 5.0
 minNum = 3
 prdName = 'L2A25'
 
+nozero  = 'nozero'
+#nozero  = 'withzero'
+
 gv = GPMGV.GPMGV()
 gv.load_sitelist_reclassified()
 
@@ -109,18 +112,21 @@ for domain in ldomain:
         a1gvAll   = ma.masked_less(agv,0).mean(axis=1)
 
         #-- mask when both satellite and gv are zero or miss
-        amsk1    = ma.masked_less_equal(a1sateAll,0).mask
-        amsk2    = ma.masked_less_equal(a1gvAll,0).mask
-        amsk3    = ma.masked_less_equal(aesurf,0).mask
-        amskzero = amsk1 * amsk2 * amsk3
+        if nozero=='nozero':
+            amsk1    = ma.masked_less_equal(a1sateAll,0).mask
+            amsk2    = ma.masked_less_equal(a1gvAll,0).mask
+            amsk3    = ma.masked_less_equal(aesurf,0).mask
+            amskzero = amsk1 * amsk2 * amsk3
 
-        ##-- mask when both satellite and gv are miss
-        #amsk1    = ma.masked_less(a1sateAll,0).mask
-        #amsk2    = ma.masked_less(a1gvAll,0).mask
-        #amsk3    = ma.masked_less(aesurf,0).mask
-        #amskzero = amsk1 * amsk2 * amsk3
+        elif nozero=='withzero':
+            amsk1    = ma.masked_less(a1sateAll,0).mask
+            amsk2    = ma.masked_less(a1gvAll,0).mask
+            amsk3    = ma.masked_less(aesurf,0).mask
+            amskzero = amsk1 * amsk2 * amsk3
 
-
+        else:
+            print 'check nozero',nozero
+            sys.exit()
 
 
         #-- mask when ng  < minNum
@@ -176,10 +182,10 @@ for rhtype in lrhtype:
     util.mk_dir(outDir)
 
 
-    joinprofPath = outDir + '/RH.joinprof.%s.csv'%(rhtype)
-    gvoutPath    = outDir + '/RH.gv.%s.csv'%(rhtype)
-    profavePath  = outDir + '/RH.profave.%s.csv'%(rhtype)
-    gvavePath    = outDir + '/RH.gvave.%s.csv'%(rhtype)
+    joinprofPath = outDir + '/RH.%s.joinprof.%s.csv'%(nozero,rhtype)
+    gvoutPath    = outDir + '/RH.%s.gv.%s.csv'%(nozero,rhtype)
+    profavePath  = outDir + '/RH.%s.profave.%s.csv'%(nozero,rhtype)
+    gvavePath    = outDir + '/RH.%s.gvave.%s.csv'%(nozero,rhtype)
 
     a2joinprofTmp = ma.masked_less(a2joinprofTmp,0).filled(-9999.)
     a2profave     = ma.masked_less(a2profave,0).filled(-9999.)

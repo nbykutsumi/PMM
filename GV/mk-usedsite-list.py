@@ -62,16 +62,14 @@ def ret_a2cumave_negativemask(a2dat):
     return a2cum
 #------------------------------------------------
 
-
-
-a2prof     = deque([]) 
-a1esurf    = deque([]) 
-a1nsurf    = deque([]) 
-a2gv       = deque([]) 
-a1rtype    = deque([])
-
+dnumGauge   = {}
+dnumObsSate = {}
+dgauge= {}
 for domain in ldomain:
     if calc ==False: continue
+
+    lgNameTmp = deque([])
+    numObsSate = 0
 
     for YM in lYM:
         Year, Mon = YM
@@ -87,7 +85,8 @@ for domain in ldomain:
         nSurfPath = srcDir  + '/p_nSurf.npy'
         gvPath    = srcDir  + '/p_gvprcp.npy'
         ngvPath   = srcDir  + '/p_ngv.npy'
-        rainTypePath = srcDir  + '/p_rainType.npy'
+
+        gnamePath = srcDir  + '/p_gName.pickle'
         
         if not os.path.exists(profPath):
             print 'no file',profPath
@@ -99,7 +98,8 @@ for domain in ldomain:
         ansurf = np.load(nSurfPath)
         agv    = abs(np.load(gvPath))[:,:15+nt]
         angv   = np.load(ngvPath)
-        artype = np.load(rainTypePath)
+
+        agName = np.load(gnamePath)
 
         #-- mean array for masks
         #a1sateAll = ma.masked_less(aprof[:,:nh],0).mean(axis=1).filled(miss)
@@ -133,72 +133,39 @@ for domain in ldomain:
         aidxTmp  = arange(len(amsk)).astype(int32)
         aidxTmp  = ma.masked_where(amsk, aidxTmp).compressed()
 
-        aprofTmp     = aprof[aidxTmp] 
-        aesurfTmp    = aesurf[aidxTmp]
-        ansurfTmp    = ansurf[aidxTmp]
-        agvTmp       = agv[aidxTmp]
-        artypeTmp       = artype[aidxTmp]
-        #------------------
-    
-        a2gv.append(agvTmp)
-        a2prof.append(aprofTmp)
-        a1esurf.extend(aesurfTmp)
-        a1nsurf.extend(ansurfTmp)
-        a1rtype.extend(artypeTmp)
+        agNameTmp= deque([])
+        for idx in aidxTmp:
+            agNameTmp.extend(agName[idx]) 
 
-a1esurf= array(a1esurf)
-a1nsurf= array(a1nsurf)*0.01 #mm/h
-a1rtype= array(a1rtype)
-a2gv   = concatenate(a2gv,axis=0)
-a2prof = concatenate(a2prof,axis=0) *0.01
-a2joinprof= concatenate([a1esurf.reshape(-1,1) ,a2prof], axis=1)
+        lgNameTmp.extend(set(agNameTmp))
+        numObsSate = numObsSate  + len(aidxTmp)
+
+    lgNameTmp = set(lgNameTmp)
+    dgauge[domain]= lgNameTmp
+    dnumGauge[domain]  = len(lgNameTmp)
+    dnumObsSate[domain]= numObsSate
 
 
-#----
-for raintype in lraintype:
-    # mask with raintype --
-    if raintype == 'alltype':
-        a2joinprofTmp = a2joinprof.copy()
-        a2gvTmp = a2gv.copy()
-        a1esurfTmp = a1esurf.copy()
-    else:
-        thmin, thmax = dlthrtype[raintype]
-        amskType= ma.masked_outside(a1rtype, thmin, thmax).mask
-    
-        aidxTmp = arange(a2joinprof.shape[0])
-        aidxTmp = ma.masked_where(amskType, aidxTmp).compressed()
-    
-        a2joinprofTmp = a2joinprof[aidxTmp,:]
-        a2gvTmp = a2gv[aidxTmp,:]
-        a1esurfTmp = a1esurf[aidxTmp]
+#---- load site list ------
+listDir = '/work/a01/utsumi/data/GPMGV/sitelist'
+listPath= listDir + '/sitelist_reclassified.csv'
+f=open(listPath,'r'); lines=f.readlines(); f.close()
 
+for domain in sort(dgauge.keys()):
+    if dnumGauge[domain]==0: continue
 
-    a2profave = ret_a2cumave_negativemask(a2joinprofTmp)
+    llat = []
+    llon = []
+    for gName in dgauge[domain]:
+        lat, lon = gv.dlatlon[domain, gName]
+        llat.append(lat)
+        llon.append(lon)
 
-    a2gvave   = ret_a2cumave_negativemask(a2gvTmp[:,15:])
+    latmax = max(llat)
+    latmin = min(llat)
+    lonmax = max(llon)
+    lonmin = min(llon) 
 
-    # save file
-    outDir = '/home/utsumi/mnt/wellshare/GPMGV/dt-lev-%s/dist.%.1fkm.ndom.%02d.%04d.%02d-%04d.%02d'%(prdName, thdist, len(ldomain), iYM[0], iYM[1], eYM[0], eYM[1])
-    util.mk_dir(outDir)
-
-
-    joinprofPath = outDir + '/RainType.%s.joinprof.%s.csv'%(nozero,raintype)
-    gvoutPath    = outDir + '/RainType.%s.gv.%s.csv'%(nozero,raintype)
-    profavePath  = outDir + '/RainType.%s.profave.%s.csv'%(nozero,raintype)
-    gvavePath    = outDir + '/RainType.%s.gvave.%s.csv'%(nozero,raintype)
-
-    a2joinprofTmp = ma.masked_less(a2joinprofTmp,0).filled(-9999.)
-    a2profave     = ma.masked_less(a2profave,0).filled(-9999.)
-
-    sjoinprof  = util.array2csv(a2joinprofTmp)
-    sgv        = util.array2csv(a2gvTmp)
-    sprofave   = util.array2csv(a2profave)
-    sgvave     = util.array2csv(a2gvave)
-    f = open(joinprofPath, 'w'); f.write(sjoinprof); f.close()
-    f = open(gvoutPath, 'w'); f.write(sgv); f.close()
-    f = open(profavePath, 'w'); f.write(sprofave); f.close()
-    f = open(gvavePath, 'w'); f.write(sgvave); f.close()
-    print joinprofPath
-
+    print domain, '%.2f %.2f %.2f %.2f'%(latmin,latmax,lonmin,lonmax), dnumGauge[domain], dnumObsSate[domain]
 
 

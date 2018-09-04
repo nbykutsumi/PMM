@@ -20,10 +20,17 @@ eYM = [2014,10]
 lYM = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
 print lYM
-figtype = 'bar'
-#figtype = 'cont'
-corrFlag= 'CR'
-#corrFlag= 'NO'
+
+#corrFlag= 'CR'
+corrFlag= 'NO'
+
+nozero = 'withzero'
+
+dt  = 30
+
+thpr = 0.1   # mm/h
+#thpr = 0.254   # mm/h
+#thpr = 20.0   # mm/h
 
 cls = 'RH'
 #cls = 'RainType'
@@ -45,21 +52,17 @@ ldomain = gv.domains
 offset_bef = 15  # 'bef' should be identical to that in mk_match.py
 #offset_aft = 30
 
-if   figtype=='bar':
-    ldt  = [1, 5,10,15,20,25,30]
-    ldh  = [0] + range(2,34+1,2)
-elif figtype=='cont':
-    ldt  = range(1,30+1)
-    ldh  = range(1,34+1)
+#ldh  = [0] + range(2,34+1,2)
+ldh  = [0] + [2,4,6,8,10,12,14,16,18]
 
 
-nt = len(ldt)
 nh = len(ldh)
 #nh = 5
 
 
 if cls=='RH':
-    lclstype = ['all','dry','hum']
+    #lclstype = ['all','dry','hum']
+    lclstype = ['all']
 elif cls=='RainType':
     lclstype = ['alltype','strat','conv']
 else:
@@ -86,10 +89,10 @@ for clstype in lclstype:
 
     csvDir = '/home/utsumi/mnt/wellshare/GPMGV/dt-lev-%s/dist.%.1fkm.ndom.%02d.%04d.%02d-%04d.%02d'%(prdName, thdist, len(ldomain), iYM[0], iYM[1], eYM[0], eYM[1])
 
-    joinprofPath = csvDir + '/%s.joinprof.%s.csv'%(cls, clstype)
-    gvPath       = csvDir + '/%s.gv.%s.csv'%(cls, clstype)
-    profavePath  = csvDir + '/%s.profave.%s.csv'%(cls, clstype)
-    gvavePath    = csvDir + '/%s.gvave.%s.csv'%(cls, clstype)
+    joinprofPath = csvDir + '/%s.%s.joinprof.%s.csv'%(cls, nozero, clstype)
+    gvPath       = csvDir + '/%s.%s.gv.%s.csv'%(cls, nozero, clstype)
+    profavePath  = csvDir + '/%s.%s.profave.%s.csv'%(cls, nozero, clstype)
+    gvavePath    = csvDir + '/%s.%s.gvave.%s.csv'%(cls, nozero, clstype)
    
     a2joinprof = load_csv(joinprofPath)
     a2gv       = load_csv(gvPath)[:,15:]
@@ -97,54 +100,91 @@ for clstype in lclstype:
     a2gvave    = load_csv(gvavePath)
 
 
-    #-- bias correction factor --
-    if corrFlag=='CR':
-        amskTmp1 = ma.masked_less(a2gv[:,0], 0).mask
-        amskTmp2 = ma.masked_less(a2joinprof[:,0],0 ).mask
-        amskTmp  = amskTmp1 + amskTmp2
+    #----------------------------
+    if thpr !=0:
+        a2profave = ma.masked_less(a2joinprof, thpr).filled(0.0)
+        a2gvave   = ma.masked_less(a2gvave, thpr).filled(0.0) 
+        
 
-        a1gvTmp  = ma.masked_where(amskTmp, a2gv[:,0])
-        a1profTmp= ma.masked_where(amskTmp, a2joinprof[:,0])
-        bfactor = a1gvTmp.mean() / a1profTmp.mean()
 
-        a2joinprof = a2joinprof * bfactor
-        a2profave  = a2profave * bfactor
     #----------------------------
 
-    a2rain = empty([nh,nt]) 
-    a2gv   = empty([nh,nt]) 
-    a2cc   = empty([nh,nt]) 
-    a2rmse = empty([nh,nt]) 
-    a2bias = empty([nh,nt]) 
-    a2brat = empty([nh,nt]) 
-    a2num  = empty([nh,nt],int32)
+    a1miss = empty([nh])
+    a1hit  = empty([nh])
+    a1false= empty([nh])
 
     for ih,dh in enumerate(ldh): 
-        for it,dt in enumerate(ldt):
-            a1profTmp = a2profave[:,dh]
-            a1gvTmp   = a2gvave[:,dt-1]
+        a1profTmp = a2profave[:,dh]
+        a1gvTmp   = a2gvave[:,dt-1]
 
-            a1profTmp = ma.masked_less(a1profTmp,0)
-            a1gvTmp   = ma.masked_less(a1gvTmp, 0)
+        amskTmp1 = ma.masked_less(a1profTmp,0).mask
+        amskTmp2 = ma.masked_less(a1gvTmp, 0).mask
+        amskTmp  = amskTmp1 + amskTmp2
 
-            cc     = np.ma.corrcoef(a1profTmp, a1gvTmp, allow_masked=True)[0,1]  # allow_masked_True is important
-            rmse   = np.sqrt( ((a1profTmp- a1gvTmp)**2).mean() )
-        
-            bias   = (a1profTmp - a1gvTmp).mean()
-            brat   = (a1profTmp - a1gvTmp).mean() / a1gvTmp.mean()
-            num    = len(a1profTmp)
-            rain   = a1profTmp.mean()
-            gv     = a1gvTmp.mean()
-  
-            a2cc  [ih, it] = cc
-            a2rmse[ih, it] = rmse
-            a2bias[ih, it] = bias
-            a2brat[ih, it] = brat
-            a2num [ih, it] = num       
-            a2rain[ih, it] = rain
-            a2gv  [ih, it] = gv
-    
+        a1profTmp = ma.masked_where(amskTmp, a1profTmp).compressed()
+        a1gvTmp   = ma.masked_where(amskTmp, a1gvTmp).compressed()
 
+        #-- hit --
+        a1tmp  = arange(len(a1profTmp))
+        a1flag1= ma.masked_where(a1profTmp>0, a1tmp).mask
+        a1flag2= ma.masked_where(a1gvTmp>0, a1tmp).mask
+        a1flag = a1flag1*a1flag2
+        hit    = a1flag.sum()
+
+        #-- false --
+        a1tmp  = arange(len(a1profTmp))
+        a1flag1= ma.masked_where(a1profTmp>0, a1tmp).mask
+        a1flag2= ma.masked_where(a1gvTmp==0, a1tmp).mask
+        a1flag = a1flag1*a1flag2
+        false  = a1flag.sum()
+
+        #-- miss --
+        a1tmp  = arange(len(a1profTmp))
+        a1flag1= ma.masked_where(a1profTmp==0, a1tmp).mask
+        a1flag2= ma.masked_where(a1gvTmp>0, a1tmp).mask
+        a1flag = a1flag1*a1flag2
+        miss   = a1flag.sum()
+
+        #-- negc --
+        a1tmp  = arange(len(a1profTmp))
+        a1flag1= ma.masked_where(a1profTmp==0, a1tmp).mask
+        a1flag2= ma.masked_where(a1gvTmp==0, a1tmp).mask
+        a1flag = a1flag1*a1flag2
+        negc   = a1flag.sum()     
+
+        #-- total --
+        total  = float(len(a1tmp))
+        #total  = float(hit + false + miss)
+
+        rhit   = hit  / total * 100
+        rfalse = false/ total * 100
+        rmiss  = miss / total * 100
+        rnegc  = negc / total * 100
+
+        if dh==0:
+            hit0   = hit
+            false0 = false
+            miss0  = miss
+            negc0  = negc
+            total0 = total
+
+            rhit0  = rhit
+            rfalse0= rfalse
+            rmiss0 = rmiss
+            rnegc0 = rnegc
+
+
+        print ''
+        print 'thpr=',thpr,'dh=',dh*0.25
+        print 'hit miss false neg0'
+        #print hit,false,miss,negc
+        print hit+false+miss+negc
+        #print '%d %d %d %d'%(hit,miss, false, negc)
+        print '%.4f %.4f %.4f %.4f'%(rhit,rmiss, rfalse, rnegc)
+        print '%.4f %.4f %.4f %.4f'%(rhit-rhit0,rmiss-rmiss0,rfalse-rfalse0,rnegc-rnegc0)
+
+
+    sys.exit()
     #--- Figure -------
     for dattype in ldattype:
         if dattype =='rain': a2dat = a2rain

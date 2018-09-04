@@ -6,6 +6,96 @@ CONTAINS
 !**********************************************************
 ! SUBROUTINE & FUNCTION
 !**********************************************************
+SUBROUTINE fill_esurf(a2joinprof, miss, nl, nh, a2out)
+  implicit none
+  !-------------
+  integer                       nl, nh
+  !--- input ---
+  real,dimension(nh,nl)      :: a2joinprof
+  !f2py intent(in)              a2joinprof
+
+  real                          miss
+  !f2py intent(in)              miss
+
+  !--- output --
+  real,dimension(nh,nl)      :: a2out
+  !f2py intent(out)             a2out
+  !--- calc ----
+  real                          esurf
+  integer                       il,ih, doneflag
+  !-------------
+  a2out= a2joinprof
+  do il = 1,nl
+    esurf    = a2joinprof(1,il)
+    if (esurf .eq. miss)then
+      esurf=0
+    end if
+
+    !-- search nsurf bin  --
+    doneflag = 0
+    do ih = 2,nh
+      if (doneflag .ne. 0) exit
+      if (a2joinprof(ih,il).eq.miss)then
+        a2out(ih,il) = esurf
+      else
+        doneflag = 1
+      end if
+    end do
+  end do
+  !-------------
+  return
+END SUBROUTINE
+
+!**********************************************************
+SUBROUTINE fill_esurf_interp(a2joinprof, miss, nl, nh, a2out)
+  implicit none
+  !-------------
+  integer                       nl, nh
+  !--- input ---
+  real,dimension(nh,nl)      :: a2joinprof
+  !f2py intent(in)              a2joinprof
+
+  real                          miss
+  !f2py intent(in)              miss
+
+  !--- output --
+  real,dimension(nh,nl)      :: a2out
+  !f2py intent(out)             a2out
+  !--- calc ----
+  real                          esurf, nsurf
+  integer                       il,ih
+  integer                       insurf
+  !-------------
+  a2out= a2joinprof
+  do il = 1,nl
+    esurf    = a2joinprof(1,il)
+    if (esurf .eq. miss)then
+      esurf=0
+    end if
+
+    !-- search nsurf bin  --
+    insurf   = 0
+    do ih = 2,nh
+      if (insurf .ne. 0) exit
+      if (a2joinprof(ih,il).ne.miss)then
+        insurf = ih
+      end if
+    end do
+    !-- linear interp --
+    if ((insurf.ne.0).and.(insurf.ne.nh))then
+      nsurf = a2joinprof(insurf,il)
+      do ih = 2,nh
+        a2out(ih,il) =  ((ih-1)*nsurf + (insurf-ih)*esurf )/(insurf-1)
+      end do
+    end if
+  end do
+  !-------------
+  return
+END SUBROUTINE
+
+
+
+!**********************************************************
 SUBROUTINE extract_slice_clusterprof(a2in, a1iidxpy, nxout, nx, ny, a2out)
   implicit none
   !-------------
