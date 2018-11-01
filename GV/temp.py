@@ -2,128 +2,71 @@ import matplotlib
 matplotlib.use('Agg')
 from numpy import *
 import numpy as np
-import myfunc.IO.GPM as GPM
-from gv_fsub import *
 import myfunc.util as util
-import GPMGV
 from collections import deque
 import sys, os
 import matplotlib.pyplot as plt
+from   datetime import datetime, timedelta
 
-prdName = 'L2A25'
+iYM = [2001,4]
+eYM = [2002,8]
 
-
-gvPath0    = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25/FLORIDA-SFL-N/201404/gvprcp.npy'
-esurfPath0 = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25/FLORIDA-SFL-N/201404/eSurf.npy'
-
-gvPath1    = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25/N.Carolina-IPHEx_NASA/201404/gvprcp.npy'
-esurfPath1 = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25/N.Carolina-IPHEx_NASA/201404/eSurf.npy'
-
-gvprcp0 = np.load(gvPath0)
-eSurf0  = np.load(esurfPath0)
-
-gvprcp1 = np.load(gvPath1)
-eSurf1  = np.load(esurfPath1)
+lYM = util.ret_lYM(iYM, eYM)
+lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
+#lYM = lYM[::-1]
+print lYM
 
 
-domain = 'FLORIDA-SFL-N' 
-figDir = '/work/a01/utsumi/GPMGV/fig'
-figPath= figDir + '/temp.simple.plot.%s.%s.png'%(prdName,domain)
-#plt.plot(gvprcp0,eSurf0,'o', color='k')
-plt.loglog(gvprcp0,eSurf0,'o', color='k')
-plt.title('%s %s'%(prdName, domain))
+#ldomain = ['FLORIDA-KSC', 'KWAJALEIN-KWA', 'TEXAS-HAR', 'FLORIDA-SFL-N', 'N.Carolina-IPHEx_Duke', 'FLORIDA-STJ', 'N.Carolina-IPHEx_NASA']
+ldomain = ['FLORIDA-KSC', 'KWAJALEIN-KWA', 'TEXAS-HAR', 'FLORIDA-SFL-N']
+#ldomain = ['FLORIDA-KSC']
 
-vmax  = 100
-vmin  = 0.1
-plt.ylim([vmin,vmax])
-plt.xlim([vmin,vmax])
+a1esurf = array([])
+a1rh    = array([])
+a1div   = array([])
 
-#-- 1:1 line -
-plt.plot([vmin,vmax],[vmin,vmax],'-',color='k')
 
+baseDir = '/home/utsumi/mnt/wellshare/GPMGV/GLOC.L2A25/5.0km'
+for domain in ldomain:
+
+    for YM in lYM:
+        Year,Mon = YM
+        srcDir = baseDir + '/%s/%04d%02d'%(domain, Year,Mon)
+        rhPath = srcDir  + '/rh.npy'
+        divPath= srcDir  + '/div850.npy'
+        esurfPath=srcDir + '/eSurf.npy'
+    
+        a1esurfTmp  = np.load(esurfPath)
+        a1rhTmp     = np.load(rhPath)
+        a1divTmp    = np.load(divPath)
+   
+        a1esurf     = concatenate([a1esurf, a1esurfTmp])
+        a1rh        = concatenate([a1rh,    a1rhTmp   ])
+        a1div       = concatenate([a1div,   a1divTmp  ])
+
+print a1esurf.min()
+print a1rh.min()
+print a1div.min()
+#--
+outDir = '/work/a01/utsumi/temp'
+
+a1esurf = ma.masked_less(a1esurf,0)
+a1rh    = ma.masked_less(a1rh, 0)
+a1div   = a1div*1e5
+#a1div   = ma.masked_less(a1div,0)
+
+figPath= outDir + '/rh-esurf.png'    
+plt.plot(a1rh, a1esurf,'o')
 plt.savefig(figPath)
 plt.clf()
-print figPath
 
-
-
-domain = 'N.Carolina-IPHEx_NASA' 
-figDir = '/work/a01/utsumi/GPMGV/fig'
-figPath= figDir + '/temp.simple.plot.%s.%s.png'%(prdName,domain)
-#plt.plot(gvprcp1,eSurf1,'o', color='k')
-plt.loglog(gvprcp1,eSurf1,'o', color='k')
-plt.title('%s %s'%(prdName, domain))
-
-vmax  = 100
-vmin  = 0.1
-plt.ylim([vmin,vmax])
-plt.xlim([vmin,vmax])
-
-#-- 1:1 line -
-plt.plot([vmin,vmax],[vmin,vmax],'-',color='k')
-
+figPath= outDir + '/div-esurf.png'    
+plt.plot(a1div, a1esurf,'o')
 plt.savefig(figPath)
 plt.clf()
+
 print figPath
-
-
-
-
-# lat & lon
-latPath0    = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25/FLORIDA-SFL-N/201404/sateLat.npy'
-lonPath0 = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25/FLORIDA-SFL-N/201404/sateLon.npy'
-
-latPath1    = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25/N.Carolina-IPHEx_NASA/201404/sateLat.npy'
-lonPath1 = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25/N.Carolina-IPHEx_NASA/201404/sateLon.npy'
-
-lat0 = np.load(latPath0)
-lon0  = np.load(lonPath0)
-lat1 = np.load(latPath1)
-lon1  = np.load(lonPath1)
-
-
-
-domain = 'FLORIDA-SFL-N' 
-figDir = '/work/a01/utsumi/GPMGV/fig'
-figPath= figDir + '/temp.simple.latlon.%s.%s.png'%(prdName,domain)
-plt.plot(lon0,lat0,'o', color='k')
-plt.title('%s %s'%(prdName, domain))
-
-#plt.ylim([vmin,vmax])
-#plt.xlim([vmin,vmax])
-
-#-- 1:1 line -
-plt.plot([vmin,vmax],[vmin,vmax],'-',color='k')
-
-plt.savefig(figPath)
-plt.clf()
-print figPath
-
-
-
-domain = 'N.Carolina-IPHEx_NASA' 
-figDir = '/work/a01/utsumi/GPMGV/fig'
-figPath= figDir + '/temp.simple.latlon.%s.%s.png'%(prdName,domain)
-plt.plot(lon1,lat1,'o', color='k')
-plt.title('%s %s'%(prdName, domain))
-
-#plt.ylim([vmin,vmax])
-#plt.xlim([vmin,vmax])
-
-#-- 1:1 line -
-plt.plot([vmin,vmax],[vmin,vmax],'-',color='k')
-
-plt.savefig(figPath)
-plt.clf()
-print figPath
-
-
-
-
-
-
-
-
-
-
-
+print len(a1rh)
+ 
+    
+    

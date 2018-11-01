@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, socket
 import glob
 import calendar
 from datetime import datetime, timedelta
@@ -29,7 +29,12 @@ def ret_lYM(iYM, eYM):
 
 class GPMGV(object):
     def __init__(self):
-        self.rootDir = "/work/a01/utsumi/data/GPMGV"
+        hostname     = socket.gethostname()
+        if hostname in ['mizu']:
+            self.rootDir = "/work/a01/utsumi/data/GPMGV"
+        elif hostname in ['well']:
+            print 'please run on mizu'
+            sys.exit()
 
     def load_sitelist(self):
         self.listDir = self.rootDir + "/sitelist"

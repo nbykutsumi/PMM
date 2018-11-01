@@ -20,17 +20,17 @@ def ret_lpath(prj,year,mon):
   return lpath
 
 #prj          = ["TRMM.PR","L2A25","07"]
-#prj          = ["TRMM.PR","L2A23","07"]
-prj          = ["TRMM.PR","L2A25","07"]
+prj          = ["TRMM.PR","L2A23","07"]
+#prj          = ["TRMM.PR","L2A25","07"]
 #prj          = ["TRMM.PR","L3A25","07"]
 #prj          = ["TRMM.TMI","L2A12"]
 #iyear, eyear = 2009,2013
-iyear, eyear = 1998,2008
+iyear, eyear = 2014,2014
 lyear        = range(iyear,eyear+1)
-#imon,emon    = 12,12
-#lmon         = range(imon,emon+1)
+imon,emon    = 1,12
+lmon         = range(imon,emon+1)
 #lmon         = [4,5,6,7,8,9,10]
-lmon         = [10,9,8,7,6,5,4]
+#lmon         = [10,9,8,7,6,5,4]
 
 for year in lyear[::-1]:
   for mon in lmon:

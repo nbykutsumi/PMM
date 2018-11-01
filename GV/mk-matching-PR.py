@@ -12,10 +12,10 @@ from decimal import Decimal, ROUND_HALF_UP, ROUND_HALF_DOWN
 from gv_fsub import *
 import pickle
 
-#iYM = [2014,3]
-#eYM = [2014,3]
-iYM = [2005,4]
-eYM = [2014,9]
+iYM = [2014,9]
+eYM = [2014,10]
+#iYM = [2005,4]
+#eYM = [2014,9]
 
 lYM = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
@@ -321,6 +321,7 @@ for YM in lYM:
         asatelat = []
         asatelon = []
         arainType= []
+        astormH  = []
 
         aglat    = []
         aglon    = []
@@ -336,6 +337,7 @@ for YM in lYM:
         psatelat = []
         psatelon = []
         prainType= []
+        pstormH  = []
 
         pglat    = []
         pglon    = []
@@ -360,6 +362,7 @@ for YM in lYM:
 
             eSurfPath   = sateDir + '/eSurf.%s.%s.npy'%(ietime, gNum)
             rainTypePath= sateDir + '/rainType.%s.%s.npy'%(ietime, gNum)
+            stormHPath  = sateDir + '/stormH.%s.%s.npy'%(ietime, gNum)
 
             # load sateprcp
             a3sateprcp = np.load(satePath)
@@ -371,6 +374,7 @@ for YM in lYM:
 
             a2eSurf    = np.load(eSurfPath)
             a2rainType = np.load(rainTypePath)
+            a2stormH   = np.load(stormHPath)
 
             dtimeA = dtime_round_Mnt(a1satetime.min())
             dtimeB = dtime_round_Mnt(a1satetime.max()) 
@@ -392,10 +396,9 @@ for YM in lYM:
                 a2satelonTmp  = a2satelon[a1timeidx,:]
                 a3rangebinTmp = a3rangebin[a1timeidx,:,:]
 
-                a2eSurfTmp    = a2eSurf[a1timeidx,:]
+                a2eSurfTmp    = a2eSurf   [a1timeidx,:]
                 a2rainTypeTmp = a2rainType[a1timeidx,:]
-
-
+                a2stormHTmp   = a2stormH  [a1timeidx,:]
 
                 idtime_offset =  dtime0 - offset_bef * ddtime_1min + ddtime_1min
                 edtime_offset =  dtime0 + offset_aft * ddtime_1min + ddtime_1min
@@ -455,6 +458,7 @@ for YM in lYM:
                     a2profile= a3sateprcpTmp[a1ysate, a1xsate,:] 
                     a1eSurf  = a2eSurfTmp[a1ysate, a1xsate] 
                     a1rainType= a2rainTypeTmp[a1ysate, a1xsate] 
+                    a1stormH  = a2stormHTmp[a1ysate, a1xsate] 
 
                     # bins
                     a1groundbin= a3rangebin[a1ysate, a1xsate,2]
@@ -494,6 +498,7 @@ for YM in lYM:
                     aeSurf.append(a1eSurf)
                     anSurf.append(a1nSurf)
                     arainType.append(a1rainType)
+                    astormH.append(a1stormH)
 
                     asatelat.append(a1satelat)
                     asatelon.append(a1satelon)
@@ -564,6 +569,7 @@ for YM in lYM:
                 p2profile= a3sateprcpTmp[a1ysate, a1xsate,:] 
                 p1eSurf  = a2eSurfTmp[a1ysate, a1xsate] 
                 p1rainType= a2rainTypeTmp[a1ysate, a1xsate] 
+                p1stormH  = a2stormHTmp[a1ysate, a1xsate] 
 
                 # bins
                 p1groundbin= a3rangebin[a1ysate, a1xsate,2]
@@ -597,6 +603,7 @@ for YM in lYM:
                 peSurf.append(p1eSurf)
                 pnSurf.append(p1nSurf)
                 prainType.append(p1rainType)
+                pstormH.append(p1stormH)
 
                 psatelat.append(p1satelat)
                 psatelon.append(p1satelon)
@@ -615,6 +622,7 @@ for YM in lYM:
         aeSurf  = concatenate(aeSurf).astype(float32)
         anSurf  = concatenate(anSurf).astype(int16)
         arainType= concatenate(arainType).astype(int16)
+        astormH  = concatenate(astormH).astype(int16)
         anSurfBin  = concatenate(anSurfBin).astype(int16)
 
         asatelat = concatenate(asatelat).astype(float32)
@@ -633,6 +641,7 @@ for YM in lYM:
         peSurf  = concatenate(peSurf).astype(float32)
         pnSurf  = concatenate(pnSurf).astype(int16)
         prainType  = concatenate(prainType).astype(int16)
+        pstormH    = concatenate(pstormH).astype(int16)
         pnSurfBin  = concatenate(pnSurfBin).astype(int16)
 
         psatelat = concatenate(psatelat).astype(float32)
@@ -649,6 +658,7 @@ for YM in lYM:
         oeSurfPath = outDir  + '/eSurf.npy'
         onSurfPath = outDir  + '/nSurf.npy'
         orainTypePath = outDir + '/rainType.npy'
+        ostormHPath   = outDir + '/stormH.npy'
         ogvPath       = outDir + '/gvprcp.npy'
         onSurfBinPath = outDir + '/nSurfBin.npy'
         osatelatPath  = outDir + '/sateLat.npy'
@@ -666,6 +676,7 @@ for YM in lYM:
         np.save(oeSurfPath, aeSurf)
         np.save(onSurfPath, anSurf)
         np.save(orainTypePath, arainType)
+        np.save(ostormHPath, astormH)
         np.save(ogvPath,    agv)
         np.save(onSurfBinPath, anSurfBin)
 
@@ -687,6 +698,7 @@ for YM in lYM:
         peSurfPath = outDir  + '/p_eSurf.npy'
         pnSurfPath = outDir  + '/p_nSurf.npy'
         prainTypePath = outDir + '/p_rainType.npy'
+        pstormHPath   = outDir + '/p_stormH.npy'
         pgvPath       = outDir + '/p_gvprcp.npy'
         pngvPath      = outDir + '/p_ngv.npy'
         pnSurfBinPath = outDir + '/p_nSurfBin.npy'
@@ -704,6 +716,7 @@ for YM in lYM:
         np.save(peSurfPath, peSurf)
         np.save(pnSurfPath, pnSurf)
         np.save(prainTypePath, prainType)
+        np.save(pstormHPath, pstormH)
         np.save(pgvPath,    pgv)
         np.save(pngvPath,   pngv)
         np.save(pnSurfBinPath, pnSurfBin)

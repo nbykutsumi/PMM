@@ -4,6 +4,7 @@ import myfunc.util as util
 import calendar
 import os, sys
 import socket
+from datetime import datetime, timedelta
 
 hostname  = "arthurhou.pps.eosdis.nasa.gov"
 irootDir = "/gpmallversions"
@@ -17,38 +18,25 @@ elif myhost =="well":
 
 #GPM/TRMM.TMI/L2A12/07/2014/
 
-iYM       = [2017, 12]
-eYM       = [2017, 12]
 
-#iYM       = [2009, 6]
-#eYM       = [2009, 6]
-lYM       = util.ret_lYM(iYM, eYM)
-#lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
-lYM = lYM[::-1]
-print lYM
+#iDTime  = datetime(2017,11,30)
+iDTime  = datetime(2017,11,20)
+#iDTime  = datetime(2017,12,5)
+#eDTime  = datetime(2017,12,20)
+eDTime  = datetime(2017,11,29)
+dDTime  = timedelta(days=1)
+lDTime  = util.ret_lDTime(iDTime, eDTime, dDTime)
 
+#spec      = ["TRMM","TMI","2A-CLIM","gprof","V05","A"]
+#spec      = ["GPM","GMI","1C","1C","V05","A"]
+spec      = ["GPM","GMI","2A-CLIM","gprof","V05","A"]
 
-
-
-iDay      = 1
-spec      = ["TRMM","TMI","2A-CLIM","gprof","V05","A"]
 sate      = spec[0]
 sensor    = spec[1]
 prdName   = spec[2]
 prj       = spec[3]
 ver       = spec[4]
 minorver  = spec[5]
-
-#iDay      = 1
-#spec      = ["GPM","GMI","1C","1C","V05","A"]
-#sate      = spec[0]
-#sensor    = spec[1]
-#prdName   = spec[2]
-#prj       = spec[3]
-#ver       = spec[4]
-#minorver  = spec[5]
-
-
 
 
 myid      = "nbyk.utsumi@gmail.com"
@@ -66,14 +54,8 @@ ftp = FTP(hostname)
 ftp.login(myid, mypass)
 
 #----------------------------------
-for YM in lYM:
-  Year, Mon = YM
-
-  eDay = calendar.monthrange(Year,Mon)[1]
-  lDay = range(iDay,eDay+1)
-  for Day in lDay:
-    #if (datetime(2014,7,23)<datetime(Year,Mon,Day))and(datetime(Year,Mon,Day) < datetime(2015,4,1)):continue
-
+for DTime in lDTime:
+    Year,Mon,Day = DTime.timetuple()[:3]
     #--- path and directory: Remote -----------
     iDir = irootDir + "/%s/%04d/%02d/%02d/%s"%(ver,Year,Mon,Day,prj)
     oDir = orootDir + "/%s.%s/%s/%s/%04d/%02d"%(sate,sensor,prdName,ver,Year,Mon) 
@@ -84,16 +66,18 @@ for YM in lYM:
     print iDir
     print lPath
     for sPath in lPath:
-      fName = os.path.basename(sPath)
-      prdNameTmp, sateTmp, sensorTmp, algFullTmp, dtime, gNum, verFullTmp, sfx = fName.split('.')
+        fName = os.path.basename(sPath)
+        prdNameTmp, sateTmp, sensorTmp, algFullTmp, dtime, gNum, verFullTmp, sfx = fName.split('.')
+        ymd = dtime.split('-')[0]
 
-      if prdNameTmp !=prdName: continue
-      if sateTmp    !=sate   : continue
-      if sensorTmp  !=sensor  : continue
-      if verFullTmp !='%s%s'%(ver,minorver): continue
-      oPath = oDir + "/" + sPath.split("/")[-1]
-      ftp.retrbinary("RETR %s"%(sPath), open(oPath,"wb").write)
-      print oPath
+        if ymd        !='%04d%02d%02d'%(Year,Mon,Day): continue
+        if prdNameTmp !=prdName: continue
+        if sateTmp    !=sate   : continue
+        if sensorTmp  !=sensor  : continue
+        if verFullTmp !='%s%s'%(ver,minorver): continue
+        oPath = oDir + "/" + sPath.split("/")[-1]
+        ftp.retrbinary("RETR %s"%(sPath), open(oPath,"wb").write)
+        print oPath
      
 ftp.close()
 
