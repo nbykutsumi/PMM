@@ -9,8 +9,7 @@ import numpy as np
 import myfunc.util as util
 import matplotlib.pyplot as plt
 import sys, os
-from matplotlib import rcParams, cycler
-
+import socket
 
 calc = True
 #calc = False
@@ -37,9 +36,11 @@ dgName = gv.ret_ddomYM2gName()
 ldomain = gv.domains
 #ldomain = ['FLORIDA-STJ','FLORIDA-SFL-N','N.Carolina-IPHEx_Duke','N.Carolina-IPHEx_NASA','KWAJALEIN-KWA']
 #ldomain = ['FLORIDA-STJ']
-
 offset_bef = 15  # 'bef' should be identical to that in mk_match.py
 #offset_aft = 30
+
+#cbins  = 11
+cbins  = 49
 
 nh   = 40
 nt   = 30
@@ -54,6 +55,16 @@ lrhtype = ['all','dry','hum']
 dlthrh  = {'all':[-0.1,9999],'dry':[-0.1,0.7-0.0001],'hum':[0.7,9999]}
 
 miss = -9999.
+
+hostname = socket.gethostname()
+if hostname   in ['shui']:
+    srcbaseDir = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25'
+    outbaseDir = '/home/utsumi/mnt/wellshare/GPMGV'
+
+elif hostname in ['well']:
+    srcbaseDir = '/media/disk2/share/GPMGV/MATCH.L2A25'
+    outbaseDir = '/media/disk2/share/GPMGV'
+
 #------------------------------------------------
 def ret_a2cumave_negativemask(a2dat):
     miss  = -9999.
@@ -63,9 +74,6 @@ def ret_a2cumave_negativemask(a2dat):
         a2cum[:,i] = a1tmp
     return a2cum
 #------------------------------------------------
-
-
-
 a2prof     = deque([]) 
 a1esurf    = deque([]) 
 a1nsurf    = deque([]) 
@@ -73,6 +81,7 @@ a2gv       = deque([])
 a1rh       = deque([])
 a1rtype    = deque([])
 a1stormH   = deque([])
+a1freezH   = deque([])
 
 for domain in ldomain:
     if calc ==False: continue
@@ -83,8 +92,8 @@ for domain in ldomain:
             print 'no obs',domain,Year,Mon
             continue
         # load data
-        srcbaseDir = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25'
-        srcDir     = srcbaseDir + '/%.1fkm/%s/%04d%02d'%(thdist,domain, Year,Mon)
+        
+        srcDir     = srcbaseDir + '/cbin.%d/%.1fkm/%s/%04d%02d'%(cbins, thdist,domain, Year,Mon)
 
         profPath  = srcDir  + '/p_prof.npy'
         eSurfPath = srcDir  + '/p_eSurf.npy'
@@ -94,7 +103,8 @@ for domain in ldomain:
         rhPath    = srcDir  + '/p_rh.npy'
         rainTypePath = srcDir  + '/p_rainType.npy'
         stormHPath = srcDir  + '/p_stormH.npy'
-
+        freezHPath = srcDir  + '/p_freezH.npy'
+        elevPath   = srcDir  + '/p_sateElev.npy' 
         
         if not os.path.exists(profPath):
             print 'no file',profPath
@@ -109,7 +119,14 @@ for domain in ldomain:
         arh    = np.load(rhPath)
         artype = np.load(rainTypePath)
         astormH = np.load(stormHPath)
+        afreezH = np.load(freezHPath)
+        aelev   = np.load(elevPath)
+        aelev   = ma.masked_less(aelev,0).filled(0)
 
+
+        astormH = ma.masked_less_equal(astormH,0) - aelev
+        astormH = astormH.data
+        afreezH = afreezH - aelev
 
         #-- mean array for masks
         #a1sateAll = ma.masked_less(aprof[:,:nh],0).mean(axis=1).filled(miss)
@@ -152,6 +169,7 @@ for domain in ldomain:
         arhTmp       = arh[aidxTmp]
         artypeTmp    = artype[aidxTmp]
         astormHTmp   = astormH[aidxTmp]
+        afreezHTmp   = afreezH[aidxTmp]
         #------------------
     
         a2gv.append(agvTmp)
@@ -161,12 +179,14 @@ for domain in ldomain:
         a1rh.extend(arhTmp)
         a1rtype.extend(artypeTmp)
         a1stormH.extend(astormHTmp)
+        a1freezH.extend(afreezHTmp)
 
 a1esurf= array(a1esurf)
 a1nsurf= array(a1nsurf)*0.01 #mm/h
 a1rh   = array(a1rh)
 a1rtype= array(a1rtype)
 a1stormH=array(a1stormH)
+a1freezH=array(a1freezH)
 a2gv   = concatenate(a2gv,axis=0)
 a2prof = concatenate(a2prof,axis=0) *0.01
 a2joinprof= concatenate([a1esurf.reshape(-1,1) ,a2prof], axis=1)
@@ -178,7 +198,8 @@ a2profave = ret_a2cumave_negativemask(a2joinprof)
 a2gvave   = ret_a2cumave_negativemask(a2gv[:,15:])
 
 # save file
-outDir = '/home/utsumi/mnt/wellshare/GPMGV/dt-lev-%s/dist.%.1fkm.ndom.%02d.%04d.%02d-%04d.%02d'%(prdName, thdist, len(ldomain), iYM[0], iYM[1], eYM[0], eYM[1])
+#outDir = '/home/utsumi/mnt/wellshare/GPMGV/dt-lev-%s/dist.%.1fkm.ndom.%02d.%04d.%02d-%04d.%02d'%(prdName, thdist, len(ldomain), iYM[0], iYM[1], eYM[0], eYM[1])
+outDir = outbaseDir + '/dt-lev-%s.cbin.%d/dist.%.1fkm.ndom.%02d.%04d.%02d-%04d.%02d'%(prdName, cbins, thdist, len(ldomain), iYM[0], iYM[1], eYM[0], eYM[1])
 util.mk_dir(outDir)
 
 
@@ -190,6 +211,7 @@ gvavePath    = outDir + '/ALL.%s.gvave.csv'%(nozero)
 rhPath       = outDir + '/ALL.%s.RH.csv'%(nozero)
 rtypePath    = outDir + '/ALL.%s.rainType.csv'%(nozero)
 stormHPath   = outDir + '/ALL.%s.stormH.csv'%(nozero)
+freezHPath   = outDir + '/ALL.%s.freezH.csv'%(nozero)
 
 
 a2joinprof   = ma.masked_less(a2joinprof,0).filled(-9999.)
@@ -202,6 +224,7 @@ sgvave     = util.array2csv(a2gvave)
 sRH        = util.array2csv(a1rh)
 srainType  = util.array2csv(a1rtype)
 sstormH    = util.array2csv(a1stormH)
+sfreezH    = util.array2csv(a1freezH)
 
 
 
@@ -212,6 +235,7 @@ f = open(gvavePath, 'w'); f.write(sgvave); f.close()
 f = open(rhPath, 'w'); f.write(sRH); f.close()
 f = open(rtypePath, 'w'); f.write(srainType); f.close()
 f = open(stormHPath, 'w'); f.write(sstormH); f.close()
+f = open(freezHPath, 'w'); f.write(sfreezH); f.close()
 
 
 print joinprofPath

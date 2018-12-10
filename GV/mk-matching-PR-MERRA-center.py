@@ -9,13 +9,13 @@ import os, sys
 from decimal import Decimal, ROUND_HALF_UP, ROUND_HALF_DOWN
 import myfunc.IO.MERRA2 as MERRA2
 from collections import deque
+import socket
 
-
-iYM = [1998,4]
-eYM = [2004,10]
+#iYM = [1998,4]
+#eYM = [2004,10]
 #iYM = [2010,4]
-#iYM = [2005,4]
-#eYM = [2008,10]
+iYM = [2005,4]
+eYM = [2014,10]
 
 lYM = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
@@ -42,11 +42,18 @@ miss= -9999.
 
 #thdist  = 2.5 # km
 thdist  = 5.0 # km
-
+#cbins   = 11
+cbins   = 49
 ddtime_1min = timedelta(seconds=60)
 
-satebaseDir = '/home/utsumi/mnt/wellshare/GPMGV/L2A25'
-gvmapbaseDir= '/home/utsumi/mnt/wellshare/GPMGV/GVMAP'
+hostname  = socket.gethostname()
+if   hostname in ['shui']:
+    baseDir     = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25'
+    gvmapbaseDir= '/home/utsumi/mnt/wellshare/GPMGV/GVMAP'
+elif hostname in ['well']:
+    baseDir     = '/media/disk2/share/GPMGV/MATCH.L2A25'
+    gvmapbaseDir= '/media/disk2/share/GPMGV/GVMAP'
+
 
 def dtime_round_Mnt(DTime):
     year = DTime.year
@@ -103,10 +110,10 @@ for YM in lYM:
             continue
 
         # load satellite lat, lon, time
-        baseDir = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25'
-        datDir   = baseDir + '/%.1fkm/%s/%04d%02d'%(thdist, domain, Year,Mon)
+        datDir   = baseDir + '/cbin.%d/%.1fkm/%s/%04d%02d'%(cbins, thdist, domain, Year,Mon)
 
         if not os.path.exists(datDir):
+            print datDir
             print 'no data',domain,YM
             continue
  

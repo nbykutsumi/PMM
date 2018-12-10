@@ -13,12 +13,16 @@ prdVer  = "07"
 #var     = "e_SurfRain"
 var     = "rain"
 
-#iYM = [1998,4]
-#eYM = [2005,3]
+#iYM = [2005,4]
 #eYM = [2014,10]
 
-iYM = [2004,10]
-eYM = [2004,10]
+iYM = [1998,4]
+eYM = [2003,10]
+
+
+
+#iYM = [2004,4]
+#eYM = [2004,10]
 #eYM = [2014,8]
 lYM = util.ret_lYM(iYM,eYM)
 
@@ -34,8 +38,8 @@ compressed = False
 check_obs_periods= False
 
 if check_obs_periods==False:
-    ldomain = ['FLORIDA-KSC', 'KWAJALEIN-KWA', 'TEXAS-HAR', 'FLORIDA-SFL-N', 'N.Carolina-IPHEx_Duke', 'FLORIDA-STJ', 'N.Carolina-IPHEx_NASA']
-    #ldomain = ['N.Carolina-IPHEx_NASA']
+    #ldomain = ['FLORIDA-KSC', 'KWAJALEIN-KWA', 'TEXAS-HAR', 'FLORIDA-SFL-N', 'N.Carolina-IPHEx_Duke', 'FLORIDA-STJ', 'N.Carolina-IPHEx_NASA']
+    ldomain = ['N.Carolina-IPHEx_Duke', 'FLORIDA-STJ', 'N.Carolina-IPHEx_NASA']
 
 
 hostname = socket.gethostname()
@@ -106,13 +110,13 @@ for YM in lYM:
         Lat  = gpm.load_var_granule(srcPath, "Latitude")
         Lon  = gpm.load_var_granule(srcPath, "Longitude")
         dtime= gpm.load_dtime_granule(srcPath)
-        Dat  = gpm.load_var_granule(srcPath, var)
-        rangeBinNum= gpm.load_var_granule(srcPath, "rangeBinNum")
-        eSurf= gpm.load_var_granule(srcPath, "e_SurfRain")
-        method= gpm.load_var_granule(srcPath, "method")
-        ##nSurf= gpm.load_var_granule(srcPath, "nearSurfRain")
-        rainType= gpm.load_var_granule(srcPath, "rainType") 
-        stormH  = gpm2a23.load_var_granule(srcPath2a23, "stormH") # [m] above mean sea level
+        #Dat  = gpm.load_var_granule(srcPath, var)
+        #rangeBinNum= gpm.load_var_granule(srcPath, "rangeBinNum")
+        #eSurf= gpm.load_var_granule(srcPath, "e_SurfRain")
+        #method= gpm.load_var_granule(srcPath, "method")
+        ###nSurf= gpm.load_var_granule(srcPath, "nearSurfRain")
+        #rainType= gpm.load_var_granule(srcPath, "rainType") 
+        #stormH  = gpm2a23.load_var_granule(srcPath2a23, "stormH") # [m] above mean sea level
 
         freezH  = gpm.load_var_granule(srcPath, "freezH") # [m] above mean sea level
 
@@ -146,13 +150,13 @@ for YM in lYM:
             LatTmp= Lat[a1mask]
             LonTmp= Lon[a1mask]
             dtimeTmp = dtime[a1mask]
-            DatTmp= Dat[a1mask]
-            rangeBinNumTmp = rangeBinNum[a1mask]
-            eSurfTmp = eSurf[a1mask]
-            methodTmp= method[a1mask]
-            #nSurfTmp = nSurf[a1mask]
-            rainTypeTmp = rainType[a1mask]
-            stormHTmp   = stormH[a1mask]
+            #DatTmp= Dat[a1mask]
+            #rangeBinNumTmp = rangeBinNum[a1mask]
+            #eSurfTmp = eSurf[a1mask]
+            #methodTmp= method[a1mask]
+            ##nSurfTmp = nSurf[a1mask]
+            #rainTypeTmp = rainType[a1mask]
+            #stormHTmp   = stormH[a1mask]
             freezHTmp   = freezH[a1mask]
 
             if len(dtimeTmp) <2: continue
@@ -182,16 +186,16 @@ for YM in lYM:
             stormHPath   = outDir + "/stormH.%s-%s.%s.npy"%(stime,etime,gNum)
             freezHPath   = outDir + "/freezH.%s-%s.%s.npy"%(stime,etime,gNum)
 
-            np.save(latPath,  LatTmp.astype(float32))
-            np.save(lonPath,  LonTmp.astype(float32))
-            np.save(dtimePath,dtimeTmp)
-            np.save(prcpPath, DatTmp.astype(int16))
-            np.save(rbinPath, rangeBinNumTmp.astype(int16))
-            np.save(eSurfPath,eSurfTmp.astype(float32))
-            np.save(methodPath,methodTmp.astype(int16))
-            ##np.save(nSurfPath,nSurfTmp.astype(float32))
-            np.save(rainTypePath,rainTypeTmp.astype(int16))
-            np.save(stormHPath,stormHTmp.astype(int16))
+            #np.save(latPath,  LatTmp.astype(float32))
+            #np.save(lonPath,  LonTmp.astype(float32))
+            #np.save(dtimePath,dtimeTmp)
+            #np.save(prcpPath, DatTmp.astype(int16))
+            #np.save(rbinPath, rangeBinNumTmp.astype(int16))
+            #np.save(eSurfPath,eSurfTmp.astype(float32))
+            #np.save(methodPath,methodTmp.astype(int16))
+            ###np.save(nSurfPath,nSurfTmp.astype(float32))
+            #np.save(rainTypePath,rainTypeTmp.astype(int16))
+            #np.save(stormHPath,stormHTmp.astype(int16))
             np.save(freezHPath,freezHTmp.astype(int16))
 
             print '-- out ---'

@@ -13,10 +13,10 @@ from collections import deque
 
 #iYM = [2002,4]
 #eYM = [2014,10]
+#iYM = [1998,4]
+#eYM = [2004,10]
 iYM = [1998,4]
-eYM = [2001,10]
-#eYM = [2000,10]
-#eYM = [2000,10]
+eYM = [2004,10]
 
 lYM = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
@@ -34,11 +34,9 @@ a1lon_merra= merra_slv.Lon
 a2lon_merra, a2lat_merra = meshgrid(a1lon_merra, a1lat_merra)
 
 
-
-
 #ldomain = gv.domains
 ldomain = ['FLORIDA-KSC', 'KWAJALEIN-KWA', 'TEXAS-HAR', 'FLORIDA-SFL-N', 'N.Carolina-IPHEx_Duke', 'FLORIDA-STJ', 'N.Carolina-IPHEx_NASA']
-#ldomain = ['N.Carolina-IPHEx_Duke']
+#ldomain = ['FLORIDA-KSC']
 
 #ldomain = ['BRAZIL-INP', 'BRAZIL-LBA', 'CALIFORNIA-ERK', 'DARWIN-CSC', 'FLORIDA-KAM-E', 'FLORIDA-KAM-W', 'FLORIDA-KAP', 'FLORIDA-KP2', 'FLORIDA-KSC', 'FLORIDA-NNN', 'FLORIDA-SFL-N', 'FLORIDA-SFL-S', 'FLORIDA-STJ', 'FLORIDA-TFB', 'FRANCE-HyMeX-E', 'FRANCE-HyMeX-W', 'IOWA-IFloodS', 'IOWA-IFloodS_APU_Gauges', 'IOWA-SFB', 'KWAJALEIN-KWA', 'KWAJALEIN-RMI', 'MARYLAND-GSFC', 'MARYLAND-PCMK-N', 'MARYLAND-PCMK-S', 'N.Carolina-IPHEx_Duke', 'N.Carolina-IPHEx_NASA', 'OKLAHOMA-MC3E', 'TEXAS-HAR', 'VIRGINIA-HFD', 'VIRGINIA-NASA-C', 'VIRGINIA-NASA-NE', 'VIRGINIA-NASA-SE', 'VIRGINIA-NASA-W', 'VIRGINIA-NSWD-N', 'VIRGINIA-NSWD-S', 'VIRGINIA-WFF', 'WASHINGTON-OLYMPEX_NASA', 'WASHINGTON-OLYMPEX_STDALN']
 #ldomain = ['VIRGINIA-HFD', 'VIRGINIA-NASA-C', 'VIRGINIA-NASA-NE', 'VIRGINIA-NASA-SE', 'VIRGINIA-NASA-W', 'VIRGINIA-NSWD-N', 'VIRGINIA-NSWD-S', 'VIRGINIA-WFF', 'WASHINGTON-OLYMPEX_NASA', 'WASHINGTON-OLYMPEX_STDALN']
@@ -242,7 +240,8 @@ for YM in lYM:
             a1rh.append(rh)
             a1div850.append(div850)
             a1div10m.append(div10m)
-        
+
+
         # save data                 
         a1rh    = array(a1rh).astype(float32)
         a1div850= array(a1div850).astype(float32)

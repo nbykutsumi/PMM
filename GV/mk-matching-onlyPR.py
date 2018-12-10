@@ -14,9 +14,9 @@ import pickle
 
 prdName = 'L2A25'
 iYM = [1998,4]
-eYM = [2001,10]
-#iYM = [2004,10]
-#eYM = [2004,10]
+#eYM = [2003,10]
+#iYM = [2004,4]
+eYM = [2004,10]
 
 lYM = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
@@ -29,7 +29,9 @@ dgName  = gv.ret_ddomYM2gName()
 
 
 #ldomain = ['FLORIDA-KSC', 'KWAJALEIN-KWA', 'TEXAS-HAR', 'FLORIDA-SFL-N', 'N.Carolina-IPHEx_Duke', 'FLORIDA-STJ', 'N.Carolina-IPHEx_NASA']
-ldomain = ['N.Carolina-IPHEx_Duke']
+ldomain = ['N.Carolina-IPHEx_Duke', 'N.Carolina-IPHEx_NASA']
+#ldomain = ['FLORIDA-KSC']
+#ldomain = ['N.Carolina-IPHEx_Duke']
 #ldomain = gv.domains
 
 #ldomain = ['BRAZIL-INP', 'BRAZIL-LBA', 'CALIFORNIA-ERK', 'DARWIN-CSC', 'FLORIDA-KAM-E', 'FLORIDA-KAM-W', 'FLORIDA-KAP', 'FLORIDA-KP2', 'FLORIDA-KSC', 'FLORIDA-NNN', 'FLORIDA-SFL-N', 'FLORIDA-SFL-S', 'FLORIDA-STJ', 'FLORIDA-TFB', 'FRANCE-HyMeX-E', 'FRANCE-HyMeX-W', 'IOWA-IFloodS', 'IOWA-IFloodS_APU_Gauges', 'IOWA-SFB', 'KWAJALEIN-KWA', 'KWAJALEIN-RMI', 'MARYLAND-GSFC', 'MARYLAND-PCMK-N', 'MARYLAND-PCMK-S', 'N.Carolina-IPHEx_Duke', 'N.Carolina-IPHEx_NASA', 'OKLAHOMA-MC3E', 'TEXAS-HAR', 'VIRGINIA-HFD', 'VIRGINIA-NASA-C', 'VIRGINIA-NASA-NE', 'VIRGINIA-NASA-SE', 'VIRGINIA-NASA-W', 'VIRGINIA-NSWD-N', 'VIRGINIA-NSWD-S', 'VIRGINIA-WFF', 'WASHINGTON-OLYMPEX_NASA', 'WASHINGTON-OLYMPEX_STDALN']
@@ -52,10 +54,12 @@ hostname = socket.gethostname()
 if hostname == 'mizu':
     listDir  = '/home/utsumi/mnt/wellshare/data/GPMGV/sitelist'
     satebaseDir = "/home/utsumi/mnt/wellshare/GPMGV/%s"%(prdName)
+    obaseDir    = '/home/utsumi/mnt/wellshare/GPMGV/DOM.L2A25'
 
 elif hostname=='well':
     listDir  = '/media/disk2/share/data/GPMGV/sitelist'
     satebaseDir = "/media/disk2/share/GPMGV/%s"%(prdName)
+    obaseDir    = '/media/disk2/share/GPMGV/DOM.L2A25'
 
 #satebaseDir = '/home/utsumi/mnt/wellshare/GPMGV/L2A25'
 
@@ -107,15 +111,16 @@ for domain in ldomain:
 
 
         #-- empty container
-        aprof  = []
-        aeSurf = []
-        anSurf = []
+        aprof    = []
+        aeSurf   = []
+        anSurf   = []
         anSurfBin= []
         asatelat = []
         asatelon = []
         arainType= []
         amethod  = []
         astormH  = []
+        afreezH  = []
 
         adtime   = [] 
 
@@ -133,8 +138,9 @@ for domain in ldomain:
 
             eSurfPath   = sateDir + '/eSurf.%s.%s.npy'%(ietime, gNum)
             rainTypePath= sateDir + '/rainType.%s.%s.npy'%(ietime, gNum)
-            stormHPath = sateDir + '/stormH.%s.%s.npy'%(ietime, gNum)
-            methodPath = sateDir + '/method.%s.%s.npy'%(ietime, gNum)
+            stormHPath = sateDir  + '/stormH.%s.%s.npy'%(ietime, gNum)
+            freezHPath = sateDir  + '/freezH.%s.%s.npy'%(ietime, gNum)
+            methodPath = sateDir  + '/method.%s.%s.npy'%(ietime, gNum)
 
             # load sateprcp
             a3sateprcp = np.load(satePath)
@@ -147,6 +153,7 @@ for domain in ldomain:
             a2eSurf    = np.load(eSurfPath)
             a2rainType = np.load(rainTypePath)
             a2stormH   = np.load(stormHPath)
+            a2freezH   = np.load(freezHPath)
             a2method   = np.load(methodPath)
 
             #-- constrain angle bin  -----
@@ -158,44 +165,77 @@ for domain in ldomain:
             a2eSurf    = a2eSurf[:,icbin:-icbin]
             a2rainType = a2rainType[:,icbin:-icbin]
             a2stormH   = a2stormH[:,icbin:-icbin]
+            a2freezH   = a2freezH[:,icbin:-icbin]
             a2method   = a2method[:,icbin:-icbin]
 
+            #-- duplicate dtime -----
+            a2satetime = np.tile(a1satetime, (cbins,1)).T
 
-            #-- extract domain ---
-            nysate,nxsate = a2satelat.shape
-            a2xsate,a2ysate = meshgrid(range(nxsate),range(nysate))
+            #------------------------
 
-            a2mskLat = ma.masked_outside(a2satelat, lllat, urlat).mask
-            a2mskLon = ma.masked_outside(a2satelon, lllon, urlon).mask
-            a2msk    = a2mskLat + a2mskLon
-            a1ysate  = ma.masked_where(a2msk, a2ysate).compressed()
-            a1xsate  = ma.masked_where(a2msk, a2xsate).compressed()
+            ##-- extract domain ---
+            #nysate,nxsate = a2satelat.shape
+            #a2xsate,a2ysate = meshgrid(range(nxsate),range(nysate))
+
+            #a2mskLat = ma.masked_outside(a2satelat, lllat, urlat).mask
+            #a2mskLon = ma.masked_outside(a2satelon, lllon, urlon).mask
+            #a2msk    = a2mskLat + a2mskLon
+            #a1ysate  = ma.masked_where(a2msk, a2ysate).compressed()
+            #a1xsate  = ma.masked_where(a2msk, a2xsate).compressed()
 
 
-            a2profile= a3sateprcp[a1ysate, a1xsate,:] 
-            a1eSurf  = a2eSurf[a1ysate, a1xsate] 
-            a1rainType= a2rainType[a1ysate, a1xsate] 
+            #a2profile= a3sateprcp[a1ysate, a1xsate,:] 
+            #a1eSurf  = a2eSurf[a1ysate, a1xsate] 
+            #a1rainType= a2rainType[a1ysate, a1xsate] 
+
+            ## bins
+            #a1groundbin= a3rangebin[a1ysate, a1xsate,2]
+            #a1nsurfbin = a3rangebin[a1ysate, a1xsate,6]
+
+            ## near surface rain
+            #a1ytmp   = range(a2profile.shape[0])
+            #a1nSurf  = a2profile[a1ytmp,a1nsurfbin]
+
+            ## lat & lon
+            #a1satelat= a2satelat[a1ysate, a1xsate]
+            #a1satelon= a2satelon[a1ysate, a1xsate]                     
+
+
+            #   
+            ## method, stormH
+            #a1method = a2method[a1ysate, a1xsate]
+            #a1stormH = a2stormH[a1ysate, a1xsate]
+            #
+            ## DTime
+            #a1dtime  = a1satetime[a1ysate]
+
+
+
+            nztemp   = a3sateprcp.shape[2]
+            a2profile= a3sateprcp.reshape(-1,nztemp)
+            a1eSurf  = a2eSurf.flatten()
+            a1rainType= a2rainType.flatten()
 
             # bins
-            a1groundbin= a3rangebin[a1ysate, a1xsate,2]
-            a1nsurfbin = a3rangebin[a1ysate, a1xsate,6]
+            a1groundbin= a3rangebin[:, :,2].flatten()
+            a1nsurfbin = a3rangebin[:, :,6].flatten()
 
             # near surface rain
             a1ytmp   = range(a2profile.shape[0])
             a1nSurf  = a2profile[a1ytmp,a1nsurfbin]
 
             # lat & lon
-            a1satelat= a2satelat[a1ysate, a1xsate]
-            a1satelon= a2satelon[a1ysate, a1xsate]                     
-
-
+            a1satelat= a2satelat.flatten()
+            a1satelon= a2satelon.flatten()
                
-            # method, stormH
-            a1method = a2method[a1ysate, a1xsate]
-            a1stormH = a2stormH[a1ysate, a1xsate]
+            # method, stormH, freezH
+            a1method = a2method.flatten()
+            a1stormH = a2stormH.flatten()
+            a1freezH = a2freezH.flatten()
             
             # DTime
-            a1dtime  = a1satetime[a1ysate]
+            a1dtime  = a2satetime.flatten()
+
 
             # profile of nlev range bins above ground
             a2profout= empty([a2profile.shape[0], nlev]).astype(int16)
@@ -216,6 +256,7 @@ for domain in ldomain:
             arainType.append(a1rainType)
             amethod.append(a1method)
             astormH.append(a1stormH)
+            afreezH.append(a1freezH)
 
             asatelat.append(a1satelat)
             asatelon.append(a1satelon)
@@ -235,15 +276,14 @@ for domain in ldomain:
 
         amethod  = concatenate(amethod).astype(int16)
         astormH  = concatenate(astormH).astype(int16)
+        afreezH  = concatenate(afreezH).astype(int16)
 
         asatelat = concatenate(asatelat).astype(float32)
         asatelon = concatenate(asatelon).astype(float32)
 
         adtime   = concatenate(adtime)
 
-
         # save satellite obs to file
-        obaseDir = '/home/utsumi/mnt/wellshare/GPMGV/DOM.L2A25'
         outDir   = obaseDir + '/cbin.%d/%s/%04d%02d'%(cbins, domain, Year,Mon)
 
         util.mk_dir(outDir)
@@ -254,6 +294,7 @@ for domain in ldomain:
         onSurfBinPath = outDir + '/nSurfBin.npy'
         omethodPath   = outDir + '/method.npy'
         ostormHPath   = outDir + '/stormH.npy'
+        ofreezHPath   = outDir + '/freezH.npy'
 
 
         osatelatPath  = outDir + '/sateLat.npy'
@@ -269,7 +310,7 @@ for domain in ldomain:
         np.save(onSurfBinPath, anSurfBin)
         np.save(omethodPath, amethod)
         np.save(ostormHPath, astormH)
-
+        np.save(ofreezHPath, afreezH)
 
         np.save(osatelatPath, asatelat)
         np.save(osatelonPath, asatelon)

@@ -30,11 +30,10 @@ def ret_lYM(iYM, eYM):
 class GPMGV(object):
     def __init__(self):
         hostname     = socket.gethostname()
-        if hostname in ['mizu']:
+        if hostname in ['mizu','shui']:
             self.rootDir = "/work/a01/utsumi/data/GPMGV"
         elif hostname in ['well']:
-            print 'please run on mizu'
-            sys.exit()
+            self.rootDir = "/home/utsumi/mnt/lab_work/data/GPMGV"
 
     def load_sitelist(self):
         self.listDir = self.rootDir + "/sitelist"

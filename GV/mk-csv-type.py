@@ -15,7 +15,7 @@ from matplotlib import rcParams, cycler
 calc = True
 #calc = False
 iYM = [2005,4]
-#iYM = [2014,10]
+#iYM = [2010,4]
 eYM = [2014,10]
 lYM = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
@@ -49,7 +49,7 @@ nt   = 30
 #nh = len(ldh)
 
 lraintype = ['alltype','strat','conv']
-dlthrtype = {'alltype':[-1,999],'strat':[100,170],'conv':[200,297]}
+dlthrtype = {'alltype':[-999,999],'strat':[100,170],'conv':[200,297]}
 
 miss = -9999.
 #------------------------------------------------

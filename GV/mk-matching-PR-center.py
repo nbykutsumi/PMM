@@ -14,9 +14,9 @@ import pickle
 import socket
 
 iYM = [2005,4]
-eYM = [2014,9]
+eYM = [2014,10]
 #iYM = [2005,4]
-#eYM = [2014,9]
+#eYM = [2005,4]
 
 lYM = util.ret_lYM(iYM, eYM)
 lYM = [YM for YM in lYM if YM[1] not in [1,2,3,11,12]]
@@ -43,6 +43,10 @@ offset_aft = 45    # minutes
 ldMnt = range(-offset_bef, offset_aft+1)
 
 nlev  = 40
+swathbins = 49
+#cbins  = 11
+cbins  = 49
+icbin = (swathbins-1)/2 - (cbins-1)/2
 
 #thdist  = 2.5 # km
 thdist  = 5.0 # km
@@ -409,6 +413,18 @@ for YM in lYM:
             ldtime0 = util.ret_lDTime(dtimeA, dtimeB, ddtime_1min)
 
 
+            #-- constrain angle bin ------------
+            if icbin !=0:
+                a3sateprcp = a3sateprcp[:,icbin:-icbin,:]
+    
+                a2satelat  = a2satelat[:,icbin:-icbin]
+                a2satelon  = a2satelon[:,icbin:-icbin]
+                a3rangebin = a3rangebin[:,icbin:-icbin,:]
+                a2eSurf    = a2eSurf[:,icbin:-icbin]
+                a2rainType = a2rainType[:,icbin:-icbin]
+                a2stormH   = a2stormH[:,icbin:-icbin]
+                a2freezH   = a2freezH[:,icbin:-icbin]
+                #a2method   = a2method[:,icbin:-icbin]
 
             #-- time loop in each granule
             for dtime0 in ldtime0:
@@ -685,9 +701,9 @@ for YM in lYM:
 
         # save satellite obs to file
         #obaseDir = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25'
-        outDir   = obaseDir + '/%.1fkm/%s/%04d%02d'%(thdist, domain, Year,Mon)
-
+        outDir   = obaseDir + '/cbin.%d/%.1fkm/%s/%04d%02d'%(cbins, thdist, domain, Year,Mon)
         util.mk_dir(outDir)
+
         oprofPath  = outDir  + '/prof.npy'
         oeSurfPath = outDir  + '/eSurf.npy'
         onSurfPath = outDir  + '/nSurf.npy'

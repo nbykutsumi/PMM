@@ -11,10 +11,9 @@ import glob
 from decimal import Decimal, ROUND_HALF_UP, ROUND_HALF_DOWN
 from gv_fsub import *
 import pickle
-import socket
 
 iYM = [2005,4]
-eYM = [2014,9]
+eYM = [2018,9]
 #iYM = [2005,4]
 #eYM = [2014,9]
 
@@ -48,20 +47,9 @@ nlev  = 40
 thdist  = 5.0 # km
 
 ddtime_1min = timedelta(seconds=60)
-hostname = socket.gethostname()
-if hostname in ['shui','mizu']:
-    listDir  = '/home/utsumi/mnt/wellshare/data/GPMGV/sitelist'
-    satebaseDir = '/home/utsumi/mnt/wellshare/GPMGV/L2A25'
-    gvmapbaseDir= '/home/utsumi/mnt/wellshare/GPMGV/GVMAP'
-    obaseDir    = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25'
 
-elif hostname=='well':
-    listDir  = '/media/disk2/share/data/GPMGV/sitelist'
-    satebaseDir = '/media/disk2/share/GPMGV/L2A25'
-    gvmapbaseDir= '/media/disk2/share/GPMGV/GVMAP'
-    obaseDir    = '/media/disk2/share/GPMGV/MATCH.L2A25'
-
-
+satebaseDir = '/home/utsumi/mnt/wellshare/GPMGV/L2A25'
+gvmapbaseDir= '/home/utsumi/mnt/wellshare/GPMGV/GVMAP'
 def ret_aidx(Lat, Lon, lllatBnd, lllonBnd, nymap, nxmap, a2radmask=None):
     Xmap = ( (Lon - lllonBnd)/res ).astype(int32)
     Ymap = ( (Lat - lllatBnd)/res ).astype(int32)
@@ -91,8 +79,7 @@ def ret_aidx(Lat, Lon, lllatBnd, lllonBnd, nymap, nxmap, a2radmask=None):
 
 def ret_dBBoxes(res):
     #-- read sitelist_summary ---
-
-    #listDir  = "/work/a01/utsumi/data/GPMGV/sitelist"
+    listDir  = "/work/a01/utsumi/data/GPMGV/sitelist"
     listPath = listDir + "/sitelist_summary.csv"
     f = open(listPath, "r"); lines=f.readlines(); f.close()
     dnynx       = {}
@@ -160,11 +147,7 @@ def load_gauge(domain, gName, Year,Mon):
         region, nwName, tmp = domain.split('-')
 
     nwCode   = gv.dnwCode[domain]
-    if hostname in ['shui','mizu']:
-        gaugebaseDir= '/work/a01/utsumi/data/GPMGV/2A56'
-    elif hostname in ['well']:
-        gaugebaseDir= '/home/utsumi/mnt/lab_work/data/GPMGV/2A56'
-
+    gaugebaseDir= '/work/a01/utsumi/data/GPMGV/2A56'
     gaugeDir = gaugebaseDir + '/%s/%s/%04d'%(region,nwName,Year)
 
     #-- asc type --
@@ -205,14 +188,7 @@ def load_gauge(domain, gName, Year,Mon):
 
 
 def load_gtopo(lat,lon):
-    if   hostname in ['shui']:
-        orogDir  = "/data1/hjkim/GTOPO30"
-    elif hostname in ['well']:
-        orogDir  = "/media/disk2/share/data/GTOPO30"
-    else:
-        print 'check hostname',hostname
-        sys.exit()
-
+    orogDir  = "/data1/hjkim/GTOPO30"
 
     ullat = int( (lat - (-60))/50. )*50. + 50 -60.
     ullon = int( (lon - (-180))/40.)*40. -180.
@@ -346,7 +322,6 @@ for YM in lYM:
         asatelon = []
         arainType= []
         astormH  = []
-        afreezH  = []
 
         aglat    = []
         aglon    = []
@@ -363,7 +338,6 @@ for YM in lYM:
         psatelon = []
         prainType= []
         pstormH  = []
-        pfreezH  = []
 
         pglat    = []
         pglon    = []
@@ -386,10 +360,9 @@ for YM in lYM:
             rangebinPath= sateDir + '/rangeBinNum.%s.%s.npy'%(ietime, gNum)
             satetimePath= sateDir + '/dtime.%s.%s.npy'%(ietime, gNum)
 
-            eSurfPath   = sateDir + '/eSurf.%s.%s.npy' %(ietime, gNum)
+            eSurfPath   = sateDir + '/eSurf.%s.%s.npy'%(ietime, gNum)
             rainTypePath= sateDir + '/rainType.%s.%s.npy'%(ietime, gNum)
             stormHPath  = sateDir + '/stormH.%s.%s.npy'%(ietime, gNum)
-            freezHPath  = sateDir + '/freezH.%s.%s.npy'%(ietime, gNum)
 
             # load sateprcp
             a3sateprcp = np.load(satePath)
@@ -402,7 +375,6 @@ for YM in lYM:
             a2eSurf    = np.load(eSurfPath)
             a2rainType = np.load(rainTypePath)
             a2stormH   = np.load(stormHPath)
-            a2freezH   = np.load(freezHPath)
 
             dtimeA = dtime_round_Mnt(a1satetime.min())
             dtimeB = dtime_round_Mnt(a1satetime.max()) 
@@ -427,7 +399,6 @@ for YM in lYM:
                 a2eSurfTmp    = a2eSurf   [a1timeidx,:]
                 a2rainTypeTmp = a2rainType[a1timeidx,:]
                 a2stormHTmp   = a2stormH  [a1timeidx,:]
-                a2freezHTmp   = a2freezH  [a1timeidx,:]
 
                 idtime_offset =  dtime0 - offset_bef * ddtime_1min + ddtime_1min
                 edtime_offset =  dtime0 + offset_aft * ddtime_1min + ddtime_1min
@@ -467,6 +438,7 @@ for YM in lYM:
                     #-------------------------------------
                     # elevation and groundbin
                     #-------------------------------------
+                    a1elev = (ones(len(a1xsate))*delev[gName]).astype(float32)
 
                     #-------------------------------------
                     # gauge data
@@ -487,7 +459,6 @@ for YM in lYM:
                     a1eSurf  = a2eSurfTmp[a1ysate, a1xsate] 
                     a1rainType= a2rainTypeTmp[a1ysate, a1xsate] 
                     a1stormH  = a2stormHTmp[a1ysate, a1xsate] 
-                    a1freezH  = a2freezHTmp[a1ysate, a1xsate] 
 
                     # bins
                     a1groundbin= a3rangebin[a1ysate, a1xsate,2]
@@ -528,7 +499,6 @@ for YM in lYM:
                     anSurf.append(a1nSurf)
                     arainType.append(a1rainType)
                     astormH.append(a1stormH)
-                    afreezH.append(a1freezH)
 
                     asatelat.append(a1satelat)
                     asatelon.append(a1satelon)
@@ -600,7 +570,6 @@ for YM in lYM:
                 p1eSurf  = a2eSurfTmp[a1ysate, a1xsate] 
                 p1rainType= a2rainTypeTmp[a1ysate, a1xsate] 
                 p1stormH  = a2stormHTmp[a1ysate, a1xsate] 
-                p1freezH  = a2freezHTmp[a1ysate, a1xsate] 
 
                 # bins
                 p1groundbin= a3rangebin[a1ysate, a1xsate,2]
@@ -635,7 +604,6 @@ for YM in lYM:
                 pnSurf.append(p1nSurf)
                 prainType.append(p1rainType)
                 pstormH.append(p1stormH)
-                pfreezH.append(p1freezH)
 
                 psatelat.append(p1satelat)
                 psatelon.append(p1satelon)
@@ -655,7 +623,6 @@ for YM in lYM:
         anSurf  = concatenate(anSurf).astype(int16)
         arainType= concatenate(arainType).astype(int16)
         astormH  = concatenate(astormH).astype(int16)
-        afreezH  = concatenate(afreezH).astype(int16)
         anSurfBin  = concatenate(anSurfBin).astype(int16)
 
         asatelat = concatenate(asatelat).astype(float32)
@@ -675,7 +642,6 @@ for YM in lYM:
         pnSurf  = concatenate(pnSurf).astype(int16)
         prainType  = concatenate(prainType).astype(int16)
         pstormH    = concatenate(pstormH).astype(int16)
-        pfreezH    = concatenate(pfreezH).astype(int16)
         pnSurfBin  = concatenate(pnSurfBin).astype(int16)
 
         psatelat = concatenate(psatelat).astype(float32)
@@ -684,7 +650,7 @@ for YM in lYM:
  
 
         # save satellite obs to file
-        #obaseDir = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25'
+        obaseDir = '/home/utsumi/mnt/wellshare/GPMGV/MATCH.L2A25'
         outDir   = obaseDir + '/%.1fkm/%s/%04d%02d'%(thdist, domain, Year,Mon)
 
         util.mk_dir(outDir)
@@ -693,7 +659,6 @@ for YM in lYM:
         onSurfPath = outDir  + '/nSurf.npy'
         orainTypePath = outDir + '/rainType.npy'
         ostormHPath   = outDir + '/stormH.npy'
-        ofreezHPath   = outDir + '/freezH.npy'
         ogvPath       = outDir + '/gvprcp.npy'
         onSurfBinPath = outDir + '/nSurfBin.npy'
         osatelatPath  = outDir + '/sateLat.npy'
@@ -712,7 +677,6 @@ for YM in lYM:
         np.save(onSurfPath, anSurf)
         np.save(orainTypePath, arainType)
         np.save(ostormHPath, astormH)
-        np.save(ofreezHPath, afreezH)
         np.save(ogvPath,    agv)
         np.save(onSurfBinPath, anSurfBin)
 
@@ -735,7 +699,6 @@ for YM in lYM:
         pnSurfPath = outDir  + '/p_nSurf.npy'
         prainTypePath = outDir + '/p_rainType.npy'
         pstormHPath   = outDir + '/p_stormH.npy'
-        pfreezHPath   = outDir + '/p_freezH.npy'
         pgvPath       = outDir + '/p_gvprcp.npy'
         pngvPath      = outDir + '/p_ngv.npy'
         pnSurfBinPath = outDir + '/p_nSurfBin.npy'
@@ -754,7 +717,6 @@ for YM in lYM:
         np.save(pnSurfPath, pnSurf)
         np.save(prainTypePath, prainType)
         np.save(pstormHPath, pstormH)
-        np.save(pfreezHPath, pfreezH)
         np.save(pgvPath,    pgv)
         np.save(pngvPath,   pngv)
         np.save(pnSurfBinPath, pnSurfBin)
