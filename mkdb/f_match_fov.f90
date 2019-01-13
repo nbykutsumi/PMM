@@ -4,13 +4,14 @@ CONTAINS
 SUBROUTINE extract_3d(a3in, a2x, a2y, miss_idx, miss_out, nxin, nyin, nzin, nxidx, nyidx, a3out)
 !-----------------------
 ! accepts python type index 0,1,2,...
+! input (y,x,z).T = (z,x,y)
 !-----------------------
 implicit none
 !-------------------------------------------------
 integer             nxin, nyin, nzin, nxidx, nyidx
 
 !---- in ----
-double precision,dimension(nxin,nyin,nzin)   :: a3in
+double precision,dimension(nzin,nxin,nyin)   :: a3in
 !f2py intent(in)                                a3in
 integer,dimension(nxidx,nyidx)          :: a2x, a2y  ! python type index 0,1,2..
 !f2py intent(in)                           a2x, a2y
@@ -20,7 +21,7 @@ double precision                           miss_out
 !f2py intent(in)                           miss_out
 
 !---- out ---
-double precision,dimension(nxidx,nyidx,nzin) :: a3out
+double precision,dimension(nzin,nxidx,nyidx) :: a3out
 !f2py intent(out)                               a3out
 
 !---- cal ---
@@ -31,9 +32,9 @@ do iyidx = 1,nyidx
     x = a2x(ixidx,iyidx)
     y = a2y(ixidx,iyidx)
     if (x.eq.miss_idx)then
-      a3out(ixidx,iyidx,:)=miss_out
+      a3out(:,ixidx,iyidx)=miss_out
     else
-      a3out(ixidx,iyidx,:)=a3in(x+1,y+1,:)
+      a3out(:,ixidx,iyidx)=a3in(:,x+1,y+1)
     end if
   end do
 end do

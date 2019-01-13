@@ -21,17 +21,17 @@ elif myhost =="well":
 #GPM/TRMM.TMI/L2A12/07/2014/
 
 
-iDTime  = datetime(2016,12,31)
-#iDTime  = datetime(2017,2,25)
+#iDTime  = datetime(2016,12,31)
+iDTime  = datetime(2017,12,5)
 #eDTime  = datetime(2017,12,20)
 eDTime  = datetime(2018,1,1)
 dDTime  = timedelta(days=1)
 lDTime  = util.ret_lDTime(iDTime, eDTime, dDTime)
 
 #spec      = ["TRMM","TMI","2A-CLIM","gprof","V05","A"]
-#spec      = ["GPM","GMI","1C","1C","V05","A"]
+spec      = ["GPM","GMI","1C","1C","V05","A"]
 #spec      = ["GPM","GMI","2A-CLIM","gprof","V05","A"] # input=ECMWF
-spec      = ["GPM","GMI","2A","gprof","V05","A"] # input=GANAL
+#spec      = ["GPM","GMI","2A","gprof","V05","A"] # input=GANAL
 #spec      = ["GPM","Ku","2A","radar","V06","A"]
 
 sate      = spec[0]

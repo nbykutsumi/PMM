@@ -3,7 +3,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from numpy import *
 import myfunc.util as util
-import myfunc.IO.GPM.l2_dpr as l2_dpr
+#import myfunc.IO.GPM.l2_dpr as l2_dpr
+import h5py
 import myfunc.IO.GPM.l1_gmi as l1_gmi
 import glob
 from datetime import datetime, timedelta
@@ -13,12 +14,12 @@ from f_match_fov import *
 
 
 gmi  = l1_gmi.L1_GMI()
-dpr  = l2_dpr.L2_DPR()
+#dpr  = l2_dpr.L2_DPR()
 mwscan= 'S1'
 radar = 'Ku'
 
-iDTime = datetime(2017,1,1)
-eDTime = datetime(2017,1,31)
+iDTime = datetime(2017,2,1)
+eDTime = datetime(2018,1,1)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 ix0 = 83   # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
@@ -42,8 +43,9 @@ idxbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.IDX'%(f
 
 outrootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
+#lvar = ['/NS/SLV/precipRate']
 #lvar = ['/NS/CSF/typePrecip']
-lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil']
+lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/SLV/precipRate']
 #lvar = ['/NS/Latitude','/NS/Longitude']
 
 
@@ -76,15 +78,12 @@ for DTime in lDTime:
             a2y  = Y[:,cx-w-ix0:cx+w+1-ix0]
 
             for var in lvar:
-                DatDPR = dpr.load_var_granule(srcPathDPR, var)
-
-                #print 'DatDPR.shape=',DatDPR.shape
-                #print 'X.shape=',X.shape
-                #print cx,w
-                #print cx-w-ix0,cx+w+1-ix0
-                #print 'a2x.shape=',a2x.shape
-                #print 'a2y.shape=',a2y.shape
-       
+                #DatDPR = dpr.load_var_granule(srcPathDPR, var)
+                hdpr   = h5py.File(srcPathDPR)
+                DatDPR = hdpr[var][:]
+                hdpr.close() 
+                print DatDPR.shape
+ 
                 if   len(DatDPR.shape)==2:
                     datout = f_match_fov.extract_2d(DatDPR.T, a2x.T, a2y.T, -9999, -9999.).T
                 elif len(DatDPR.shape)==3:

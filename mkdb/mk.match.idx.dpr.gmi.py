@@ -10,11 +10,13 @@ import sys, os, glob
 from datetime import datetime, timedelta
 import numpy as np
 
-iDTime = datetime(2017,1,2)
-eDTime = datetime(2017,1,2)
+iDTime = datetime(2017,9,30)
+eDTime = datetime(2018,1,1)
 
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
+lDTime = [DTime for DTime in lDTime if not (datetime(2017,9,26)<=DTime)&(DTime<=datetime(2017,9,29))]
+
 radar  = 'Ku'
 gmi = l1_gmi.L1_GMI()
 dpr = l2_dpr.L2_DPR()
@@ -24,8 +26,11 @@ ix0 = 83   # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=22
 ex0 = 137  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
 wx  = ex0-ix0 +1
 verGMI = '05'
+verDPR = '06'
 subverGMI = 'A'
+subverDPR = 'A'
 fullverGMI = '%s%s'%(verGMI,subverGMI)
+fullverDPR = '%s%s'%(verDPR,subverDPR)
 
 baseDirGMI = '/work/hk01/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
 baseDirDPR = '/work/hk01/PMM/NASA/GPM.Ku/2A/V%s'%(verDPR)
@@ -77,8 +82,8 @@ for DTime in lDTime:
         
         scori = dpr.load_var_granule(srcPathDPR, 'NS/scanStatus/SCorientation')
         
-        print 'GMI.shape=',Lat0.shape
-        print 'GPR.shape=',Lat1.shape
+        #print 'GMI.shape=',Lat0.shape
+        #print 'GPR.shape=',Lat1.shape
         
         LonSub0 = Lon0[:,ix0:ex0+1]
         LatSub0 = Lat0[:,ix0:ex0+1]

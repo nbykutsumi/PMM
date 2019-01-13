@@ -32,8 +32,8 @@ mwscan = 'S1'
 
 outrootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
-#lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude'],['gmi','S1/SCstatus/SCorientation'],['gprof','S1/surfaceTypeIndex'],['gprof','S1/surfacePrecipitation']]
-lvar = [['gmi','S1/Tc']]
+lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude'],['gmi','S1/SCstatus/SCorientation'],['gprof','S1/surfaceTypeIndex'],['gprof','S1/surfacePrecipitation']]
+#lvar = [['gmi','S1/Tc']]
 
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
@@ -65,19 +65,35 @@ for DTime in lDTime:
             oid = srcPathGMI.split('.')[-3]
 
 
-            varName    = var.split('/')[-1] 
-            outbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.%s'%(fullverGMI, mwscan, cx-w, cx+w, varName)
-            outDir     = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
-            outPath    = outDir + '/%s.%s.npy'%(varName, oid)
-
             if   prod=='gmi':
-                datout = gmi.load_var_granule(srcPathGMI,var)
+                datoutTmp = gmi.load_var_granule(srcPathGMI,var)
             elif prod=='gprof':
-                datout = gprof.load_var_granule(srcPathGMI,var)
+                datoutTmp = gprof.load_var_granule(srcPathGMI,var)
             else:
                 print 'check prod',prod
                 sys.exit()
 
+            if len(datoutTmp.shape)==2:
+                datout = datoutTmp[:,cx-w:cx+w+1] 
+            elif len(datoutTmp.shape)==3:
+                datout = datoutTmp[:,cx-w:cx+w+1,:] 
+            elif len(datoutTmp.shape)==1:
+                datout = datoutTmp
+            else:
+                print 'check dimension',datoutTmp.shape
+                sys.exit() 
+
+
+            varName    = var.split('/')[-1] 
+            if len(datoutTmp.shape)==1:
+                outbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.GMI.%s'%(fullverGMI, mwscan, varName)
+
+            else:
+                outbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.%s'%(fullverGMI, mwscan, cx-w, cx+w, varName)
+
+
+            outDir     = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
+            outPath    = outDir + '/%s.%s.npy'%(varName, oid)
 
             util.mk_dir(outDir)
             np.save(outPath, datout)
