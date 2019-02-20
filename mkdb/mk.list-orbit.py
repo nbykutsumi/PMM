@@ -9,7 +9,7 @@ ver        = 'V05'
 gmirootDir = '/work/hk01/PMM/NASA/GPM.GMI/%s/%s'%(prod,ver)
 
 iYM = [2017,1]
-eYM = [2017,1]
+eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
 
 ldataoutage=[
@@ -20,7 +20,7 @@ ldataoutage=[
 ]
 
 
-listDir = '/work/hk01/utsumi/PMM/EPCDB/GMI-DPR/list'
+listDir = '/work/hk01/utsumi/PMM/EPCDB/list'
 
 #-- Functions ---
 def list2csv(a):

@@ -17,10 +17,22 @@ dpr  = l2_dpr.L2_DPR()
 mwscan= 'S1'
 radar = 'Ku'
 
-iDTime = datetime(2016,12,31)
-eDTime = datetime(2017,1,5)
+#iDTime = datetime(2016,12,31)
+#eDTime = datetime(2017,1,5)
+#iDTime = datetime(2017,6,30)
+#eDTime = datetime(2017,8,1)
+
+#iDTime = datetime(2017,2,1)
+#eDTime = datetime(2017,6,1)
+
+iDTime = datetime(2017,12,6)
+eDTime = datetime(2017,12,31)
+
+
+
+
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
-lDTime = [DTime for DTime in lDTime if not (datetime(2017,9,26)<=DTime)&(datetime(2017,9,29)]
+#lDTime = [DTime for DTime in lDTime if not (datetime(2017,9,26)<=DTime)&(datetime(2017,9,29)]
 
 ix0 = 83   # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
 ex0 = 137  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
@@ -34,7 +46,7 @@ subverGMI = 'A'
 fullverGMI = '%s%s'%(verGMI,subverGMI)
 
 baseDirGMI = '/work/hk01/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
-idxbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.S2idx'%(fullverGMI, mwscan, ix0, ex0)
+idxbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.S2.IDX'%(fullverGMI, mwscan, ix0, ex0)
 
 outrootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
@@ -45,7 +57,7 @@ for DTime in lDTime:
     srcDirGMI  = baseDirGMI+ '/%04d/%02d/%02d'%(Year,Mon,Day)
     ssearchGMI = srcDirGMI + '/1C.GPM.GMI.*.HDF5'
 
-    lsrcPathGMI = glob.glob(ssearchGMI)
+    lsrcPathGMI = sort(glob.glob(ssearchGMI))
 
     if len(lsrcPathGMI)==0:
         print 'No GMI file',Year,Mon,Day

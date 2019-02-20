@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 #iDTime = datetime(2016,12,31)
-iDTime = datetime(2017,2,1)
+iDTime = datetime(2017,12,5)
 eDTime = datetime(2018,1,1)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
@@ -44,7 +44,7 @@ for DTime in lDTime:
     srcDirGMI  = baseDirGMI+ '/%04d/%02d/%02d'%(Year,Mon,Day)
     #ssearchGMI = srcDirGMI + '/1C.GPM.GMI.XCAL2016-C.20170102-S011732-E025005.016171.V05A.HDF5'
     ssearchGMI = srcDirGMI + '/1C.GPM.GMI.*.HDF5'
-    lsrcPathGMI = glob.glob(ssearchGMI) 
+    lsrcPathGMI = sort(glob.glob(ssearchGMI))
 
     if len(lsrcPathGMI)==0:
         print 'No GMI file',Year,Mon,Day
@@ -67,8 +67,8 @@ for DTime in lDTime:
         
         scori = gmi.load_var_granule(srcPathGMI, 'S1/SCstatus/SCorientation')
         
-        print 'S1.shape=',Lat0.shape
-        print 'S2.shape=',Lat1.shape
+        #print 'S1.shape=',Lat0.shape
+        #print 'S2.shape=',Lat1.shape
         
         LonSub0 = Lon0[:,ix0:ex0+1]
         LatSub0 = Lat0[:,ix0:ex0+1]

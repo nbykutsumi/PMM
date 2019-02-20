@@ -18,9 +18,27 @@ gmi  = l1_gmi.L1_GMI()
 mwscan= 'S1'
 radar = 'Ku'
 
-iDTime = datetime(2017,2,1)
-eDTime = datetime(2018,1,1)
-lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
+#iDTime = datetime(2017,9,30)
+#eDTime = datetime(2018,1,1)
+iDTime = datetime(2017,6,1)
+eDTime = datetime(2017,7,1)
+
+
+#iDTime = datetime(2017,6,30)
+#eDTime = datetime(2017,8,1)
+#iDTime = datetime(2017,2,1)
+#eDTime = datetime(2017,6,1)
+#iDTime = datetime(2017,8,1)
+#eDTime = datetime(2018,1,1)
+
+#-- exclude missing files --
+lDTimeTmp = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
+lDTime = []
+for DTime in lDTimeTmp:
+    if ((datetime(2017,9,26)<=DTime) & (DTime <= datetime(2017,9,29))): continue
+
+    lDTime.append(DTime)
+#---------------------------
 
 ix0 = 83   # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
 ex0 = 137  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
@@ -45,8 +63,10 @@ outrootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
 #lvar = ['/NS/SLV/precipRate']
 #lvar = ['/NS/CSF/typePrecip']
-lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/SLV/precipRate']
+#lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/SLV/precipRate']
+lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/VER/heightZeroDeg']
 #lvar = ['/NS/Latitude','/NS/Longitude']
+#lvar = ['/NS/VER/heightZeroDeg']
 
 
 for DTime in lDTime:
@@ -54,7 +74,7 @@ for DTime in lDTime:
 
     srcDirDPR   = baseDirDPR + '/%04d/%02d/%02d'%(Year,Mon,Day)
     ssearch     = srcDirDPR  + '/2A.GPM.%s.*.V%s.HDF5'%(radar,fullverDPR)
-    lsrcPathDPR = glob.glob(ssearch)
+    lsrcPathDPR = sort(glob.glob(ssearch))
 
 
     if len(lsrcPathDPR)==0:
@@ -82,7 +102,6 @@ for DTime in lDTime:
                 hdpr   = h5py.File(srcPathDPR)
                 DatDPR = hdpr[var][:]
                 hdpr.close() 
-                print DatDPR.shape
  
                 if   len(DatDPR.shape)==2:
                     datout = f_match_fov.extract_2d(DatDPR.T, a2x.T, a2y.T, -9999, -9999.).T

@@ -17,8 +17,11 @@ from f_match_fov import *
 gmi    = l1_gmi.L1_GMI()
 gprof  = l2a_gprof_hdf5.L2A_GPROF_HDF5()
 
-iDTime = datetime(2017,1,1)
-eDTime = datetime(2017,1,2)
+#iDTime = datetime(2017,6,30)
+#eDTime = datetime(2017,8,1)
+iDTime = datetime(2017,6,1)
+eDTime = datetime(2017,7,1)
+
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 cx  = 110  # GMI center angle bin (py-idx)
@@ -32,8 +35,9 @@ mwscan = 'S1'
 
 outrootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
-#lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude'],['gmi','S1/SCstatus/SCorientation'],['gprof','S1/surfaceTypeIndex'],['gprof','S1/surfacePrecipitation']]
-lvar = [['gmi','S1/Tc']]
+#lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude'],['gmi','S1/SCstatus/SCorientation'],['gprof','S1/surfaceTypeIndex'],['gprof','S1/surfacePrecipitation'],['gmi','S1/Tc']
+lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude'],['gprof','S1/surfaceTypeIndex'],['gprof','S1/surfacePrecipitation'],['gmi','S1/Tc']]
+#lvar = [['gmi','S1/Tc']]
 
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
