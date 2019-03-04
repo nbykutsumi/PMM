@@ -47,6 +47,9 @@ srcPath = '/home/utsumi/temp/1C.GPM.GMI.XCAL2016-C.20170101-S173441-E190714.0161
 s2xPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2017/01/01/Xpy.1.016166.npy'
 s2yPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2017/01/01/Ypy.1.016166.npy'
 
+tsPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.t2m/2017/01/01/t2m.016166.npy'
+
+
 coefDir = '/work/hk01/utsumi/JPLDB/EPC_COEF/%s'%(sensor)
 dbDir   = '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE'
 
@@ -128,8 +131,6 @@ with h5py.File(srcPath, 'r') as h5:
     a2lat = h5['/S1/Latitude'][:]
     a2lon = h5['/S1/Longitude'][:]
 
-    #a2lat2= h5['/S2/Latitude'][:]
-    #a2lon2= h5['/S2/Longitude'][:]
 
 #-- Matchup and Joint S1 and S2 Tb --
 a1x2  = np.load(s2xPath).flatten()
@@ -145,20 +146,25 @@ a2tb2[a1mask] = miss
 a3tb2 = a2tb2.reshape(nytmp,nxtmp,-1)
 a3tb = concatenate([a3tb1, a3tb2],axis=2)
 
+
+#-- Read MERRA2 data ---------
+a2ts = np.load(tsPath)
+
+
 #****************************************************
 # Extract target domain
 #----------------------------------------------------
-nyTmp, nxTmp = a2lat.shape
-a1lat = a2lat[:,nxTmp/2]
-a1lon = a2lon[:,nxTmp/2]
-
-idx_latmax = np.argmax(a1lat)
-a1lat0 = a1lat[:idx_latmax+1]
-a1lat1 = a1lat[idx_latmax+1:]
-a1lon0 = a1lon[:idx_latmax+1]
-a1lon1 = a1lon[idx_latmax+1:]
-
-if (-180<=clat)and(clat <=180):
+def ret_domain_yboundary(a2lat, a2lon, clat, dlatlon, dscan):
+    nyTmp, nxTmp = a2lat.shape
+    a1lat = a2lat[:,nxTmp/2]
+    a1lon = a2lon[:,nxTmp/2]
+    
+    idx_latmax = np.argmax(a1lat)
+    a1lat0 = a1lat[:idx_latmax+1]
+    a1lat1 = a1lat[idx_latmax+1:]
+    a1lon0 = a1lon[:idx_latmax+1]
+    a1lon1 = a1lon[idx_latmax+1:]
+    
     #-- search first half: ascending --
     found_domain = 0
     idx_c  = bisect_left(a1lat0, clat)
@@ -172,28 +178,23 @@ if (-180<=clat)and(clat <=180):
         idx_c  = len(a1lat) - idx_c -1
         latTmp = a1lat[idx_c]
         lonTmp = a1lon[idx_c]
-
+    
         if (clat-dlatlon<=latTmp)&(latTmp <=clat+dlatlon)&(clon-dlatlon<=lonTmp)&(lonTmp<=clon+dlatlon):
             found_domain =1
     
     if found_domain==1:
         idx_first = idx_c - dscan
-        idx_last  = idx_c + dscan    
-        a3tb    = a3tb [idx_first:idx_last+1,:] 
-        a2lat   = a2lat[idx_first:idx_last+1,:]        
-        a2lon   = a2lon[idx_first:idx_last+1,:]
+        idx_last  = idx_c + dscan + 1 
+        return idx_first, idx_last   
 
     else:
         print 'No matching scans in the target domain are found.'
         print 'Exit'
         sys.exit()
+    
+    
 
-    print 'Extract target domain'
-    print 'Extracted array size=', a3tb.shape
-
-else:
-    pass
-
+if (-180<=clat)and(clat <=180):
 #-- test ---------------
 #a3tb  = a3tb[:10,:,:]
 #iy    = 5
