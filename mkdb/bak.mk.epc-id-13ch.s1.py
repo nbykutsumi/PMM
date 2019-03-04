@@ -18,11 +18,11 @@ NEM_USE = 3
 gmi    = l1_gmi.L1_GMI()
 
 iDTime = datetime(2017,1,1)
-eDTime = datetime(2017,12,31)
+eDTime = datetime(2017,1,1)
 #eDTime = datetime(2017,1,1)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
-cx  = 110  # GMI center angle bin (py-idx) # GMI total angle bin=221
+cx  = 110  # GMI center angle bin (py-idx)
 cw  = 15    # extract this width around center
 w   = int(cw/2)
 
@@ -179,7 +179,7 @@ def mk_epc_id_25bins(a3epc):
         a2idTmp = np.digitize(a3epc[:,:,iem], a1bin, right=False) - 1
     
         a2idTmp = ma.masked_outside(a2idTmp,0,24)
-        a2id_db = a2id_db + a2idTmp*pow(25, NEM_USE-1-iem)
+        a2id_db = a2id_db + a2idTmp*pow(25, iem)
 
     a2id_db = a2id_db.filled(-9999)
     return a2id_db

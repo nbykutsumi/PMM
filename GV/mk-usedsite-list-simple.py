@@ -87,9 +87,7 @@ for domain in ldomain:
         ngvPath   = srcDir  + '/p_ngv.npy'
 
         gnamePath = srcDir  + '/p_gName.pickle'
-        glatPath  = srcDir  + '/p_gLat.picle'
-        gLonPath  = srcDir  + '/p_gLon.picle'
-
+        
         if not os.path.exists(profPath):
             print 'no file',profPath
             print 'skip', domain, YM
@@ -148,8 +146,11 @@ for domain in ldomain:
     dnumObsSate[domain]= numObsSate
 
 
-#--- make gauge list --------
-lout = []
+#---- load site list ------
+listDir = '/work/a01/utsumi/data/GPMGV/sitelist'
+listPath= listDir + '/sitelist_reclassified.csv'
+f=open(listPath,'r'); lines=f.readlines(); f.close()
+
 for domain in sort(dgauge.keys()):
     if dnumGauge[domain]==0: continue
 
@@ -167,12 +168,4 @@ for domain in sort(dgauge.keys()):
 
     print domain, '%.2f %.2f %.2f %.2f'%(latmin,latmax,lonmin,lonmax), dnumGauge[domain], dnumObsSate[domain]
 
-    for gName in dgauge[domain]:
-        lat, lon = gv.dlatlon[domain, gName]
-        lout.append([domain,lat,lon])
-
-sout = util.list2csv(lout)
-outPath = '/work/a01/utsumi/data/GPMGV/sitelist/sitelist-usedsite.csv'
-f=open(outPath,'w'); f.write(sout); f.close()
-print outPath
 

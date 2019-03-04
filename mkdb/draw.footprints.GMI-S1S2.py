@@ -24,7 +24,8 @@ gmi = l1_gmi.L1_GMI()
 ix0 = 83   # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
 ex0 = 137  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
 cx  = 110  # GMI center angle bin (py-idx)
-cw  = 3    # look at this width at center
+cw  = ex0-ix0+1    # look at this width at center
+#cw  = 221    # look at this width at center
 w   = int(cw/2)
 
 
@@ -52,7 +53,8 @@ scori = gmi.load_var_granule(srcPathGMI, 'S1/SCstatus/SCorientation')
 
 #for itmp,y in enumerate([100,500,750,1000,1500,2000,2500]):
 #for itmp,y in enumerate([750,1000,1250,1500,1750,2000]):
-for itmp,y in enumerate([0]):
+#for itmp,y in enumerate([0]):
+for itmp,y in enumerate([0,750,1000,1250,1500,2000]):
     #iy,ey = 1000,1001
     iy,ey = y,y+2
    
@@ -60,11 +62,11 @@ for itmp,y in enumerate([0]):
     print 'S1',dtime1[iy:ey+1]
     print 'S2',dtime2[iy:ey+1]
  
-    a2lat1 = Lat1[iy:ey+1,cx-5:cx+5+1]
-    a2lon1 = Lon1[iy:ey+1,cx-5:cx+5+1]
+    a2lat1 = Lat1[iy:ey+1,cx-w:cx+w+1]
+    a2lon1 = Lon1[iy:ey+1,cx-w:cx+w+1]
 
-    a2lat2 = Lat2[iy:ey+1,cx-5:cx+5+1]
-    a2lon2 = Lon2[iy:ey+1,cx-5:cx+5+1]
+    a2lat2 = Lat2[iy:ey+1,cx-w:cx+w+1]
+    a2lon2 = Lon2[iy:ey+1,cx-w:cx+w+1]
 
 
     #-- centers ----
@@ -74,16 +76,15 @@ for itmp,y in enumerate([0]):
     a2latC2 = Lat2[iy:ey+1,cx]
     a2lonC2 = Lon2[iy:ey+1,cx]
    
-    #lllat = a2lat1.min()-0.1
-    #urlat = a2lat1.max()+0.1
-    #lllon = a2lon1.min()-0.1
-    #urlon = a2lon1.max()+0.1
-
-
     lllat = min(a2lat1.min(),a2lat2.min())-0.1
     urlat = max(a2lat1.max(),a2lat2.max())+0.1
     lllon = min(a2lon1.min(),a2lon2.min())-0.1
     urlon = max(a2lon1.max(),a2lon2.max())+0.1
+
+    #lllat = min(a2lat1[:,:30].min(),a2lat2[:,:30].min())-0.1
+    #urlat = max(a2lat1[:,:30].max(),a2lat2[:,:30].max())+0.1
+    #lllon = min(a2lon1[:,:30].min(),a2lon2[:,:30].min())-0.1
+    #urlon = max(a2lon1[:,:30].max(),a2lon2[:,:30].max())+0.1
 
 
 
@@ -97,9 +98,10 @@ for itmp,y in enumerate([0]):
     M.scatter(a2lonC1, a2latC1, marker='o',color='k',s=100, alpha=0.7)
     M.scatter(a2lonC2, a2latC2, marker='o',color='gray', s=100, alpha=0.7)
     
-    
-    meridians = arange(int(lllon)-3,int(urlon)+3,0.1)
-    parallels = arange(int(lllat)-3,int(urlat)+3,0.1)
+    #wgrid = 0.1
+    wgrid = 1 
+    meridians = arange(int(lllon)-3,int(urlon)+3,wgrid)
+    parallels = arange(int(lllat)-3,int(urlat)+3,wgrid)
 
     M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.7)
     M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.7)

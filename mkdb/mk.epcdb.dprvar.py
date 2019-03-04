@@ -31,8 +31,8 @@ worg= 221  # GMI total angle bins
 
 #lvar = [['Ku','NS/SLV/zFactorCorrected'],['Ku','NS/SLV/precipRate']]
 #lvar = [['Ku','NS/SLV/zFactorCorrected']]
-lvar = [['Ku','NS/SLV/precipRate']]
-#lvar = [['Ku','NS/SLV/precipRateESurface']]
+#lvar = [['Ku','NS/SLV/precipRate']]
+lvar = [['Ku','NS/SLV/precipRateESurface']]
 #lvar = [['Ku','NS/PRE/elevation']]
 
 
@@ -57,7 +57,7 @@ dnvect ={
 
 }
 
-#-- if vector size=11 --
+#---------------------
 maxmem = 3*1000*1000*1000 # N GB
 dmaxrec= {}
 for (radar, var) in lvar:

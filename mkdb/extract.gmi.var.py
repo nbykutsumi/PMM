@@ -6,6 +6,7 @@ import myfunc.util as util
 import myfunc.IO.GPM.l2_dpr as l2_dpr
 import myfunc.IO.GPM.l1_gmi as l1_gmi
 import myfunc.IO.GPM.l2a_gprof_hdf5 as l2a_gprof_hdf5
+import h5py
 
 import glob
 from datetime import datetime, timedelta
@@ -19,8 +20,8 @@ gprof  = l2a_gprof_hdf5.L2A_GPROF_HDF5()
 
 #iDTime = datetime(2017,6,30)
 #eDTime = datetime(2017,8,1)
-iDTime = datetime(2017,6,1)
-eDTime = datetime(2017,7,1)
+iDTime = datetime(2016,12,31)
+eDTime = datetime(2018,1,1)
 
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
@@ -36,8 +37,9 @@ mwscan = 'S1'
 outrootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
 #lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude'],['gmi','S1/SCstatus/SCorientation'],['gprof','S1/surfaceTypeIndex'],['gprof','S1/surfacePrecipitation'],['gmi','S1/Tc']
-lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude'],['gprof','S1/surfaceTypeIndex'],['gprof','S1/surfacePrecipitation'],['gmi','S1/Tc']]
+#lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude'],['gprof','S1/surfaceTypeIndex'],['gprof','S1/surfacePrecipitation'],['gmi','S1/Tc']]
 #lvar = [['gmi','S1/Tc']]
+lvar = [['gmi','S1/SCstatus/SCorientation']]
 
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
@@ -70,9 +72,13 @@ for DTime in lDTime:
 
 
             if   prod=='gmi':
-                datoutTmp = gmi.load_var_granule(srcPathGMI,var)
+                with h5py.File(srcPathGMI) as h:
+                    datoutTmp = h[var][:]
+                #datoutTmp = gmi.load_var_granule(srcPathGMI,var)
             elif prod=='gprof':
-                datoutTmp = gprof.load_var_granule(srcPathGMI,var)
+                with h5py.File(srcPathGMI) as h:
+                    datoutTmp = h[var][:]
+                #datoutTmp = gprof.load_var_granule(srcPathGMI,var)
             else:
                 print 'check prod',prod
                 sys.exit()

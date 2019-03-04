@@ -31,9 +31,9 @@ worg= 221  # GMI total angle bins
 #lvar = [['gmi','S1/Longitude']]
 #lvar = [['gmi','S1/Latitude']]
 #lvar = [['gmi','S1/pYXpmw']]
-#lvar = [['gmi','epc']]
+lvar = [['gmi','epc']]
 #lvar = [['gmi','S1/pYXpmw'],['gmi','S1/gNum'],['gmi','S1/Tc'],['gmi','S1/ScanTime/Year'],['gmi','S1/ScanTime/mdhms']]
-lvar = [['gmi','S1/pYXpmw'],['gmi','S1/gNum'],['gmi','S1/ScanTime/Year'],['gmi','S1/ScanTime/mdhms']]
+#lvar = [['gmi','S1/pYXpmw'],['gmi','S1/gNum'],['gmi','S1/ScanTime/Year'],['gmi','S1/ScanTime/mdhms']]
 #lvar = [['gmi','S1/ScanTime/Year'],['gmi','S1/ScanTime/mdhms']]
 #lvar = [['gmi','S1/gNum']]
 #lvar = [['gmi','S1/ScanTime/Year']]
@@ -141,7 +141,7 @@ for Year,Mon in lYM:
     
                 #-- Read GMI variables --
                 if varName  =='epc':
-                    NEM     = 11
+                    NEM     = 12
                     extractepcDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp103-117.GMI.epc-s1'
                     extractDir = extractepcDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
                     ssearch = extractDir + '/epc-s1.%s.npy'%(obtnum)

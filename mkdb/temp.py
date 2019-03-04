@@ -1,61 +1,118 @@
-import matplotlib
-matplotlib.use('Agg')
 from numpy import *
-from f_match_fov import *
 import h5py
+from datetime import datetime, timedelta
+import glob
+from math import cos, sin, acos 
 import numpy as np
-import matplotlib.pyplot as plt
+#lori = [0,180]
+#lori = [180]
+lori = [0]
 
-dprPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.9ave.precipRateESurface/2017/01/01/precipRateESurface.016155.npy'
-
-gmiPath = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05/2017/01/01/2A.GPM.GMI.GPROF2017v1.20170101-S003624-E020857.016155.V05A.HDF5'
-
-dprorgPath= '/work/hk01/PMM/NASA/GPM.Ku/2A/V06/2017/01/01/2A.GPM.Ku.V8-20180723.20170101-S003624-E020857.016155.V06A.HDF5'
-
-a2dpr = np.load(dprPath)
-h=h5py.File(gmiPath,'r')
-a2gmi = h['S1/surfacePrecipitation'][:,83:137+1]
-
-h=h5py.File(dprorgPath,'r')
-a2dprorg=h['NS/SLV/precipRateESurface'][:]
+drev = {0:'016608',180:'016171'}  # ori=0: 016608: 2017-1-30,  ori=180: 016171: 2017-1-2
+dictDTime= {0:datetime(2017,1,30), 180:datetime(2017,1,2)}
 
 
-print a2gmi.shape, a2dpr.shape
+nx = 221
+verGMI = '05'
+subverGMI = 'A'
+fullverGMI = '%s%s'%(verGMI,subverGMI)
+Year = 2017
+Mon  = 1
+thdist = 15
+liy  = range(0,2900+1,100)  # GMI: ny=~2963
+#liy  = range(1000,2900+1,100)  # GMI: ny=~2963
 
-a2dpr = ma.masked_less(a2dpr,0)
-a2gmi = ma.masked_less(a2gmi,0)
 
-#plt.plot(a2dpr, a2gmi,'o')
-#plt.savefig('/home/utsumi/temp/temp.png')
 
-#ny,nx  = a2gmi.shape
-#a2x, a2y = meshgrid(range(nx),range(ny))
-#
-#a1x = ma.masked_where(a2gmi<=0, a2x).compressed()
-#a1y = ma.masked_where(a2gmi<=0, a2y).compressed()
-#for i in range(len(a1x)):
-#    print a1y[i], a1x[i]
 
-xPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.IDX/2017/01/01/Xpy.1.016155.npy'
-yPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.IDX/2017/01/01/Ypy.1.016155.npy'
+#********************************************
+def hubeny(lat1, lon1, lat2, lon2):
+    #-- for calc ------------
+    a  = 6378137
+    b  = 6356752.314140
+    e2 = 0.00669438002301188
+    a_1_e2 = 6335439.32708317
+    #------------------------
+    latrad1   = lat1 * pi / 180
+    latrad2   = lat2 * pi / 180
+    lonrad1   = lon1 * pi / 180
+    lonrad2   = lon2 * pi / 180
+    
+    latave    = (latrad1 + latrad2)/2.0
+    dlat      = latrad2 - latrad1
+    dlon      = lonrad2 - lonrad1
+    
+    dlondeg   = lon2 - lon1
+    if ( abs(dlondeg) > 180.0):
+        dlondeg = 180.0 - mod(abs(dlondeg), 180.0)
+        dlon    = dlondeg * pi / 180.0
+    
+    W  = sqrt(1.0 - e2 * sin(latave)**2.0 )
+    M  =  a_1_e2 / (W**3.0)
+    N  =  a / W
+    hubeny  = sqrt( (dlat * M)**2.0 + (dlon * N * cos(latave))**2.0 )
+    return hubeny*0.001
 
-a2x = np.load(xPath)
-a2y = np.load(yPath)
+def dist_simple(lat1, lon1, lat2, lon2):
+    RADEARTH = 6371
+    RTD = 57.29578
+    DTR = 0.017453
+    
+    dist = RADEARTH*acos(cos(DTR*lon1-DTR*lon2)*cos(DTR*lat1)*cos(DTR*lat2) + sin(DTR*lat1)*sin(DTR*lat2))
+    return dist
 
-y = 2834
-x = 20
 
-ydpr = a2y[y,x]
-xdpr = a2x[y,x]
+#********************************************
+for ori in lori:
+    rev   = drev[ori]
+    DTime = dictDTime[ori]
+    Year,Mon,Day = DTime.timetuple()[:3]
 
-ave0 = a2dpr[y,x]
+    baseDirGMI = '/work/hk01/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
+    srcDirGMI  = baseDirGMI+ '/%04d/%02d/%02d'%(Year,Mon,Day)
+    #ssearchGMI = srcDirGMI + '/1C.GPM.GMI.XCAL2016-C.20170102-S011732-E025005.016171.V05A.HDF5'
+    ssearchGMI = srcDirGMI + '/1C.GPM.GMI.*.%s.*.HDF5'%(rev)
+    print ssearchGMI
+    lsrcPathGMI = glob.glob(ssearchGMI)
+    srcPathGMI  = lsrcPathGMI[0]
+    print srcPathGMI
 
-ave1 = 0
-ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
-for (dy,dx) in ldydx:
-    dprorg = a2dprorg[ydpr+dy, xdpr+dx]
-    print dprorg
-    ave1 = ave1 + dprorg
-ave1 = ave1/9.
-print ''
-print a2dpr[y,x], ave1
+    #-- Read HDF file --
+    with h5py.File(srcPathGMI) as h:
+        a2lat1 = h['S1/Latitude'][:]
+        a2lon1 = h['S1/Longitude'][:]
+        a2lat2 = h['S2/Latitude'][:]
+        a2lon2 = h['S2/Longitude'][:]
+    
+    #-- dydx file --
+    dyPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.dydx/dy.%03d.npy'%(ori)
+    dxPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.dydx/dx.%03d.npy'%(ori)
+
+    a2dy = np.load(dyPath)
+    a2dx = np.load(dxPath)
+
+    ny,nx = a2dx.shape
+    for iy1 in range(ny):
+        for ix1 in range(nx):
+
+            dy = a2dy[iy1,ix1]
+            dx = a2dx[iy1,ix1]
+
+
+            if dy !=-9999:
+                iy2 = iy1 + dy
+                ix2 = ix1 + dx
+
+                lat1 = a2lat1[iy1,ix1]
+                lon1 = a2lon1[iy1,ix1]
+                lat2 = a2lat2[iy2,ix2]
+                lon2 = a2lon2[iy2,ix2]
+                km = hubeny(lat1,lon1,lat2,lon2)
+            else:
+                iy2 = -9999
+                ix2 = -9999
+                km = -9999.
+
+            print 'iy1,ix1=',iy1,ix1,'dy,dx=',dy,dx,'km=',km
+
+

@@ -6,9 +6,9 @@ from datetime import datetime, timedelta
 rootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A'
 
 #lvarNameFull = ['GMI.Latitude','GMI.Longitude','GMI.Tc','GMI.TcS2','GMI.epc-s1','GMI.epcid-s1','GMI.surfacePrecipitation','GMI.surfaceTypeIndex','Ku.V06A.flagAnvil','Ku.V06A.heightStormTop','Ku.V06A.heightZeroDeg','Ku.V06A.typePrecip']
-#lvarNameFull = ['GMI.Tc']
+lvarNameFull = ['GMI.Tc']
 #lvarNameFull = ['Ku.V06A.typePrecip']
-lvarNameFull = ['Ku.V06A.flagAnvil','Ku.V06A.heightStormTop','Ku.V06A.heightZeroDeg','Ku.V06A.typePrecip']
+#lvarNameFull = ['Ku.V06A.flagAnvil','Ku.V06A.heightStormTop','Ku.V06A.heightZeroDeg','Ku.V06A.typePrecip']
 #lvarNameFull = ['GMI.Latitude','GMI.Longitude','GMI.Tc','GMI.TcS2','GMI.epc-s1','GMI.epcid-s1','GMI.surfacePrecipitation','GMI.surfaceTypeIndex']
 #lvarNameFull = ['GMI.Latitude','GMI.Longitude','GMI.Tc','GMI.TcS2','GMI.surfacePrecipitation','GMI.surfaceTypeIndex']
 

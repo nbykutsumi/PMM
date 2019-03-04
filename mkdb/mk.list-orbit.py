@@ -21,7 +21,7 @@ ldataoutage=[
 
 
 listDir = '/work/hk01/utsumi/PMM/EPCDB/list'
-
+util.mk_dir(listDir)
 #-- Functions ---
 def list2csv(a):
   if type(a[0]) !=list:

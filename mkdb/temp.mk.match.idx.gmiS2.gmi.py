@@ -9,10 +9,10 @@ import sys, os, glob
 from datetime import datetime, timedelta
 import numpy as np
 
-iDTime = datetime(2017,1,1)
-eDTime = datetime(2017,1,1)
 #iDTime = datetime(2016,12,31)
+iDTime = datetime(2017,7,2)
 #eDTime = datetime(2018,1,1)
+eDTime = datetime(2017,7,2)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
 
@@ -27,10 +27,6 @@ mwscan= 'S1'
 
 ix0 = 83   # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
 ex0 = 137  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
-
-#ix0 = 0   # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
-#ex0 = 220  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
-
 wx  = ex0-ix0 +1
 verGMI = '05'
 subverGMI = 'A'
@@ -57,10 +53,10 @@ for DTime in lDTime:
         sys.exit()
 
     for srcPathGMI in lsrcPathGMI:
-        print srcPathGMI
+        #print srcPathGMI
         oid       = srcPathGMI.split('.')[-3] 
 
-        #if oid != '021412':continue   # test
+        if oid != '018986':continue   # test
 
         Lat0 = gmi.load_var_granule(srcPathGMI, '%s/Latitude'%('S1'))
         Lon0 = gmi.load_var_granule(srcPathGMI, '%s/Longitude'%('S1'))
@@ -81,11 +77,12 @@ for DTime in lDTime:
         
         X1,X2,X3,X4,Y1,Y2,Y3,Y4 = f_match_fov.match_gmi_dpr(LonSub0.T, LatSub0.T, Lon1.T, Lat1.T)
         
-        print 'calc done'
+        #print 'calc done'
         X1 = X1.T
         #X2 = X2.T
         #X3 = X3.T
         #X4 = X4.T
+
         Y1 = Y1.T
         #Y2 = Y2.T
         #Y3 = Y3.T
@@ -102,13 +99,20 @@ for DTime in lDTime:
         #Y3 = (ma.masked_less(Y3,0)-1).data
         #Y4 = (ma.masked_less(Y4,0)-1).data
 
+        #y,x = 627, 111
+        #print 'S2 1st:y,x=',Y1[y,x-83], X1[y,x-83]
+        #print 'S2 2nd:y,x=',Y2[y,x-83], X2[y,x-83]
+        #print 'S2 3rd:y,x=',Y3[y,x-83], X3[y,x-83]
+        #print 'S2 4th:y,x=',Y4[y,x-83], X4[y,x-83]
+
         
+        #outDir = obaseDir + '/temp/%04d/%02d/%02d'%(Year,Mon,Day)
         outDir = obaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
         util.mk_dir(outDir)
         
         nameGMI= os.path.basename(srcPathGMI)
-        #for i in [1,2,3,4]:
-        for i in [1]:
+        #for i in [1]:
+        for i in [1,2,3,4]:
             if i==1:
                 X=X1
                 Y=Y1
