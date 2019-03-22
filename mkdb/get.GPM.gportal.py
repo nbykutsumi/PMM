@@ -1,0 +1,1 @@
+/home/utsumi/bin/PMM/get.GPM.gportal.py

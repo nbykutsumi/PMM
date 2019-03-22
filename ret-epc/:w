@@ -14,18 +14,20 @@ dscan   = 30
 BBox    = [[clat-dlatlon, clon-dlatlon],[clat+dlatlon,clon+dlatlon]]
 [[lllat,lllon],[urlat,urlon]] = BBox
 
+
+#oid = 16166
+#iy, ey = 1952, 2012
+oid = 2421
+iy, ey = 2004, 2114
+
 srcDir = '/home/utsumi/temp/out'
-prcpPath = srcDir + '/esurf.npy'
-latPath  = srcDir + '/lat.npy'
-lonPath  = srcDir + '/lon.npy'
+prcpPath = srcDir + '/esurf.%06d.y%04d-%04d.npy'%(oid, iy, ey)
+latPath  = srcDir + '/lat.%06d.y%04d-%04d.npy'%(oid, iy, ey)
+lonPath  = srcDir + '/lon.%06d.y%04d-%04d.npy'%(oid, iy, ey)
 
-a2dat = np.load(prcpPath)
-a2lat = np.load(latPath)
-a2lon = np.load(lonPath)
+jplPath  = '/home/utsumi/bin/PMM/ret-epc/GPM_EPC_002421_20140802_0726.NS_MS.nc'  # HDF file
 
-a2dat = ma.masked_less_equal(a2dat,0)
 
-ssize = 1
 #********************************
 # Functions
 #--------------------------------
@@ -79,6 +81,35 @@ def extract_domain_2D(a2dat, a2lat, a2lon, clat, clon, dlatlon, dscan):
     
     return a2odat, a2olat, a2olon 
 
+
+
+
+#*****************
+#- Read My data ----
+
+a2dat = np.load(prcpPath)
+a2lat = np.load(latPath)
+a2lon = np.load(lonPath)
+
+a2dat = ma.masked_less_equal(a2dat,0)
+
+ssize = 1
+
+#*****************
+#- Read JPL data ----
+with h5py.File(jplPath) as h:
+    a2esurfjpl = h['MS/precip1'][:]
+    a2dpr      = h['CMB/precip_MS'][:]
+    a2latjpl   = h['latitude'][:]
+    a2lonjpl   = h['longitude'][:]
+
+print a2esurfjpl.shape
+a2esurfjpl, a2latjpl, a2lonjpl = extract_domain_2D(a2esurfjpl, a2latjpl, a2lonjpl, clat, clon, dlatlon, dscan)
+a2esurfjpl = ma.masked_less_equal(a2esurfjpl,0)
+
+a2dpr, a2latjpl, a2lonjpl = extract_domain_2D(a2dpr, a2latjpl, a2lonjpl, clat, clon, dlatlon, dscan)
+a2dpr = ma.masked_less_equal(a2dpr,0)
+
 #********************************
 #-- Draw figure ---
 fig   = plt.figure(figsize=(8,8))
@@ -97,54 +128,62 @@ M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d'
 M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d')
 plt.colorbar(im, orientation='horizontal')
 
-plt.title('EPC')
+plt.title('NU')
 #*****************
-#- Read GPROF ----
-gpDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05/2017/01/01/2A.GPM.GMI.GPROF2017v1.20170101-S173441-E190714.016166.V05A.HDF5'
-with h5py.File(gpDir) as h:
-    a2esurfgp = h['S1/surfacePrecipitation'][:]
-    a2latgp   = h['S1/Latitude'][:]
-    a2longp   = h['S1/Longitude'][:]
-
-print a2esurfgp.shape
-print a2latgp.shape
-a2esurfgp, a2latgp, a2longp = extract_domain_2D(a2esurfgp, a2latgp, a2longp, clat, clon, dlatlon, dscan)
-a2esurfgp = ma.masked_less_equal(a2esurfgp,0)
-
-#- fig --
+#- Figure GPROF ----
 ax2 = fig.add_axes([0.1,0.1,0.3,0.3])
 M   = Basemap(resolution='l', llcrnrlat=lllat, llcrnrlon=lllon, urcrnrlat=urlat, urcrnrlon=urlon, ax=ax2)
-im    = M.scatter(a2longp, a2latgp, c=a2esurfgp, cmap='jet', s=ssize, vmin=0, vmax=20)
-print a2esurfgp
+im    = M.scatter(a2lonjpl, a2latjpl, c=a2esurfjpl, cmap='jet', s=ssize, vmin=0, vmax=20)
+print a2esurfjpl
 M.drawcoastlines()
 M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d')
 M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d')
 plt.colorbar(im, orientation='horizontal')
 
-plt.title('GPROF')
+plt.title('EPC-MS/CMB')
 #------------
-#- Read DPR ----
-gpDir = '/work/hk01/PMM/NASA/GPM.Ku/2A/V06/2017/01/01/2A.GPM.Ku.V8-20180723.20170101-S173441-E190714.016166.V06A.HDF5'
-with h5py.File(gpDir) as h:
-    a2datfig  = h['NS/SLV/precipRateESurface'][:]
-    a2latfig  = h['NS/Latitude'][:]
-    a2lonfig  = h['NS/Longitude'][:]
-
-a2datfig, a2latfig, a2lonfig = extract_domain_2D(a2datfig, a2latfig, a2lonfig, clat, clon, dlatlon, dscan*5)
-a2datfig = ma.masked_less_equal(a2datfig,0)
-
-#- fig --
+#- Figure DPR ----
 ax2 = fig.add_axes([0.5,0.1,0.3,0.3])
 M   = Basemap(resolution='l', llcrnrlat=lllat, llcrnrlon=lllon, urcrnrlat=urlat, urcrnrlon=urlon, ax=ax2)
-im    = M.scatter(a2lonfig, a2latfig, c=a2datfig, cmap='jet', s=ssize, vmin=0, vmax=20)
-print a2esurfgp
+im  = M.scatter(a2lonjpl, a2latjpl, c=a2dpr, cmap='jet', s=ssize, vmin=0, vmax=20)
 M.drawcoastlines()
 M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d')
 M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d')
 plt.colorbar(im, orientation='horizontal')
 
-plt.title('DPR')
-#------------
+plt.title('MS/CMB')
+
+##------------
+##- Read DPR 9grid mean ----
+#dprmeanPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.9ave.precipRateESurface/2017/01/01/precipRateESurface.016166.npy'
+#a2datfig   = np.load(dprmeanPath)
+#a2datfig   = a2datfig[iy:ey+1]
+#
+#a2datfig = ma.masked_less_equal(a2datfig,0)
+#
+##- lat and lon from GPROF ----
+#gpDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05/2017/01/01/2A.GPM.GMI.GPROF2017v1.20170101-S173441-E190714.016166.V05A.HDF5'
+#with h5py.File(gpDir) as h:
+#    a2latgmi = h['S1/Latitude'][:]
+#    a2longmi = h['S1/Longitude'][:]
+#
+#a2latfig = a2latgmi[iy:ey+1,83:137+1]
+#a2lonfig = a2longmi[iy:ey+1,83:137+1]
+#
+#print a2datfig.shape, a2latfig.shape, a2lonfig.shape
+##- fig --
+#ax2 = fig.add_axes([0.5,0.5,0.3,0.3])
+#M   = Basemap(resolution='l', llcrnrlat=lllat, llcrnrlon=lllon, urcrnrlat=urlat, urcrnrlon=urlon, ax=ax2)
+#im    = M.scatter(a2lonfig, a2latfig, c=a2datfig, cmap='jet', s=ssize, vmin=0, vmax=20)
+#print a2esurfgp
+#M.drawcoastlines()
+#M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d')
+#M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d')
+#plt.colorbar(im, orientation='horizontal')
+#
+#plt.title('DPR-9ave')
+##------------
+
 
 outPath  = srcDir + '/esurf.png'
 plt.savefig(outPath)

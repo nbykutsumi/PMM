@@ -1,5 +1,7 @@
 import numpy as np
 import numpy.ma as ma
+from bisect import bisect_left
+import sys
 #-------------------
 def mk_epc_12pc(a3tb, a2coef):
     NEM = 12
@@ -73,5 +75,70 @@ def mk_epc_id_25bins(a3epc, a2pc_edge):
     a2id_db = a2id_db.filled(-9999)
     return a2id_db
 
+
+#------------------------------------------
+def extract_domain_2D(a2dat, a2lat, a2lon, clat, clon, dlatlon, dscan):
+
+    nyTmp, nxTmp = a2lat.shape
+    a1lat = a2lat[:,nxTmp/2]
+    a1lon = a2lon[:,nxTmp/2]
+
+    idx_latmax = np.argmax(a1lat)
+    a1lat0 = a1lat[:idx_latmax+1]
+    a1lat1 = a1lat[idx_latmax+1:]
+    a1lon0 = a1lon[:idx_latmax+1]
+    a1lon1 = a1lon[idx_latmax+1:]
+
+    if (-180<=clat)and(clat <=180):
+        #-- search first half: ascending --
+        found_domain = 0
+        if len(a1lat0) !=1:
+            idx_c  = bisect_left(a1lat0, clat)
+            print 'clat=',clat
+            print 'a1lat0=',a1lat0
+            print 'a1lat1=',a1lat1
+            latTmp = a1lat0[idx_c]
+            lonTmp = a1lon0[idx_c]
+            if (clat-dlatlon<=latTmp)&(latTmp <=clat+dlatlon)&(clon-dlatlon<=lonTmp)&(lonTmp<=clon+dlatlon):
+                found_domain = 1
+
+        if found_domain !=1:
+            #-- search second half: descending --
+            idx_c  = bisect_left(a1lat1[::-1], clat)
+            idx_c  = len(a1lat) - idx_c -1
+            latTmp = a1lat[idx_c]
+            lonTmp = a1lon[idx_c]
+            print 'A',idx_c, len(a1lat1)
+            if (clat-dlatlon<=latTmp)&(latTmp <=clat+dlatlon)&(clon-dlatlon<=lonTmp)&(lonTmp<=clon+dlatlon):
+                found_domain =1
+
+                print 'B',idx_c, len(a1lat1)
+
+        if found_domain==1:
+            idx_first = idx_c - dscan
+            idx_last  = idx_c + dscan
+            if idx_first<0: idx_first=0
+            if idx_first>=len(a1lat): idx_first=len(a1lat)-1
+            if idx_last<0: idx_last=0
+            if idx_last>=len(a1lat): idx_last=len(a1lat)-1
+
+
+            a2odat  = a2dat[idx_first:idx_last+1,:]
+            a2olat  = a2lat[idx_first:idx_last+1,:]
+            a2olon  = a2lon[idx_first:idx_last+1,:]
+
+        else:
+            print 'No matching scans in the target domain are found.'
+            print 'Exit'
+            sys.exit()
+
+        print 'Extract target domain'
+        print 'Extracted array size=', a2odat.shape
+        print 'idx_c='         ,idx_c
+        print 'idx_first/last=',idx_first, idx_last
+    else:
+        pass
+
+    return a2odat, a2olat, a2olon
 
 

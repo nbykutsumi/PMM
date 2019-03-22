@@ -20,8 +20,8 @@ radar = 'Ku'
 
 #iDTime = datetime(2017,9,30)
 #eDTime = datetime(2018,1,1)
-iDTime = datetime(2017,6,1)
-eDTime = datetime(2017,7,1)
+iDTime = datetime(2017,1,1)
+eDTime = datetime(2017,12,1)
 
 
 #iDTime = datetime(2017,6,30)

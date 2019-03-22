@@ -21,10 +21,10 @@ elif myhost =="well":
 #GPM/TRMM.TMI/L2A12/07/2014/
 
 
-#iDTime  = datetime(2016,12,31)
-iDTime  = datetime(2017,1,1)
+iDTime  = datetime(2014,8,2)
+#iDTime  = datetime(2017,1,1)
 #eDTime  = datetime(2017,12,20)
-eDTime  = datetime(2017,1,1)
+eDTime  = datetime(2014,8,2)
 dDTime  = timedelta(days=1)
 lDTime  = util.ret_lDTime(iDTime, eDTime, dDTime)
 

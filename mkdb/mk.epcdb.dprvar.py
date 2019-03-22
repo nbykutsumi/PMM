@@ -19,6 +19,7 @@ iYM = [2017,1]
 eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
 lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
+#lepcid_range = [[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
 
 
 
@@ -32,8 +33,9 @@ worg= 221  # GMI total angle bins
 #lvar = [['Ku','NS/SLV/zFactorCorrected'],['Ku','NS/SLV/precipRate']]
 #lvar = [['Ku','NS/SLV/zFactorCorrected']]
 #lvar = [['Ku','NS/SLV/precipRate']]
-lvar = [['Ku','NS/SLV/precipRateESurface']]
-#lvar = [['Ku','NS/PRE/elevation']]
+#lvar = [['Ku','NS/SLV/precipRateESurface']]
+lvar = [['Ku','NS/PRE/elevation'],['Ku','NS/CSF/typePrecip'],['Ku','NS/PRE/heightStormTop']]
+#lvar = [['Ku','NS/PRE/heightStormTop']]
 
 
 
@@ -46,7 +48,9 @@ dattype={
  'NS/SLV/zFactorCorrected': 'float32'
 ,'NS/SLV/precipRate':       'float32'
 ,'NS/SLV/precipRateESurface':'float32'
-,'NS/PRE/elevation':        'float32'
+,'NS/PRE/elevation':        'int16'  # float32 --> int16
+,'NS/CSF/typePrecip':       'int16'  # convert to int16 (-32768, 32767)
+,'NS/PRE/heightStormTop':   'int16'  # save as int16 (-32768, 32767)
 }
 
 dnvect ={
@@ -54,6 +58,8 @@ dnvect ={
 ,'NS/SLV/precipRate':       50
 ,'NS/SLV/precipRateESurface':1
 ,'NS/PRE/elevation':        1
+,'NS/CSF/typePrecip':       1
+,'NS/PRE/heightStormTop':   1
 
 }
 
@@ -175,6 +181,34 @@ def ave_9grids_2d(a2in, a1y, a1x, miss):
     a1datTmp[a1dprmask] = miss
     return a1datTmp
 
+def sum_9grids_2d(a2in, a1y, a1x, miss):
+    '''
+    returns 1-d array with the size of (nl)
+    a2in: (ny,nx)
+    nl = len(a1y)=len(a1x)
+    output: (nl)
+    '''
+    #-- Average 9 grids (over Linearlized Z)--
+    nydpr,nxdpr = a2in.shape
+    ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
+
+    a1dprmask   = False
+
+    a2datTmp    = empty([9,len(a1y)], float32)
+
+    for itmp, [dy,dx] in enumerate(ldydx):
+        a1yTmp  = ma.masked_outside(a1y + dy, 0,nydpr-1)
+        a1xTmp  = ma.masked_outside(a1x + dx, 0,nxdpr-1)
+        a1dprmask= a1dprmask + a1yTmp.mask + a1xTmp.mask
+        
+        a1datTmp= a2in[a1yTmp.filled(0),a1xTmp.filled(0)]
+
+        a2datTmp[itmp,:] = a1datTmp
+
+    a1datTmp = ma.masked_equal(a2datTmp,miss).sum(axis=0)
+    a1datTmp[a1dprmask] = miss
+    return a1datTmp
+
 
 
 #---------------
@@ -284,6 +318,48 @@ for Year,Mon in lYM:
                         miss=-9999.9
    
                     Dat     = ave_9grids_2d(Dat0, a1dpry, a1dprx, miss=miss)
+
+
+                elif varName in ['elevation']:
+                    with h5py.File(srcPath) as h:
+                        Dat0 = (h[var][:]).astype(dattype[var])
+
+                    a1dpryTmp = ma.masked_less(a1dpry,0).filled(0)
+                    a1dprxTmp = ma.masked_less(a1dprx,0).filled(0)
+                    Dat = Dat0[a1dpryTmp, a1dprxTmp]
+                    if dattype[var] in ['int32','int16']:
+                        miss = -9999
+                    elif dattype[var] in ['float32']:
+                        miss = -9999.9
+                    Dat = ma.masked_where(a1dpry==-9999, Dat).filled(miss)
+   
+                elif varName in ['typePrecip']:
+                    with h5py.File(srcPath) as h:
+                        Dat0 = (h[var][:]/10000000).astype(dattype[var])
+                    DatStrat = ma.masked_not_equal(Dat0,1).filled(0)
+                    DatConv  = ma.masked_not_equal(Dat0,2).filled(0)/2
+                    DatOther = ma.masked_not_equal(Dat0,3).filled(0)/3
+
+                    DatStrat = sum_9grids_2d(DatStrat, a1dpry, a1dprx, miss=0).filled(0)
+                    DatConv  = sum_9grids_2d(DatConv,  a1dpry, a1dprx, miss=0).filled(0)
+                    DatOther = sum_9grids_2d(DatOther, a1dpry, a1dprx, miss=0).filled(0)
+                    Dat = (DatStrat + DatConv*10 + DatOther*100)
+
+
+                elif varName in ['heightStormTop']:
+                    with h5py.File(srcPath) as h:
+                        Dat0 = ma.masked_greater(h[var][:], 32767).filled(32767).astype(dattype[var])
+
+                    a1dpryTmp = ma.masked_less(a1dpry,0).filled(0)
+                    a1dprxTmp = ma.masked_less(a1dprx,0).filled(0)
+                    Dat = Dat0[a1dpryTmp, a1dprxTmp]
+                    if dattype[var] in ['int32','int16']:
+                        miss = -9999
+                    elif dattype[var] in ['float32']:
+                        miss = -9999.9
+                    Dat = ma.masked_where(a1dpry==-9999, Dat).filled(miss)
+                    print Dat.min(),Dat.max()
+
                 else:
                     print 'check varName',varName
                     sys.exit()
