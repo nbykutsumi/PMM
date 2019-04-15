@@ -15,14 +15,14 @@ BBox    = [[clat-dlatlon, clon-dlatlon],[clat+dlatlon,clon+dlatlon]]
 [[lllat,lllon],[urlat,urlon]] = BBox
 
 
-oid = 16166
-iy, ey = 1952, 2012
+oid = 2421
+iy, ey = 2034, 2084
 #********************************
 #-- My retrieval --
 srcDir = '/home/utsumi/temp/out'
-prcpPath = srcDir + '/esurf.%06d.y%04d-%04d.npy'%(oid, iy, ey)
-latPath  = srcDir + '/lat.%06d.y%04d-%04d.npy'%(oid, iy, ey)
-lonPath  = srcDir + '/lon.%06d.y%04d-%04d.npy'%(oid, iy, ey)
+prcpPath = srcDir + '/esurf.%06d.y%04d-%04d.replace.npy'%(oid, iy, ey)
+latPath  = srcDir + '/lat.%06d.y%04d-%04d.replace.npy'%(oid, iy, ey)
+lonPath  = srcDir + '/lon.%06d.y%04d-%04d.replace.npy'%(oid, iy, ey)
 
 a2epc = np.load(prcpPath)
 a2epc = ma.masked_less(a2epc,0)

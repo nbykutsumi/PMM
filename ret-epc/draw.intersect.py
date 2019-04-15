@@ -7,6 +7,7 @@ from numpy import *
 import h5py
 from bisect import bisect_left
 import sys
+import epcfunc
 
 clat    = 30.00
 clon    = 269.0 -360  # -180 - +180

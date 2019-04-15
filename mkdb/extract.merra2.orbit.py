@@ -9,8 +9,8 @@ import myfunc.util as util
 import glob
 
 
-iDTime = datetime(2014,8,2)
-eDTime = datetime(2014,8,2)
+iDTime = datetime(2016,4,18)
+eDTime = datetime(2016,4,18)
 lDTimeDay = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 gmibaseDir = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05'

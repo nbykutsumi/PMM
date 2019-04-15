@@ -1,26 +1,30 @@
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from numpy import *
 import h5py
-with h5py.File('GPM_EPC_002421_20140802_0726.NS_MS.nc') as h:
-    a2lat = h['latitude'][:]
-    a2lon = h['longitude'][:]
-    a2idx = h['db_index'][:]
-    a3Tb  = h['Tb'][:]
-    a3epc = h['pc_emis'][:]
-    #print h.items()
+#import netCDF4
+srcPath='/home/utsumi/bin/PMM/ret-epc/GPM_EPC_012149_20160418_1228.NS_MS.nc'
+#nc = netCDF4.Dataset(srcPath,'r')
+#print nc.variables
 
-ny,nx = a2lat.shape
-for iy in range(ny):
-    for ix in range(nx):
-        lat = a2lat[iy,ix]
-        lon = a2lon[iy,ix]
-        if (14.997182-0.001<=lat)&(lat <=14.997182+0.001):
-            if (2.0716197-0.001<=lon)&(lon <=2.0716197+0.001):
-                y = iy
-                x = ix
-                print y,x
-                break 
+with h5py.File(srcPath) as h:
+    print h.items()
+    a2lat0 = h['/latitude'][:]
+    a2lon0 = h['/longitude'][:]
+    a2lat1 = h['/DPR/latitude'][:]
+    a2lon1 = h['/DPR/longitude'][:]
 
-print 'Tb=    ', a3Tb[y,x,:]
-print ''
-print 'EPC=   ', a3epc[y,x,:]
-print ''
-print 'db_idx=', a2idx[y,x]
+
+miss = -9999.
+a2lat0 = ma.masked_equal(a2lat0,miss)
+a2lat1 = ma.masked_equal(a2lat1,miss)
+a2lon0 = ma.masked_equal(a2lon0,miss)
+a2lon1 = ma.masked_equal(a2lon1,miss)
+
+plt.scatter(a2lat0,a2lat1)
+plt.savefig('/home/utsumi/temp/out/lat.png')
+plt.clf()
+plt.scatter(a2lon0,a2lon1)
+plt.savefig('/home/utsumi/temp/out/lon.png')
+plt.clf()

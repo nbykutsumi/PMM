@@ -13,8 +13,8 @@ import h5py
 
 #iDTime = datetime(2017,1,1)
 #eDTime = datetime(2017,12,31)
-iDTime = datetime(2014,8,2)
-eDTime = datetime(2014,8,2)
+iDTime = datetime(2016,4,18)
+eDTime = datetime(2016,4,18)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
 

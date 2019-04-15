@@ -77,7 +77,7 @@ def mk_epc_id_25bins(a3epc, a2pc_edge):
 
 
 #------------------------------------------
-def extract_domain_2D(a2dat, a2lat, a2lon, clat, clon, dlatlon, dscan):
+def extract_domain_2D(a2dat, a2lat, a2lon, clat, clon, dlatlon, dscan, returnidx=False):
 
     nyTmp, nxTmp = a2lat.shape
     a1lat = a2lat[:,nxTmp/2]
@@ -138,7 +138,9 @@ def extract_domain_2D(a2dat, a2lat, a2lon, clat, clon, dlatlon, dscan):
         print 'idx_first/last=',idx_first, idx_last
     else:
         pass
-
-    return a2odat, a2olat, a2olon
+    if returnidx==False:
+        return a2odat, a2olat, a2olon
+    else:
+        return a2odat, a2olat, a2olon, idx_first, idx_last
 
 

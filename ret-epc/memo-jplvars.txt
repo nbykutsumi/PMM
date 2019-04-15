@@ -1,24 +1,83 @@
-[(u'CMB', <HDF5 group "/CMB" (4 members)>),
- (u'DPR', <HDF5 group "/DPR" (11 members)>),
- (u'GPROF', <HDF5 group "/GPROF" (6 members)>),
- (u'MERRA2', <HDF5 group "/MERRA2" (6 members)>),
- (u'MS', <HDF5 group "/MS" (18 members)>),
- (u'NS', <HDF5 group "/NS" (16 members)>),
- (u'Tb', <HDF5 dataset "Tb": shape (101, 221, 13), type "<f4">),
- (u'db_index', <HDF5 dataset "db_index": shape (101, 221), type "<i2">),
- (u'emis', <HDF5 dataset "emis": shape (101, 221, 12), type "<f4">),
- (u'epc_compare', <HDF5 dataset "epc_compare": shape (12,), type "<i2">),
- (u'incidence_angle',
-  <HDF5 dataset "incidence_angle": shape (101, 221), type "<f4">),
- (u'latitude', <HDF5 dataset "latitude": shape (101, 221), type "<f4">),
- (u'longitude', <HDF5 dataset "longitude": shape (101, 221), type "<f4">),
- (u'nem', <HDF5 dataset "nem": shape (12,), type ">f4">),
- (u'nlev', <HDF5 dataset "nlev": shape (88,), type ">f4">),
- (u'nlev_precip', <HDF5 dataset "nlev_precip": shape (22,), type ">f4">),
- (u'npix', <HDF5 dataset "npix": shape (221,), type ">f4">),
- (u'nscan', <HDF5 dataset "nscan": shape (101,), type ">f4">),
- (u'ntb', <HDF5 dataset "ntb": shape (13,), type ">f4">),
- (u'pc_emis', <HDF5 dataset "pc_emis": shape (101, 221, 12), type "<f4">),
- (u'tb_compare', <HDF5 dataset "tb_compare": shape (13,), type "<i2">),
- (u'time', <HDF5 dataset "time": shape (101,), type "<f8">)]
-
+CMB 		 <HDF5 group "/CMB" (4 members)>
+	precip_NS 	 <HDF5 dataset "precip_NS": shape (101, 221), type "<f4">
+	precip_MS 	 <HDF5 dataset "precip_MS": shape (101, 221), type "<f4">
+	precip_prof_NS 	 <HDF5 dataset "precip_prof_NS": shape (101, 221, 22), type "<i2">
+	precip_prof_MS 	 <HDF5 dataset "precip_prof_MS": shape (101, 221, 22), type "<i2">
+DPR 		 <HDF5 group "/DPR" (11 members)>
+	latitude 	 <HDF5 dataset "latitude": shape (101, 221), type "<f4">
+	longitude 	 <HDF5 dataset "longitude": shape (101, 221), type "<f4">
+	precip_NS 	 <HDF5 dataset "precip_NS": shape (101, 221), type "<f4">
+	precip_MS 	 <HDF5 dataset "precip_MS": shape (101, 221), type "<f4">
+	elevation 	 <HDF5 dataset "elevation": shape (101, 221), type "<i2">
+	h20dB_ku 	 <HDF5 dataset "h20dB_ku": shape (101, 221), type "<i2">
+	h20dB_ka 	 <HDF5 dataset "h20dB_ka": shape (101, 221), type "<i2">
+	type_precip_NS 	 <HDF5 dataset "type_precip_NS": shape (101, 221), type "<i2">
+	shallow_rain_NS 	 <HDF5 dataset "shallow_rain_NS": shape (101, 221), type "<i2">
+	z_ku 	 <HDF5 dataset "z_ku": shape (101, 221, 88), type "<i2">
+	z_ka 	 <HDF5 dataset "z_ka": shape (101, 221, 88), type "<i2">
+GPROF 		 <HDF5 group "/GPROF" (6 members)>
+	precip 	 <HDF5 dataset "precip": shape (101, 221), type "<f4">
+	precip_prob 	 <HDF5 dataset "precip_prob": shape (101, 221), type "<f4">
+	t2m_index 	 <HDF5 dataset "t2m_index": shape (101, 221), type "<i2">
+	tqv_index 	 <HDF5 dataset "tqv_index": shape (101, 221), type "|i1">
+	frozen_precip 	 <HDF5 dataset "frozen_precip": shape (101, 221), type "<f4">
+	sfc_class 	 <HDF5 dataset "sfc_class": shape (101, 221), type "|i1">
+MERRA2 		 <HDF5 group "/MERRA2" (6 members)>
+	ts 	 <HDF5 dataset "ts": shape (101, 221), type "<f4">
+	t2m 	 <HDF5 dataset "t2m": shape (101, 221), type "<f4">
+	t2m_dew 	 <HDF5 dataset "t2m_dew": shape (101, 221), type "<f4">
+	t2m_wet 	 <HDF5 dataset "t2m_wet": shape (101, 221), type "<f4">
+	tqv 	 <HDF5 dataset "tqv": shape (101, 221), type "<f4">
+	h273 	 <HDF5 dataset "h273": shape (101, 221), type "<i2">
+MS 		 <HDF5 group "/MS" (18 members)>
+	precip 	 <HDF5 dataset "precip": shape (101, 221), type "<f4">  # precip_MS_cmb
+	precip2 	 <HDF5 dataset "precip2": shape (101, 221), type "<f4">  # precip_nsfc_MS 
+	precip_prob 	 <HDF5 dataset "precip_prob": shape (101, 221), type "<f4">
+	precip2_prob 	 <HDF5 dataset "precip2_prob": shape (101, 221), type "<f4">
+	quality 	 <HDF5 dataset "quality": shape (101, 221), type "<i4">
+	type_precip 	 <HDF5 dataset "type_precip": shape (101, 221), type "<i2">
+	shallow_rain 	 <HDF5 dataset "shallow_rain": shape (101, 221), type "<i2">
+	ts 	 <HDF5 dataset "ts": shape (101, 221), type "<f4">
+	t2m 	 <HDF5 dataset "t2m": shape (101, 221), type "<f4">
+	tqv 	 <HDF5 dataset "tqv": shape (101, 221), type "<f4">
+	h273 	 <HDF5 dataset "h273": shape (101, 221), type "<i2">
+	h20dB_ku 	 <HDF5 dataset "h20dB_ku": shape (101, 221), type "<i2">
+	h20dB_ka 	 <HDF5 dataset "h20dB_ka": shape (101, 221), type "<i2">
+	precip_prof 	 <HDF5 dataset "precip_prof": shape (101, 221, 22), type "<i2">
+	precip2_prof 	 <HDF5 dataset "precip2_prof": shape (101, 221, 22), type "<i2">
+	z_ku_1 	 <HDF5 dataset "z_ku_1": shape (101, 221, 88), type "<i2">
+	z_ka_1 	 <HDF5 dataset "z_ka_1": shape (101, 221, 88), type "<i2">
+	Tb_1 	 <HDF5 dataset "Tb_1": shape (101, 221, 13), type "<f4">
+NS 		 <HDF5 group "/NS" (16 members)>
+	precip 	 <HDF5 dataset "precip": shape (101, 221), type "<f4">
+	precip2 	 <HDF5 dataset "precip2": shape (101, 221), type "<f4">
+	precip_prob 	 <HDF5 dataset "precip_prob": shape (101, 221), type "<f4">
+	precip2_prob 	 <HDF5 dataset "precip2_prob": shape (101, 221), type "<f4">
+	quality 	 <HDF5 dataset "quality": shape (101, 221), type "<i4">
+	type_precip 	 <HDF5 dataset "type_precip": shape (101, 221), type "<i2">
+	shallow_rain 	 <HDF5 dataset "shallow_rain": shape (101, 221), type "<i2">
+	ts 	 <HDF5 dataset "ts": shape (101, 221), type "<f4">
+	t2m 	 <HDF5 dataset "t2m": shape (101, 221), type "<f4">
+	tqv 	 <HDF5 dataset "tqv": shape (101, 221), type "<f4">
+	h273 	 <HDF5 dataset "h273": shape (101, 221), type "<i2">
+	h20dB_ku 	 <HDF5 dataset "h20dB_ku": shape (101, 221), type "<i2">
+	precip_prof 	 <HDF5 dataset "precip_prof": shape (101, 221, 22), type "<i2">
+	precip2_prof 	 <HDF5 dataset "precip2_prof": shape (101, 221, 22), type "<i2">
+	z_ku_1 	 <HDF5 dataset "z_ku_1": shape (101, 221, 88), type "<i2">
+	Tb_1 	 <HDF5 dataset "Tb_1": shape (101, 221, 13), type "<f4">
+Tb 		 <HDF5 dataset "Tb": shape (101, 221, 13), type "<f4">
+db_index 		 <HDF5 dataset "db_index": shape (101, 221), type "<i2">
+emis 		 <HDF5 dataset "emis": shape (101, 221, 12), type "<f4">
+epc_compare 		 <HDF5 dataset "epc_compare": shape (12,), type "<i2">
+incidence_angle 		 <HDF5 dataset "incidence_angle": shape (101, 221), type "<f4">
+latitude 		 <HDF5 dataset "latitude": shape (101, 221), type "<f4">
+longitude 		 <HDF5 dataset "longitude": shape (101, 221), type "<f4">
+nem 		 <HDF5 dataset "nem": shape (12,), type ">f4">
+nlev 		 <HDF5 dataset "nlev": shape (88,), type ">f4">
+nlev_precip 		 <HDF5 dataset "nlev_precip": shape (22,), type ">f4">
+npix 		 <HDF5 dataset "npix": shape (221,), type ">f4">
+nscan 		 <HDF5 dataset "nscan": shape (101,), type ">f4">
+ntb 		 <HDF5 dataset "ntb": shape (13,), type ">f4">
+pc_emis 		 <HDF5 dataset "pc_emis": shape (101, 221, 12), type "<f4">
+tb_compare 		 <HDF5 dataset "tb_compare": shape (13,), type "<i2">
+time 		 <HDF5 dataset "time": shape (101,), type "<f8">
