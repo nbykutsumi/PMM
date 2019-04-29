@@ -8,19 +8,24 @@ import h5py
 from bisect import bisect_left
 import sys
 import epcfunc
+import glob
 
-clat    = 30.00
-clon    = 269.0 -360  # -180 - +180
+clat    = 32.
+#clon    = 269.0 -360  # -180 - +180
+clon    = -94
 dlatlon = 6
 dscan   = 30
 BBox    = [[clat-dlatlon, clon-dlatlon],[clat+dlatlon,clon+dlatlon]]
 [[lllat,lllon],[urlat,urlon]] = BBox
 
-
-oid = 16166
-iy, ey = 1952, 2012
+maxrec = 20000
+oid = 12149
+iy, ey = 1038, 1098
 ssize = 1
 
+Year,Mon,Day = 2016,4,18
+
+jplPath = '/home/utsumi/bin/PMM/ret-epc/GPM_EPC_012149_20160418_1228.NS_MS.nc'  # HDF file, QJRMS case
 #********************************
 # Functions
 #--------------------------------
@@ -114,9 +119,9 @@ def average_2ranges_3d(a3in,miss=None,dtype=float32, fill=True):
 
 #-- Retrieval --
 srcDir = '/home/utsumi/temp/out'
-profPath = srcDir + '/prprof.%06d.y%04d-%04d.npy'%(oid, iy, ey)
-latPath  = srcDir + '/lat.%06d.y%04d-%04d.npy'%(oid, iy, ey)
-lonPath  = srcDir + '/lon.%06d.y%04d-%04d.npy'%(oid, iy, ey)
+profPath = srcDir + '/prprof.%06d.y%04d-%04d.nrec%05d.npy'%(oid, iy, ey, maxrec)
+latPath  = srcDir + '/lat.%06d.y%04d-%04d.nrec%05d.npy'%(oid, iy, ey, maxrec)
+lonPath  = srcDir + '/lon.%06d.y%04d-%04d.nrec%05d.npy'%(oid, iy, ey, maxrec)
 
 a3epc = np.load(profPath)
 a2lat = np.load(latPath)
@@ -136,7 +141,7 @@ a2lon = np.load(lonPath)[:,110]
 a2epc = ma.masked_less_equal(a2epc,0)*0.01
 
 #-- Cooresponding DPR yx --------
-srcDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.IDX/2017/01/01'
+srcDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.IDX/%04d/%02d/%02d'%(Year,Mon,Day)
 xPath= srcDir + '/Xpy.1.%06d.npy'%(oid)
 yPath= srcDir + '/Ypy.1.%06d.npy'%(oid)
 
@@ -145,7 +150,9 @@ a1xdpr = np.load(xPath)[iy:ey+1,110-83]
 a1ydpr = np.load(yPath)[iy:ey+1,110-83]
 
 #-- Read DPR ----
-srcPath = '/work/hk01/PMM/NASA/GPM.Ku/2A/V06/2017/01/01/2A.GPM.Ku.V8-20180723.20170101-S173441-E190714.016166.V06A.HDF5'
+srcDir  = '/work/hk01/PMM/NASA/GPM.Ku/2A/V06/%04d/%02d/%02d'%(Year,Mon,Day)
+srcPath = glob.glob(srcDir + '/2A.GPM.Ku.*.%06d.V06A.HDF5'%(oid))[0]
+#srcPath = '/work/hk01/PMM/NASA/GPM.Ku/2A/V06/2017/01/01/2A.GPM.Ku.V8-20180723.20170101-S173441-E190714.016166.V06A.HDF5'
 with h5py.File(srcPath) as h:
     #a3dpr = h['NS/SLV/precipRate'][:]
     a3dpr = h['NS/SLV/precipRate'][:]
@@ -153,7 +160,6 @@ with h5py.File(srcPath) as h:
     a2londpr = h['NS/Longitude'][:]
     a2cfbBin = h['NS/PRE/binClutterFreeBottom'][:]
     a2surfBin= h['NS/PRE/binRealSurface'][:]
-
 
 #- extract lower levels --
 a3dpr = a3dpr[:,:,-44:]
@@ -163,6 +169,16 @@ a3dpr = average_2ranges_3d(a3dpr, miss=-9999.9)
 a2dpr = ave_9grids_3d(a3dpr, a1ydpr, a1xdpr, miss=-9999.9)
 
 
+#*****************
+#- Read JPL data ----
+with h5py.File(jplPath) as h:
+    a3profjpl   = h['MS/precip_prof'][:]
+    a2latjplOrg = h['latitude'][:]
+    a2lonjplOrg = h['longitude'][:]
+
+a2tmp, a2latjpl, a2lonjpl, idx0, idx1 = epcfunc.extract_domain_2D(a2latjpl, a2latjplOrg, a2lonjplOrg, clat, clon, dlatlon, dscan, returnidx=True)
+a3profjpl = a3profjpl[idx0:idx1+1,:,:]
+a3profjpl = ma.masked_less_equal(a3profjpl,0)
 
 #-- compair --
 a2dprTmp = a3dpr[a1ydpr, a1xdpr,:]
@@ -201,6 +217,6 @@ ax  = fig.add_axes([0.2,0.1,0.6,0.05])
 plt.colorbar(im, cax=ax, orientation='horizontal')
 #- Save --
 figDir  = '/home/utsumi/temp/out'
-figPath = figDir + '/intersect.png'
+figPath = figDir + '/intersect.%06d.png'%(oid)
 plt.savefig(figPath)
 print figPath

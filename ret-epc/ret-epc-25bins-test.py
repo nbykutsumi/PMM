@@ -295,8 +295,13 @@ lidxset  = sort(lidxset)
 nyout,nxout = a2idx_db.shape
 
 #-- Initialize output array ---
-a2esurf  = ones([nyout,nxout],float32)*miss
-a3prprof = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+a2nsurfMS    = ones([nyout,nxout],float32)*miss
+a2nsurfNS    = ones([nyout,nxout],float32)*miss
+a2nsurfMScmb = ones([nyout,nxout],float32)*miss
+a2nsurfNScmb = ones([nyout,nxout],float32)*miss
+
+a3prprofNS   = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+a3prprofNScmb= ones([nyout,nxout,NLEV_PRECIP],float32)*miss
 
 #-- Start retrieve --
 X,Y = meshgrid(range(nxout),range(nyout))
@@ -376,39 +381,52 @@ for i,idx_db in enumerate(lidxset):
         print 'set file done' 
         print 'read DB'
         a2epcdbTmp = db.get_var('pc_emis', nrec=DB_MAXREC)[:,:NEM]  # (nrec, 12)
-        a1esurfTmp = db.get_var('precip_MS_cmb', nrec=DB_MAXREC)
+        a1nsurfMScmbTmp = db.get_var('precip_MS_cmb', nrec=DB_MAXREC)
+        a1nsurfNScmbTmp = db.get_var('precip_NS_cmb', nrec=DB_MAXREC)
+        a1nsurfMSTmp    = db.get_var('precip_esfc_MS', nrec=DB_MAXREC)
+        a1nsurfNSTmp    = db.get_var('precip_esfc_NS', nrec=DB_MAXREC)
 
+        #a2prprofNSTmp   = ma.masked_less(db.get_var('precip_prof_MS',     nrec=DB_MAXREC), 0).filled(0.0)
+        a2prprofNSTmp   = db.get_var('precip_prof_NS',     nrec=DB_MAXREC)  # test
+        a2prprofNScmbTmp= ma.masked_less(db.get_var('precip_prof_NS_cmb', nrec=DB_MAXREC), 0).filled(0.0)
 
-        a2prprofTmp= ma.masked_less(db.get_var('precip_prof_MS_cmb', nrec=DB_MAXREC), 0).filled(0.0)
-
-
-        a1tsdbTmp  = db.get_var('t2m', nrec=DB_MAXREC) 
+        a1t2mdbTmp = db.get_var('t2m', nrec=DB_MAXREC) 
+        a1tsdbTmp  = db.get_var('ts',  nrec=DB_MAXREC) 
+        a1tqvdbTmp = db.get_var('tqv', nrec=DB_MAXREC) 
         a1revdbTmp = db.get_var('rev', nrec=DB_MAXREC) 
         a1elevdbTmp= db.get_var('elev', nrec=DB_MAXREC) 
         print 'read DB done'
-        print 'imported DB record length=%d'%(len(a1esurfTmp))
-        a1irecTmp  = arange(len(a1esurfTmp)).astype(int32) 
+        print 'MS: imported DB record length=%d'%(len(a1nsurfMSTmp))
+        print 'NS: imported DB record length=%d'%(len(a1nsurfMSTmp))
  
         #-- Stack data --
         if (iidx_db==0):
             a2epcdb = a2epcdbTmp
-            a1esurf = a1esurfTmp
-            a2prprof= a2prprofTmp
+            a1nsurfMScmb = a1nsurfMScmbTmp
+            a1nsurfNScmb = a1nsurfNScmbTmp
+            a1nsurfMS    = a1nsurfMSTmp
+            a1nsurfNS    = a1nsurfNSTmp
+
+            a2prprofNS    = a2prprofNSTmp
+            a2prprofNScmb = a2prprofNScmbTmp
 
             a1tsdb  = a1tsdbTmp
             a1revdb = a1revdbTmp
             a1elevdb= a1elevdbTmp
-            a1irec  = a1irecTmp
 
         else:
             a2epcdb = concatenate([a2epcdb,  a2epcdbTmp],axis=0)
-            a1esurf = concatenate([a1esurf,  a1esurfTmp], axis=0)
-            a2prprof= concatenate([a2prprof, a2prprofTmp], axis=0)
+            a1nsurfMScmb = concatenate([a1nsurfMScmb,  a1nsurfMScmbTmp], axis=0)
+            a1nsurfNScmb = concatenate([a1nsurfNScmb,  a1nsurfNScmbTmp], axis=0)
+            a1nsurfMS    = concatenate([a1nsurfMS,     a1nsurfMSTmp], axis=0)
+            a1nsurfNS    = concatenate([a1nsurfNS,     a1nsurfNSTmp], axis=0)
+
+            a2prprofNS    = concatenate([a2prprofNS, a2prprofNSTmp], axis=0)
+            a2prprofNScmb = concatenate([a2prprofNScmb, a2prprofNScmbTmp], axis=0)
 
             a1tsdb  = concatenate([a1tsdb,   a1tsdbTmp], axis=0) 
             a1revdb = concatenate([a1revdb,  a1revdbTmp], axis=0) 
             a1elevdb= concatenate([a1elevdb, a1elevdbTmp], axis=0) 
-            a1irec  = concatenate([a1irec,   a1irecTmp], axis=0) 
 
     #******************************
     #-- Start loop over y,x with the same idx_db --
@@ -435,17 +453,17 @@ for i,idx_db in enumerate(lidxset):
         #-- Discard entries from same granule (revolution) --
         a1revflag = ma.masked_not_equal(a1revdb, oid).mask
 
-        #-- Only valid precip entries --
-        a1prflag  = ma.masked_greater_equal(a1esurf,0).mask
+        #-- Only valid precip entries (two scans: NS & MS)--
+        ### Make only 2 types(NS & MS) based on DPR  ###
+        ### Share for DPR and combined               ###
+
+        a1prflagNS = ma.masked_greater_equal(a1nsurfNS,0).mask
+        a1prflagMS = ma.masked_greater_equal(a1nsurfMS,0).mask
 
         #-- Ts --
         ts    = a2ts[y,x]
 
         a1tsflag = ma.masked_inside( a1tsdb-ts, -MAX_T2M_DIFF, MAX_T2M_DIFF).mask
-        #if ts < 0:
-        #    a1tsflag = ma.masked_less(a1tsdb, 0).mask
-        #else:
-        #    a1tsflag = ma.masked_greater_equal(a1tsdb, 0).mask
 
         ##-- Elevation --
         #elev = a2elev[y,x]
@@ -460,82 +478,96 @@ for i,idx_db in enumerate(lidxset):
         #    print 'check elev',elev
         #    sys.exit()
         
-        ##-- test -----------
-        #irec = 19187
-        #print 'prflag=',a1prflag[irec]
-        #print 'tsflag=',a1tsflag[irec]
-        #print 'revflag=',a1revflag[irec]
-        #sys.exit()
-
         #-- Screen DB candidates --
-        a1flag    = a1prflag * a1tsflag * a1revflag
-        #a1flag    = a1tsflag * a1revflag
+        a1flagNS   = a1prflagNS * a1tsflag * a1revflag
+        a1flagMS   = a1prflagMS * a1tsflag * a1revflag
 
-        a2epcdbSC = a2epcdb[a1flag]
-        a1esurfSC = a1esurf[a1flag]
-        a2prprofSC= a2prprof[a1flag]
-        a1irecSC  = a1irec[a1flag]
+        a2epcdbMSSC = a2epcdb[a1flagMS]
+        a2epcdbNSSC = a2epcdb[a1flagNS]
+
+        a1nsurfMScmbSC = a1nsurfMScmb[a1flagMS]
+        a1nsurfNScmbSC = a1nsurfNScmb[a1flagNS]
+        a1nsurfMSSC    = a1nsurfMS   [a1flagMS]
+        a1nsurfNSSC    = a1nsurfNS   [a1flagNS]
+
+        a2prprofNSSC   = a2prprofNS   [a1flagMS]
+        a2prprofNScmbSC= a2prprofNScmb[a1flagMS]
+
 
         #print 'screened a2epcdb.shape',a2epcdbSC.shape
 
         #-- RMSE --
-        a1rmsd= np.sqrt(np.square((a2epcdbSC - a1epc)/a1pc_std).sum(axis=1)/NEM)
-        idxtop= np.argmin(a1rmsd)
-        rmsd_min= a1rmsd[idxtop]
+        a1rmsdMS = np.sqrt(np.square((a2epcdbMSSC - a1epc)/a1pc_std).sum(axis=1)/NEM)
+        a1rmsdNS = np.sqrt(np.square((a2epcdbNSSC - a1epc)/a1pc_std).sum(axis=1)/NEM)
 
+        idxtopMS = np.argmin(a1rmsdMS)
+        idxtopNS = np.argmin(a1rmsdNS)
+        rmsd_minMS = a1rmsdMS[idxtopMS]
+        rmsd_minNS = a1rmsdNS[idxtopNS]
            
         #-- Weight --
-        a1wt = np.exp(-0.5*np.square(a1rmsd/rmsd_min))
-        a1wt[idxtop] = 1.0
+        a1wtMS = np.exp(-0.5*np.square(a1rmsdMS/rmsd_minMS))
+        a1wtNS = np.exp(-0.5*np.square(a1rmsdNS/rmsd_minNS))
+        a1wtMS[idxtopMS] = 1.0
+        a1wtNS[idxtopNS] = 1.0
 
+        a1boolwtMS = ma.masked_greater_equal(a1wtMS, thwtmin).mask
+        a1boolwtNS = ma.masked_greater_equal(a1wtNS, thwtmin).mask
 
-        ###-- test -----
-        #a1tmpidx= arange(len(a1wt)).astype(int32)
-        #a2tmp   = zip(a1wt, a1tmpidx)
-        #a2tmp.sort(key=lambda x: x[0], reverse=True)
-        #a1iorg = array(zip(*a2tmp)[1])
-        #for itmp,iorg in enumerate(a1iorg):
-        #    irec = a1irecSC[iorg]
-        #    #lirec = [17732,17938,18891]
-        #    #if irec in lirec:
-        #    #    print i, a1irecSC[i], 'esurf=%.3f'%a1esurfSC[i], 'wt=%.3f'%(a1wt[i])
-        #    print itmp, iorg, a1irecSC[iorg], 'esurf=%.3f'%a1esurfSC[iorg], 'wt=%.3f'%(a1wt[iorg])
-        #    if a1wt[iorg]<thwtmin: break
-        ##---------------
+        a1wtMS = a1wtMS[a1boolwtMS]
+        a1wtNS = a1wtNS[a1boolwtNS]
 
-        a1boolwt = ma.masked_greater_equal(a1wt, thwtmin).mask
-        a1wt = a1wt[a1boolwt]
-        wtsum= a1wt.sum()
+        wtsumMS= a1wtMS.sum()
+        wtsumNS= a1wtNS.sum()
 
         #-- Weighting average --
-        esurf = (a1esurfSC[a1boolwt] * a1wt).sum() / wtsum
-        a2esurf[y,x] = esurf
+        nsurfMS    = (a1nsurfMSSC[a1boolwtMS] * a1wtMS).sum() / wtsumMS
+        nsurfNS    = (a1nsurfNSSC[a1boolwtNS] * a1wtNS).sum() / wtsumNS
+        nsurfNScmb = (a1nsurfNScmbSC[a1boolwtNS] * a1wtNS).sum() / wtsumNS
+        nsurfMScmb = (a1nsurfMScmbSC[a1boolwtMS] * a1wtMS).sum() / wtsumMS
 
-        prprof= (a2prprofSC[a1boolwt] * a1wt.reshape(-1,1)).sum(axis=0) / wtsum
-        a3prprof[y,x,:] = prprof
+
+        a2nsurfMS[y,x] = nsurfMS
+        a2nsurfNS[y,x] = nsurfNS
+        a2nsurfMScmb[y,x] = nsurfMScmb
+        a2nsurfNScmb[y,x] = nsurfNScmb
+
+        prprofNS   = (a2prprofNSSC[a1boolwtMS] * a1wtMS.reshape(-1,1)).sum(axis=0) / wtsumMS
+        prprofNScmb= (a2prprofNScmbSC[a1boolwtMS] * a1wtMS.reshape(-1,1)).sum(axis=0) / wtsumMS
+
+        a3prprofNS[y,x,:]    = prprofNS
+        a3prprofNScmb[y,x,:] = prprofNScmb
 
 
-        ##***** test **************
-        #print 'Tb(my)=',['%.2f'%x for x in a3tb[y,x,:]]
-        #print 'a1wt.shape',a1wt.shape
-        #print 'wtsum=',wtsum
-        #print 'idx_db=',idx_db
-        #print 'precip=',esurf
-        #if x ==100: sys.exit()
-        ##***** test **************
+        print '%.1f'%nsurfMS, a2prprofNSTmp.min(),a2prprofNSTmp.max()
+
 
 #--- save (temporary)--
 outDir = '/home/utsumi/temp/out'
 mk_dir(outDir)
-esurfPath = outDir + '/esurf.%06d.y%04d-%04d.nrec%d.npy'%(oid, idx_c-dscan, idx_c+dscan, DB_MAXREC)
-prprofPath= outDir + '/prprof.%06d.y%04d-%04d.nrec%d.npy'%(oid, idx_c-dscan, idx_c+dscan,DB_MAXREC)
-latPath   = outDir + '/lat.%06d.y%04d-%04d.nrec%d.npy'%(oid, idx_c-dscan, idx_c+dscan,DB_MAXREC)
-lonPath   = outDir + '/lon.%06d.y%04d-%04d.nrec%d.npy'%(oid, idx_c-dscan, idx_c+dscan,DB_MAXREC)
 
-np.save(esurfPath, a2esurf)
-np.save(prprofPath, a3prprof)
+stamp = '%06d.y%04d-%04d.nrec%d'%(oid, idx_c-dscan, idx_c+dscan,DB_MAXREC) 
+
+nsurfMSPath = outDir + '/nsurfMS.%s.npy'%(stamp)
+nsurfNSPath = outDir + '/nsurfNS.%s.npy'%(stamp)
+nsurfMScmbPath = outDir + '/nsurfMScmb.%s.npy'%(stamp)
+nsurfNScmbPath = outDir + '/nsurfNScmb.%s.npy'%(stamp)
+
+prprofNSPath   = outDir + '/prprofNS.%s.npy'%(stamp)
+prprofNScmbPath= outDir + '/prprofNScmb.%s.npy'%(stamp)
+
+latPath   = outDir + '/lat.%s.npy'%(stamp)
+lonPath   = outDir + '/lon.%s.npy'%(stamp)
+
+np.save(nsurfMSPath, a2nsurfMS)
+np.save(nsurfNSPath, a2nsurfNS)
+np.save(nsurfMScmbPath, a2nsurfMScmb)
+np.save(nsurfNScmbPath, a2nsurfMScmb)
+
+np.save(prprofNSPath, a3prprofNS)
+np.save(prprofNScmbPath, a3prprofNScmb)
 np.save(latPath, a2lat)
 np.save(lonPath, a2lon)
-print esurfPath
+print nsurfMSPath
 #print lidxset
 

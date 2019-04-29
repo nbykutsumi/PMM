@@ -1,0 +1,1 @@
+/home/utsumi/bin/PMM/mkdb/mk.match.idx.dpr.gmi.py

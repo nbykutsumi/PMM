@@ -34,11 +34,15 @@ for DTimeDay in lDTimeDay:
     for srcPath in lsrcPath:
         #srcPath = '/home/utsumi/temp/1C.GPM.GMI.XCAL2016-C.20171206-S141617-E154850.021437.V05A.HDF5'
         gNum  = srcPath.split('.')[-3]
-       
-        h5    = h5py.File(srcPath,'r')
-        a2lat = h5['/S1/Latitude'][:]
-        a2lon = h5['/S1/Longitude'][:]
-        
+        with h5py.File(srcPath,'r') as h5:
+            a2lat = h5['/S1/Latitude'][:]
+            a2lon = h5['/S1/Longitude'][:]
+            a1year  = h5['S1/ScanTime/Year'        ][:]
+            a1mon   = h5['S1/ScanTime/Month'       ][:]
+            a1day   = h5['S1/ScanTime/DayOfMonth'  ][:]
+            a1hour  = h5['S1/ScanTime/Hour'        ][:]
+            a1mnt   = h5['S1/ScanTime/Minute'      ][:]
+ 
         latRA0= -90
         lonRA0= -180
         dlatRA = 0.5
@@ -46,12 +50,7 @@ for DTimeDay in lDTimeDay:
         nyRA   = 361
         nxRA   = 576
         
-        a1year  = h5['S1/ScanTime/Year'        ][:]
-        a1mon   = h5['S1/ScanTime/Month'       ][:]
-        a1day   = h5['S1/ScanTime/DayOfMonth'  ][:]
-        a1hour  = h5['S1/ScanTime/Hour'        ][:]
-        a1mnt   = h5['S1/ScanTime/Minute'      ][:]
-        
+       
         lDTime   = []
         for y,m,d,H,M in map(None,a1year,a1mon,a1day,a1hour,a1mnt):
             lDTime.append( datetime(y,m,d,H,M) )
@@ -66,8 +65,8 @@ for DTimeDay in lDTimeDay:
         a2out = zeros(a2lat.shape,float32)
         for DTime in lDTimeHour:
             Year,Mon,Day,Hour,Mnt = DTime.timetuple()[:5]
-            iy0 = bisect_left(lDTime,DTime)
-            iy1 = bisect_left(lDTime,DTime+timedelta(hours=1))
+            iy0 = bisect_left(lDTime,DTime-timedelta(minutes=30))
+            iy1 = bisect_left(lDTime,DTime+timedelta(minutes=30))
         
             #--- MERRA2 ----
             raDir = rabaseDir + '/%s/%s/%04d%02d'%(raProd,raVar,Year,Mon)

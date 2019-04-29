@@ -94,9 +94,9 @@ def extract_domain_2D(a2dat, a2lat, a2lon, clat, clon, dlatlon, dscan, returnidx
         found_domain = 0
         if len(a1lat0) !=1:
             idx_c  = bisect_left(a1lat0, clat)
-            print 'clat=',clat
-            print 'a1lat0=',a1lat0
-            print 'a1lat1=',a1lat1
+            #print 'clat=',clat
+            #print 'a1lat0=',a1lat0
+            #print 'a1lat1=',a1lat1
             latTmp = a1lat0[idx_c]
             lonTmp = a1lon0[idx_c]
             if (clat-dlatlon<=latTmp)&(latTmp <=clat+dlatlon)&(clon-dlatlon<=lonTmp)&(lonTmp<=clon+dlatlon):
@@ -108,11 +108,11 @@ def extract_domain_2D(a2dat, a2lat, a2lon, clat, clon, dlatlon, dscan, returnidx
             idx_c  = len(a1lat) - idx_c -1
             latTmp = a1lat[idx_c]
             lonTmp = a1lon[idx_c]
-            print 'A',idx_c, len(a1lat1)
+            #print 'A',idx_c, len(a1lat1)
             if (clat-dlatlon<=latTmp)&(latTmp <=clat+dlatlon)&(clon-dlatlon<=lonTmp)&(lonTmp<=clon+dlatlon):
                 found_domain =1
 
-                print 'B',idx_c, len(a1lat1)
+                #print 'B',idx_c, len(a1lat1)
 
         if found_domain==1:
             idx_first = idx_c - dscan

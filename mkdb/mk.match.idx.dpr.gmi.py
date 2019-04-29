@@ -10,8 +10,8 @@ import sys, os, glob
 from datetime import datetime, timedelta
 import numpy as np
 
-iDTime = datetime(2017,9,30)
-eDTime = datetime(2018,1,1)
+iDTime = datetime(2016,4,18)
+eDTime = datetime(2016,4,18)
 
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
@@ -44,7 +44,7 @@ for DTime in lDTime:
     srcDirGMI  = baseDirGMI+ '/%04d/%02d/%02d'%(Year,Mon,Day)
     #ssearchGMI = srcDirGMI + '/1C.GPM.GMI.XCAL2016-C.20170102-S011732-E025005.016171.V05A.HDF5'
     ssearchGMI = srcDirGMI + '/1C.GPM.GMI.*.HDF5'
-    lsrcPathGMI = glob.glob(ssearchGMI) 
+    lsrcPathGMI = sort(glob.glob(ssearchGMI))
 
     if len(lsrcPathGMI)==0:
         print 'No GMI file',Year,Mon,Day
@@ -60,7 +60,7 @@ for DTime in lDTime:
         srcDirDPR = baseDirDPR + '/%04d/%02d/%02d'%(Year,Mon,Day)
         ssearch   = srcDirDPR  + '/2A.GPM.Ku.V8-20180723.20170102-S072749-E090022.016175.V06A.HDF5'
         ssearch   = srcDirDPR  + '/2A.GPM.Ku.*.%s.V06A.HDF5'%(oid)
-        lsrcPathDPR = glob.glob(ssearch)
+        lsrcPathDPR = sort(glob.glob(ssearch))
         if len(lsrcPathDPR)==0:
             print 'No DPR file for',Year,Mon,Day
             print ssearch

@@ -118,15 +118,15 @@ for DTimeDay in lDTimeDay:
         #srcPath = '/home/utsumi/temp/1C.GPM.GMI.XCAL2016-C.20171206-S141617-E154850.021437.V05A.HDF5'
         gNum  = srcPath.split('.')[-3]
        
-        h5    = h5py.File(srcPath,'r')
-        a2lat = h5['/S1/Latitude'][:]
-        a2lon = h5['/S1/Longitude'][:]
+        with h5py.File(srcPath,'r') as h5:
+            a2lat = h5['/S1/Latitude'][:]
+            a2lon = h5['/S1/Longitude'][:]
         
-        #a1year  = h5['S1/ScanTime/Year'        ][:]
-        #a1mon   = h5['S1/ScanTime/Month'       ][:]
-        #a1day   = h5['S1/ScanTime/DayOfMonth'  ][:]
-        #a1hour  = h5['S1/ScanTime/Hour'        ][:]
-        #a1mnt   = h5['S1/ScanTime/Minute'      ][:]
+            #a1year  = h5['S1/ScanTime/Year'        ][:]
+            #a1mon   = h5['S1/ScanTime/Month'       ][:]
+            #a1day   = h5['S1/ScanTime/DayOfMonth'  ][:]
+            #a1hour  = h5['S1/ScanTime/Hour'        ][:]
+            #a1mnt   = h5['S1/ScanTime/Minute'      ][:]
 
         ny,nx  = a2lat.shape
         X,Y    = np.meshgrid(range(nx),range(ny))

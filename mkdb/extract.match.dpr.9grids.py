@@ -18,18 +18,13 @@ gmi  = l1_gmi.L1_GMI()
 mwscan= 'S1'
 radar = 'Ku'
 
-#iDTime = datetime(2017,9,30)
+#iDTime = datetime(2017,7,1)
+#eDTime = datetime(2018,1,1)
+#iDTime = datetime(2017,1,1)
 #eDTime = datetime(2018,1,1)
 iDTime = datetime(2017,1,1)
-eDTime = datetime(2018,1,1)
+eDTime = datetime(2017,6,30)
 
-
-#iDTime = datetime(2017,6,30)
-#eDTime = datetime(2017,8,1)
-#iDTime = datetime(2017,2,1)
-#eDTime = datetime(2017,6,1)
-#iDTime = datetime(2017,8,1)
-#eDTime = datetime(2018,1,1)
 
 #-- exclude missing files --
 lDTimeTmp = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
@@ -61,13 +56,13 @@ idxbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.IDX'%(f
 
 outrootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
-#lvar = ['/NS/SLV/precipRate']
+lvar = ['/NS/SLV/precipRate']
 #lvar = ['/NS/CSF/typePrecip']
 #lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/SLV/precipRate']
 #lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/VER/heightZeroDeg']
 #lvar = ['/NS/Latitude','/NS/Longitude']
 #lvar = ['/NS/VER/heightZeroDeg']
-lvar = ['NS/SLV/precipRateESurface']
+#lvar = ['NS/SLV/precipRateESurface']
 
 #------------------------------------------
 def ave_9grids_3d(a3in, a1y, a1x, miss):
@@ -176,7 +171,14 @@ for DTime in lDTime:
                 datout = ave_9grids_3d(DatDPR, a2y.flatten(), a2x.flatten(), miss)
                 datout = datout.reshape(nygmi,nxgmi,-1)
 
-            datout     = datout.data.astype(datatype)
+            if var.split('/')[-1] in ['precipRate']:
+                datatype = 'int16'
+                miss     = -9999
+                datout   = (ma.masked_less(datout,0)*100).astype(datatype)
+                datout   = ma.masked_less(datout,0).filled(miss)
+
+            else:
+                datout     = datout.data.astype(datatype)
 
             varName    = var.split('/')[-1] 
             outbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.9ave.%s'%(fullverGMI, mwscan, cx-w, cx+w, radar, fullverDPR, varName)

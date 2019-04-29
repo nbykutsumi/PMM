@@ -21,7 +21,7 @@ radar = 'Ku'
 #iDTime = datetime(2017,9,30)
 #eDTime = datetime(2018,1,1)
 iDTime = datetime(2017,1,1)
-eDTime = datetime(2017,12,1)
+eDTime = datetime(2017,1,1)
 
 
 #iDTime = datetime(2017,6,30)
@@ -61,10 +61,10 @@ idxbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.IDX'%(f
 
 outrootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
-#lvar = ['/NS/SLV/precipRate']
+lvar = ['/NS/SLV/precipRate']
 #lvar = ['/NS/CSF/typePrecip']
 #lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/SLV/precipRate']
-lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/VER/heightZeroDeg']
+#lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/VER/heightZeroDeg']
 #lvar = ['/NS/Latitude','/NS/Longitude']
 #lvar = ['/NS/VER/heightZeroDeg']
 
@@ -99,17 +99,24 @@ for DTime in lDTime:
 
             for var in lvar:
                 #DatDPR = dpr.load_var_granule(srcPathDPR, var)
-                hdpr   = h5py.File(srcPathDPR)
-                DatDPR = hdpr[var][:]
-                hdpr.close() 
+                with h5py.File(srcPathDPR) as hdpr:
+                    DatDPR = hdpr[var][:]
  
                 if   len(DatDPR.shape)==2:
                     datout = f_match_fov.extract_2d(DatDPR.T, a2x.T, a2y.T, -9999, -9999.).T
                 elif len(DatDPR.shape)==3:
                     datout = f_match_fov.extract_3d(DatDPR.T, a2x.T, a2y.T, -9999, -9999.).T
 
-                datatype   = DatDPR.dtype
-                datout     = datout.astype(datatype)
+                if var.split('/')[-1] in ['precipRate']:
+                    datatype = 'int16'
+                    miss     = -9999
+                    datout   = (ma.masked_less(datout,0)*100).astype(datatype)
+                    datout   = ma.masked_less(datout,0).filled(miss)
+    
+                else:
+                    datatype   = DatDPR.dtype
+                    datout     = datout.astype(datatype)
+
 
                 varName    = var.split('/')[-1] 
                 outbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.%s'%(fullverGMI, mwscan, cx-w, cx+w, radar, fullverDPR, varName)
