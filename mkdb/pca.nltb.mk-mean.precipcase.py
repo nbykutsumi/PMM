@@ -5,14 +5,27 @@ from datetime import datetime, timedelta
 import glob
 import os,sys
 import calendar
+import mkdbfunc
 
+#calcmon = True
+calcmon = False
+calcall = True
+#calcall = False
+varName = 'nltb'
 iYM = [2017,1]
-eYM = [2017,1]
+eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
+outDir= '/work/hk01/utsumi/PMM/TPCDB/PC_COEF'
+
 for (Year,Mon) in lYM:
+    if calcmon != True: continue
+
     eDay   = calendar.monthrange(Year,Mon)[1]
     iDTime = datetime(Year,Mon,1)
     eDTime = datetime(Year,Mon,eDay)
+    #iDTime = datetime(2017,7,12)
+    #eDTime = datetime(2017,7,12)
+
     dDTime = timedelta(days=1)
     lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
     matchBaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A'
@@ -21,9 +34,13 @@ for (Year,Mon) in lYM:
     asum = None
     asum2= None
     anum = None
+
+
+    #atmp = []   # test
     #------------------
-    lDTime = lDTime[:1]  # test  
+    #lDTime = lDTime[:1]  # test  
     for DTime in lDTime:
+        print DTime
         Year,Mon,Day = DTime.timetuple()[:3]
         #-- Make KuPR HDF file list ---
         dprDir = matchBaseDir + '/S1.ABp083-137.Ku.V06A.9ave.precipRate/%04d/%02d/%02d'%(Year,Mon,Day)
@@ -40,6 +57,8 @@ for (Year,Mon) in lYM:
         ldprPath= glob.glob(ssearch)
         if len(ldprPath)==0:continue
 
+
+        #ldprPath = ldprPath[:4] # test
         for dprPath in ldprPath:
             oid = int(dprPath.split('.')[-2]) 
 
@@ -47,7 +66,7 @@ for (Year,Mon) in lYM:
             a3dpr = np.load(dprPath)[:,103-83:103-83+15,:]
             #a3dpr = np.load(dprPath)[:]  # test
 
-            #-- Read Tc--------
+            #-- Read Tb--------
             tcDir1 = matchBaseDir + '/S1.ABp103-117.GMI.Tc/%04d/%02d/%02d'%(Year,Mon,Day)
             tcDir2 = matchBaseDir + '/S1.ABp103-117.GMI.TcS2/%04d/%02d/%02d'%(Year,Mon,Day)
             
@@ -56,21 +75,25 @@ for (Year,Mon) in lYM:
             a3tc1 = np.load(tcPath1)
             a3tc2 = np.load(tcPath2)
             a3tc  = concatenate([a3tc1,a3tc2],axis=2)
-
-            print a3dpr.shape, a3tc1.shape, a3tc2.shape, a3tc.shape
-            
+            ntc   = a3tc.shape[2]
+            #print a3dpr.shape, a3tc1.shape, a3tc2.shape, a3tc.shape
             #-- Extract pixels with precip (in column) --
-            a2flag = ma.masked_greater(a3dpr,0).mask.any(axis=2)
-            a1flag = a2flag.flatten()
-            ntc  = a3tc.shape[2]
+            if a3dpr.max()<=0: continue
+
+            a1flagtc = ma.masked_inside(a3tc,50,350).mask.all(axis=2).flatten()
+            a1flagpr = ma.masked_greater(a3dpr,0).mask.any(axis=2).flatten()
+            a1flag = a1flagtc * a1flagpr
             a2tc = a3tc.reshape(-1,ntc)
             a2tc = a2tc[a1flag]
-            print a2tc.shape
-            print ''
 
+            #-- Make non-linear combination --
+            nlen  = a2tc.shape[0]
+            adat  = mkdbfunc.mk_nonlin_comb(a2tc.reshape(-1,1,ntc))
+            adat  = adat.reshape(nlen,-1)
+
+            print a3tc.shape, adat.shape
             #-- Calc sum, num --
-            adatTmp  = ma.masked_equal(a2tc, miss)
-            asumTmp  = avar.sum(axis=0)
+            asumTmp  = adat.sum(axis=0)
             asum2Tmp = np.square(adat).sum(axis=0)
             anumTmp  = ma.count(adat, axis=0)
             try:
@@ -82,72 +105,61 @@ for (Year,Mon) in lYM:
                 asum2 = asum2Tmp
                 anum  = anumTmp
 
+            ##-- test --
+            #atmp.append(adat)
+
+    ##-- test ---
+    #atmp = concatenate(atmp,axis=0)
+    #ameantmp = atmp.mean(axis=0)
+    #astdtmp  = atmp.std(axis=0) 
+
     #-- save and calc ---
-    outDir= '/work/hk01/utsumi/PMM/TBPCDB'
-    #amean = asum / anum
-    #astd  = np.sqrt( (asum2 - 2*amean*asum + anum*np.square(amean))/(anum-1) )
-    numPath  = outDir + '/num.%s.npy'%(varName)
-    sumPath  = outDir + '/sum.%s.npy'%(varName)
-    sum2Path = outDir + '/sum2.%s.npy'%(varName)
+    sym   = '%04d.%02d'%(Year,Mon)
+    amean = asum / anum
+    astd  = np.sqrt( (asum2 - 2*amean*asum + anum*np.square(amean))/(anum-1) )
+    sumPath  = outDir + '/sum.%s.%s.npy'%(varName, sym)
+    sum2Path = outDir + '/sum2.%s.%s.npy'%(varName, sym)
+    numPath  = outDir + '/num.%s.%s.npy'%(varName, sym)
     #meanPath = outDir + '/mean.%s.npy'%(varName)
     #stdPath  = outDir + '/std.%s.npy'%(varName)
-    np.save(meanPath, amean)
+    np.save(sumPath, asum)
+    np.save(sum2Path,asum2)
+    np.save(numPath, anum)
+    print sumPath
     #--------------------
 
 
-'''
-lvarName= ['S1.ABp103-117.GMI.Tc','S1.ABp103-117.GMI.TcS2']
-#lvarName= ['S1.ABp103-117.GMI.Tc']
-
-
-for varName in lvarName:
-    varNameSimple = varName.split('.')[-1]
-
-    if varName in ['S1.ABp103-117.GMI.Tc','S1.ABp103-117.GMI.TcS2']:
-        ndim = 3
-        miss = -9999.
-    else:
-        print 'check varName',varName
-        sys.exit()
-   
-    #-- initialize ----
+#--- Make mean and std over the period --
+if calcall ==True:
     asum = None
     asum2= None
     anum = None
-    #------------------- 
-    for DTime in lDTime:
-        Year,Mon,Day = DTime.timetuple()[:3]
-        varDir = baseDir + '/%s/%04d/%02d/%02d'%(varName,Year,Mon,Day)
-        if varName in ['S1.ABp103-117.GMI.Tc']:
-            lvarPath = sorted(glob.glob(varDir + '/*.npy'))
-        else:
-            lvarPath = sorted(glob.glob(varDir + '/%s.1.*.npy'%(varNameSimple)))
-    
-        for varPath in lvarPath:
-            avar = np.load(varPath)
-            if ndim ==2:
-                ny,nx = avar.shape
-                avar  = avar.reshape(ny*nx,1) 
-            elif ndim ==3:
-                ny,nx,nz = avar.shape
-                avar  = avar.reshape(ny*nx, nz)
-            avarTmp = ma.masked_equal(avar, miss)
-            asumTmp  = avar.sum(axis=0)
-            asum2Tmp = np.square(avar).sum(axis=0)
-            anumTmp  = ma.count(avar, axis=0)
-            try:
-                asum  = asum  + asumTmp
-                asum2 = asum2 + asum2Tmp
-                anum  = anum  + anumTmp
-            except TypeError:
-                asum  = asumTmp
-                asum2 = asum2Tmp
-                anum  = anumTmp
+    for (Year,Mon) in lYM:
+        sym   = '%04d.%02d'%(Year,Mon)
+        sumPath  = outDir + '/sum.%s.%s.npy'%(varName, sym)
+        sum2Path = outDir + '/sum2.%s.%s.npy'%(varName, sym)
+        numPath  = outDir + '/num.%s.%s.npy'%(varName, sym)
+     
+        asumTmp = np.load(sumPath)  
+        asum2Tmp= np.load(sum2Path)  
+        anumTmp = np.load(numPath)  
+        try:
+            asum  = asum  + asumTmp
+            asum2 = asum2 + asum2Tmp
+            anum  = anum  + anumTmp
+        except TypeError:
+            asum  = asumTmp
+            asum2 = asum2Tmp
+            anum  = anumTmp
 
-    #-- save and calc ---
     amean = asum / anum
     astd  = np.sqrt( (asum2 - 2*amean*asum + anum*np.square(amean))/(anum-1) )
+
     meanPath = outDir + '/mean.%s.npy'%(varName)
     stdPath  = outDir + '/std.%s.npy'%(varName)
     np.save(meanPath, amean)
-'''
+    np.save(stdPath,  astd)
+    print stdPath
+
+
+

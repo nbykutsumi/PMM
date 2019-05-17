@@ -20,8 +20,12 @@ gprof  = l2a_gprof_hdf5.L2A_GPROF_HDF5()
 
 #iDTime = datetime(2017,6,30)
 #eDTime = datetime(2017,8,1)
+#iDTime = datetime(2016,12,31)
+#eDTime = datetime(2018,1,1)
+
 iDTime = datetime(2016,12,31)
-eDTime = datetime(2018,1,1)
+eDTime = datetime(2016,12,31)
+
 
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 

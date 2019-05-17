@@ -21,17 +21,17 @@ elif myhost =="well":
 #GPM/TRMM.TMI/L2A12/07/2014/
 
 
-iDTime  = datetime(2014,10,22)
+iDTime  = datetime(2014,5,15)
 #iDTime  = datetime(2017,1,1)
 #eDTime  = datetime(2017,12,20)
-eDTime  = datetime(2014,10,24)
+eDTime  = datetime(2014,5,16)
 dDTime  = timedelta(days=1)
 lDTime  = util.ret_lDTime(iDTime, eDTime, dDTime)
 
 #spec      = ["TRMM","TMI","2A-CLIM","gprof","V05","A"]
-spec      = ["GPM","GMI","1C","1C","V05","A"]
+#spec      = ["GPM","GMI","1C","1C","V05","A"]
 #spec      = ["GPM","GMI","2A-CLIM","gprof","V05","A"] # input=ECMWF
-#spec      = ["GPM","GMI","2A","gprof","V05","A"] # input=GANAL
+spec      = ["GPM","GMI","2A","gprof","V05","A"] # input=GANAL
 #spec      = ["GPM","Ku","2A","radar","V06","A"]
 
 sate      = spec[0]
@@ -66,7 +66,7 @@ for DTime in lDTime:
     #GPM/TRMM.TMI/L2A12/07/2014/
     mk_dir(oDir)
     #--- list --------------
-    lPath = sort(ftp.nlst(iDir))
+    lPath = ftp.nlst(iDir)
     print iDir
     print lPath
     for sPath in lPath:
