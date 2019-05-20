@@ -14,8 +14,9 @@ lYM = util.ret_lYM(iYM,eYM)
 ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-3,-2,-1,0,1,2,3]]
 #ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-2,-1,0,1,2]]
 
-lisurf = range(1,15+1)  # surface type index
-#lisurf = [1,2]  # surface type index
+#lisurf = range(1,15+1)  # surface type index
+#lisurf = range(8,15+1)  # surface type index
+lisurf = [15]  # surface type index
 ntc1 = 9
 ntc2 = 4
 ncomb = len(ldydx)*(ntc1+ntc2)
@@ -55,6 +56,7 @@ for isurf in lisurf:
         astd.extend(dastd1[isurf])
         astd.extend(dastd2[isurf])
 
+    initflag = True
     for Year,Mon in lYM:
         eDay = calendar.monthrange(Year,Mon)[1]
         iDTime = datetime(Year,Mon,1)
@@ -62,9 +64,11 @@ for isurf in lisurf:
         dDTime = timedelta(days=1)
         lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
 
-        #lDTime = lDTime[:5]  # test
+        #lDTime = lDTime[25:]  # test
 
-        a2tc = deque([])
+        if initflag:   # To avoid PCA for too small samples
+            a2tc = deque([])
+
         for DTime in lDTime:
             print isurf,DTime
             Day = DTime.day
@@ -74,6 +78,7 @@ for isurf in lisurf:
                 srcDir = '/work/hk01/utsumi/PMM/stop/data/Tc/%04d/%02d/%02d'%(Year,Mon,Day)
                 srcPath1=srcDir + '/Tc1.%ddy.%ddx.%02dsurf.npy'%(dy,dx,isurf)
                 srcPath2=srcDir + '/Tc2.%ddy.%ddx.%02dsurf.npy'%(dy,dx,isurf)
+                if not os.path.exists(srcPath1): continue
                 atc1 = np.load(srcPath1)
                 atc2 = np.load(srcPath2)
     
@@ -84,7 +89,10 @@ for isurf in lisurf:
                 except ValueError:
                     a2tcTmp = atc    
 
-            a2tcTmp = array(a2tcTmp)
+            if a2tcTmp is None:
+                continue
+            else:
+                a2tcTmp = array(a2tcTmp)
 
 
             #**********************
@@ -99,16 +107,19 @@ for isurf in lisurf:
             #**********************
             # Normalize
             #********************** 
+            if a2tcTmp.shape[0]==0: continue
             a2tcTmp = a2tcTmp - amean
 
             #**********************
-
-
-
             a2tc.extend(a2tcTmp)
 
-        a2tc = array(a2tc)
-        dinc_pca[isurf].partial_fit(a2tc)
+        if len(a2tc)>ncomb:
+            a2tc = array(a2tc)
+            dinc_pca[isurf].partial_fit(a2tc)
+            initflag = True
+            print '-----------PCA!-------------'
+        else:
+            initflag = False
 
     #** Make eigen vectors and values --
     egvec = dinc_pca[isurf].components_      # (n-th, nComb)
