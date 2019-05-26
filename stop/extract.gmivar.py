@@ -19,15 +19,12 @@ verGMI = '05'
 subverGMI = 'A'
 fullverGMI = '%s%s'%(verGMI,subverGMI)
 miss = -9999.
-ldy   = [-1,0,1]
-ldx   = [-3,-2,-1,0,1,2,3]
-#ldy   = [-1]
-#ldx   = [-3]
-
-
+ldy   = [0]
+ldx   = [0]
 Shape = [len(ldy),len(ldx)]
 ldydx = [[dy,dx] for dy in ldy for dx in ldx]
-
+varNameFull= 'S1.ABp103-117.GMI.Latitude'
+varName = varNameFull.split('.')[-1]
 #**** Function *****************
 def shift_array(ain=None, dy=None,dx=None,miss=-9999):
     ny,nx,nz = ain.shape
@@ -39,6 +36,8 @@ def shift_array(ain=None, dy=None,dx=None,miss=-9999):
 
     aout[iy0:ey0,ix0:ex0] = ain[iy1:ey1,ix1:ex1]
     return aout
+
+
 #*******************************
 
 for (dy,dx) in ldydx:
@@ -87,13 +86,18 @@ for (dy,dx) in ldydx:
                 stopPath = stopDir + '/heightStormTop.1.%06d.npy'%(oid)
                 a2stop = np.load(stopPath)
                 if a2stop.max()<=0: continue
-   
+
+                a1stop = a2stop.flatten() 
+
+                #-- Variable to be extracted ----
+                varDir  = matchBaseDir + '/%s/%04d/%02d/%02d'%(varNameFull,Year,Mon,Day)
+                datPath = varDir + '/%s.%06d.npy'%(varName, oid)
+                a2dat   = np.load(datPath) 
                 #--- shift --------------
-                nytmp,nxtmp = a2stop.shape 
-                a2shift = shift_array(a2stop.reshape(nytmp,nxtmp,1),dy,dx,-9999.).reshape(nytmp,nxtmp)
+                nytmp,nxtmp = a2dat.shape 
+                a2shift = shift_array(a2dat.reshape(nytmp,nxtmp,1),dy,dx,-9999.).reshape(nytmp,nxtmp)
  
                 a1shift= a2shift.flatten() 
-                a1stop = a2stop.flatten() 
         
                 #-- Surface Type Index --
                 surftypeDir = matchBaseDir + '/S1.ABp103-117.GMI.surfaceTypeIndex/%04d/%02d/%02d'%(Year,Mon,Day)
@@ -119,8 +123,8 @@ for (dy,dx) in ldydx:
             for isurf in range(1,15+1):
                 aout = array(dastop[isurf])
                 Year,Mon,Day = DTime.timetuple()[:3]
-                outDir = '/work/hk01/utsumi/PMM/stop/data/stop/%04d/%02d/%02d'%(Year,Mon,Day)
-                outPath= outDir + '/stop.%ddy.%ddx.%02dsurf.npy'%(dy,dx,isurf)
+                outDir = '/work/hk01/utsumi/PMM/stop/data/%s/%04d/%02d/%02d'%(varName,Year,Mon,Day)
+                outPath= outDir + '/%s.%ddy.%ddx.%02dsurf.npy'%(varName,dy,dx,isurf)
                 util.mk_dir(outDir)
                 np.save(outPath, aout)
     

@@ -11,7 +11,7 @@ import myfunc.util as util
 
 varName = 'nltb'
 iYM = [2017,1]
-eYM = [2017,1]
+eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
 #outDir= '/work/hk01/utsumi/PMM/TPCDB/PC_COEF'
 outDir= '/work/hk01/utsumi/PMM/stop/data'
@@ -19,25 +19,12 @@ verGMI = '05'
 subverGMI = 'A'
 fullverGMI = '%s%s'%(verGMI,subverGMI)
 miss = -9999.
-ntc1  = 9
-ntc2  = 4
+
 ldy   = [-1,0,1]
 ldx   = [-3,-2,-1,0,1,2,3]
 Shape = [len(ldy),len(ldx)]
 ldydx = [[dy,dx] for dy in ldy for dx in ldx]
 
-#**** Function *****************
-def shift_array(ain=None, dy=None,dx=None,miss=-9999):
-    ny,nx,nz = ain.shape
-    aout = np.ones([ny,nx,nz]).astype(ain.dtype)*miss
-    if   dy<=0: iy0=0; ey0=ny-abs(dy); iy1=abs(dy); ey1=ny
-    elif dy> 0: iy0=abs(dy); ey0=ny; iy1=0; ey1=ny-abs(dy)
-    if   dx<=0: ix0=0; ex0=nx-abs(dx); ix1=abs(dx); ex1=nx
-    elif dx> 0: ix0=abs(dx); ex0=nx; ix1=0; ex1=nx-abs(dx)
-    
-    aout[iy0:ey0,ix0:ex0] = ain[iy1:ey1,ix1:ex1]
-    return aout
-#*******************************
 for (Year,Mon) in lYM:
     eDay   = calendar.monthrange(Year,Mon)[1]
     iDTime = datetime(Year,Mon,1)
@@ -83,20 +70,18 @@ for (Year,Mon) in lYM:
             #-- Storm Top Height ----
             stopDir  = matchBaseDir + '/S1.ABp103-117.Ku.V06A.heightStormTop/%04d/%02d/%02d'%(Year,Mon,Day)
             stopPath = stopDir + '/heightStormTop.1.%06d.npy'%(oid)
-            #a2stop = np.load(stopPath)
             a2stop = np.load(stopPath)
-            if a2stop.max()<0: continue
+            if a2stop.max()<=0: continue
+    
     
             #-- Surface Type Index --
             surftypeDir = matchBaseDir + '/S1.ABp103-117.GMI.surfaceTypeIndex/%04d/%02d/%02d'%(Year,Mon,Day)
             surftypePath= surftypeDir + '/surfaceTypeIndex.%06d.npy'%(oid)
-            #a2surftype = np.load(surftypePath)
-            a2surftype = np.load(surftypePath)
-            a1surftype = a2surftype.flatten()
-
+            a1surftype = np.load(surftypePath).flatten()
+    
             #-- Make flag array -----
             da1flag = {}
-            a1flagStop = ma.masked_greater_equal(a2stop,0).mask.flatten()
+            a1flagStop = ma.masked_greater(a2stop,0).mask.flatten()
             for isurf in range(1,15+1):
                 a1flagSurf = ma.masked_equal(a1surftype,isurf).mask
                 da1flag[isurf] = a1flagStop * a1flagSurf
@@ -127,40 +112,48 @@ for (Year,Mon) in lYM:
     
             ny,nx,ntc2 = a3tc2Org.shape
             a3tc2 = a2tc2.reshape(ny,nx,ntc2)
-
-
-   
+    
             ##******************************
             ## Extract x=103-3 -- 117+3
             ##******************************
             a3tc1 = a3tc1[:,100:120+1,:]
             a3tc2 = a3tc2[:,100:120+1,:]
 
+
             #******************************
             #  Collect surroundings
             #******************************
+            ny,nx,ntc1 = a3tc1.shape
+    
             for idydx,[dy,dx] in enumerate(ldydx):
+                if   dy<=0: iy0=0; ey0=ny+dy; iy1=abs(dy); ey1=ny
+                elif dy> 0: iy0=abs(dy); ey0=ny; iy1=0; ey1=ny-dy
+                if   dx<=0: ix0=0; ex0=nx+dx; ix1=abs(dx); ex1=nx
+                elif dx> 0: ix0=dx; ex0=nx; ix1=0; ex1=nx-dx
                 #-- S1 ----
-                a3tmp1 = shift_array(a3tc1, dy,dx,miss=-9999.)
-                a3tmp2 = shift_array(a3tc2, dy,dx,miss=-9999.)
+                a3tmp1 = ones([ny,nx,ntc1],float32)*(-9999.)
+                a3tmp1[iy0:ey0,ix0:ex0,:] = a3tc1[iy1:ey1,ix1:ex1,:]
+    
+                #-- S2 ----
+                ny,nx,ntc2 = a3tc2.shape
+                a3tmp2 = ones([ny,nx,ntc2],float32)*(-9999.)
+                a3tmp2[iy0:ey0,ix0:ex0,:] = a3tc2[iy1:ey1,ix1:ex1,:]
     
                 #******************************
-                # Extract x=103 - 117
+                # Extract x=103 -- 117
                 # Caution! Already extracted for x=101-119
                 #******************************
+                #a3tmp1 = a3tmp1[:,2:-2,:]
+                #a3tmp2 = a3tmp2[:,2:-2,:]
+
                 a3tmp1 = a3tmp1[:,3:-3,:]
                 a3tmp2 = a3tmp2[:,3:-3,:]
     
                 a1tmp1 = a3tmp1.reshape(-1,ntc1)
                 a1tmp2 = a3tmp2.reshape(-1,ntc2)
-
-
-                #print a1surftype.shape
-                #print a2stop.flatten().shape
-                #print a1tmp1.shape
-                #print a2stop.shape 
+    
                 #******************************
-                # Screen StormTop >=0 and SurfaceType
+                # Screen StormTop >0 and SurfaceType
                 #******************************
                 for isurf in range(1,15+1):
                     a1flag= da1flag[isurf]
@@ -172,11 +165,6 @@ for (Year,Mon) in lYM:
    
                         datc1[(dy,dx,isurf)].extend(a1sc1)
                         datc2[(dy,dx,isurf)].extend(a1sc2)
-
-                #sys.exit()    
-
-
-
         #******** Save ******************
         for (dy,dx) in ldydx:
             for isurf in range(1,15+1):
@@ -191,7 +179,7 @@ for (Year,Mon) in lYM:
                 util.mk_dir(tcoutDir)
                 np.save(tcoutPath1, atc1)
                 np.save(tcoutPath2, atc2)
-        print tcoutPath1
+                print tcoutPath1
             
             
 

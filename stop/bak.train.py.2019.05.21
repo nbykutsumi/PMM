@@ -156,8 +156,7 @@ def read_data(lDTime=None, ldydx=None, isurf=None):
         #*********************************
         # Normalize Tc
         #*********************************
-        #a2tc = a2tc - amean
-        a2tc = (a2tc - amean)/astd
+        a2tc = a2tc - amean
         #*********************************
         # Tc --> PC
         #*********************************
@@ -223,9 +222,6 @@ TesX, TesY = read_data(lDTime_valid, ldydx=ldydx, isurf=isurf)
 TesY = TesY.reshape(-1,1)
 TesY = unit(TesY, MinStop,MaxStop)
 
-print 'TesX.min,max',TesX.min(), TesX.max()
-print 'TesY.min,max',TesY.min(), TesY.max()
-#sys.exit()
 #*********************************
 # Coefficient for error weight function
 #*********************************

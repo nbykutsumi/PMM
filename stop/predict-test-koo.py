@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import myfunc.util as util
 from collections import deque
 import matplotlib.pyplot as plt
-
+from sklearn.decomposition import PCA
 #*********************************
 # Functions
 #*********************************
@@ -162,7 +162,8 @@ ntc1 = 9
 ntc2 = 4
 isurf = 3
 MinStop, MaxStop = 0, 32000  # [m]
-act = 0
+#act = 0
+act = 8
 
 a2egvec, a1varratio, a1cumvarratio = read_pc_coef(isurf)
 npc_use = ma.masked_greater(a1cumvarratio,0.99).argmax()
@@ -172,10 +173,66 @@ ckptDir = '/work/hk01/utsumi/PMM/stop/ml-param-%d'%(act)
 ckptPath= ckptDir + '/stop.%02d'%(isurf)
 
 #*********************************
-# Read Test data
+# Prep Koo data # test
 #*********************************
-TesX, TesY = read_data(lDTime_valid, ldydx=ldydx, isurf=isurf)
-TesY = TesY.reshape(-1,1)
+kooDir = '/home/utsumi/temp/stop/report6'
+#train = np.concatenate([ np.loadtxt(kooDir + '/train3_12345.txt' ),
+#                         np.loadtxt(kooDir + '/train3_6789.txt'  ),
+#                         np.loadtxt(kooDir + '/train3_101112.txt')])
+#label = np.concatenate([ np.loadtxt(kooDir + '/label3_12345.txt' ),
+#                         np.loadtxt(kooDir + '/label3_6789.txt'  ),
+#                         np.loadtxt(kooDir + '/label3_101112.txt')]).reshape(-1,1)
+
+train = np.concatenate([ np.loadtxt(kooDir + '/train3_12345.txt' )])
+label = np.concatenate([ np.loadtxt(kooDir + '/label3_12345.txt' )]).reshape(-1,1)
+
+
+train.shape, label.shape
+#-----------------
+cov = 1/len(train)*np.dot((train-train.mean(0)).T, train-train.mean(0))
+u,s,v = np.linalg.svd(cov)
+restriction = 39
+print s[:restriction].sum()/s.sum()
+U = u[:,:restriction]
+reduction = np.dot(train, U)
+Max, Min = np.max(label), np.min(label)
+print reduction.shape
+print reduction.min(),reduction.max()
+#-----------------
+def unit_koo(x):
+    return (x-np.min(x,0))/(np.max(x,0)-np.min(x,0))
+
+#Train, Label = unit_koo(reduction), unit_koo(label)
+#ntrain       = int(0.7*len(reduction))
+#trainX, trainY, testX, testY = Train[:ntrain], Label[:ntrain], Train[ntrain:], Label[ntrain:]
+#print(trainX.shape, trainY.shape, testX.shape, testY.shape)
+
+#--- PCA ----------------
+pca = PCA()
+reduction_pca = pca.fit_transform((train-train.mean(0))/train.std(0))[:,:restriction]
+#------------------------
+if act in [0,1,2]:
+    Train = unit_koo(reduction)
+elif act in [3]:
+    Train = reduction
+elif act in [4,5]:
+    Train = unit_koo(reduction)
+elif act in [6,7,8]:
+    Train = unit_koo(reduction_pca)
+
+
+ntrain       = int(0.7*len(reduction))
+testX = Train[ntrain:]
+testY = label[ntrain:]
+TesX, TesY = testX, testY
+MinY, MaxY = label.min(), label.max()
+
+
+##*********************************
+## Read Test data
+##*********************************
+#TesX, TesY = read_data(lDTime_valid, ldydx=ldydx, isurf=isurf)
+#TesY = TesY.reshape(-1,1)
 #-----------------------------
 NUM_CPU=2
 NUM_THREADS=4
@@ -190,15 +247,34 @@ with tf.Session(config=tf.ConfigProto(
     pred  = graph.get_tensor_by_name('pred:0')
     out = sess.run(pred, feed_dict={X:TesX})
 
-pred = out*(MaxStop-MinStop) + MinStop
+
+print 'inputX'
+print TesX
+print 'min,max=',TesX.min(), TesX.max()
+print 'outputY(raw)'
+print out
+print 'min,max=',out.min(),out.max()
+
+if act in [0,1,2]:
+    pred = out*(MaxY-MinY) + MinY  # test
+elif act in [3,4]:
+    pred = out*(MaxStop-MinStop) + MinStop
+elif act in [5]:
+    pred = out
+elif act in [6]:
+    pred = out*(MaxY-MinY) + MinY  # test
+elif act in [7,8]:
+    pred = out*(MaxStop-MinStop) + MinStop
+
 obs  = TesY
 #*********************************
 # Figure
 #*********************************
-print pred.shape, obs.shape
-print pred
+print 'pred.shape',pred.shape, obs.shape
+print 'pred',pred
+print 'pred.min,max',pred.min(),pred.max()
 print ''
-print obs
+print 'obs',obs
 x = obs /1000.
 y = pred/1000.
 fig = plt.figure(figsize=(5,5))
@@ -207,7 +283,7 @@ plt.scatter(x,y, s=1)
 vmax = 20
 plt.ylim([0,vmax])
 plt.xlim([0,vmax])
-plt.plot([0,vmax],[0,vmax],'-')
+plt.plot([0,vmax],[0,vmax],'-',color='k')
 figDir  = '/home/utsumi/temp/stop'
-figPath = figDir + '/scatter.%02d.png'%(isurf)
+figPath = figDir + '/scatter.%02d-act%d.png'%(isurf,act)
 plt.savefig(figPath)

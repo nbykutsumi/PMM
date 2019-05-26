@@ -151,21 +151,19 @@ def read_data(lDTime=None, ldydx=None, isurf=None):
         a1stop = a1stop[a1flag]
     except AxisError:
         pass
-   
-    if a2tc.shape[0] !=0: 
-        #*********************************
-        # Normalize Tc
-        #*********************************
-        #a2tc = a2tc - amean
-        a2tc = (a2tc - amean)/astd
-        #*********************************
-        # Tc --> PC
-        #*********************************
-        a2pc = np.dot(a2tc, a2egvec[:npc_use,:].T)
+    
+    #*********************************
+    # Normalize Tc
+    #*********************************
+    a2tc = a2tc - amean
+    #*********************************
+    # Tc --> PC
+    #*********************************
+    a2pc = np.dot(a2tc, a2egvec[:npc_use,:].T)
 
-    else:
-        a2pc = array([])
-        a1stop=array([])
+    #Min,Max = a2pc.min(axis=0), a2pc.max(axis=0) # test
+    #a2pc = (a2pc-Min)/(Max-Min) # test
+
 
     return a2pc, a1stop
 
@@ -203,8 +201,8 @@ lDTime_valid = [datetime(2017,1,1)+timedelta(days=i) for i in ldays_valid]
 ntc1 = 9
 ntc2 = 4
 isurf = 3
-act  = 0  # 0: Normal. 1: Apply Error function
-#act  = 1  # 0: Normal. 1: Apply Error function
+#act  = 0  # 0: Normal. 1: Apply Error function
+act  = 1  # 0: Normal. 1: Apply Error function
 learning_rate = 0.005
 a2egvec, a1varratio, a1cumvarratio = read_pc_coef(isurf)
 npc_use = ma.masked_greater(a1cumvarratio,0.99).argmax()
@@ -223,9 +221,6 @@ TesX, TesY = read_data(lDTime_valid, ldydx=ldydx, isurf=isurf)
 TesY = TesY.reshape(-1,1)
 TesY = unit(TesY, MinStop,MaxStop)
 
-print 'TesX.min,max',TesX.min(), TesX.max()
-print 'TesY.min,max',TesY.min(), TesY.max()
-#sys.exit()
 #*********************************
 # Coefficient for error weight function
 #*********************************
@@ -246,11 +241,11 @@ def fn3(x):
 ac  = [fn1,fn3,fn1,fn3,fn1,fn1,fn1,fn1,fn1,fn1,fn1,fn1,fn1,fn1] # number of entry = len(dim) - 2
 
 tf.reset_default_graph()
-X = tf.placeholder(tf.float32, [None, ncomb],name='input')
+X = tf.placeholder(tf.float32, [None, ncomb])
 Y = tf.placeholder(tf.float32, [None, 1])
     
-W = [ tf.Variable(tf.random_normal([dim[i], dim[i+1]]),name='w%d'%(i)) for i in range(len(dim) - 1) ]
-b = [ tf.Variable(tf.random_normal([dim[i+1]]),name='b%d'%(i))         for i in range(len(dim) - 1) ]
+W = [ tf.Variable(tf.random_normal([dim[i], dim[i+1]])) for i in range(len(dim) - 1) ]
+b = [ tf.Variable(tf.random_normal([dim[i+1]]))         for i in range(len(dim) - 1) ]
 A = [ X ]
 for i in range(len(dim) - 2):
     A.append(ac[i](tf.matmul(A[-1], W[i]) + b[i]))
@@ -261,38 +256,32 @@ if act == 1:
     cost = tf.sqrt(tf.reduce_mean(tf.reduce_mean(tf.square(Y - A[-1])*error_func(Y,coef_poly) ))) 
 gogo = tf.train.AdamOptimizer(learning_rate).minimize(cost)
 real = tf.placeholder(tf.float32, [None, 1])
-#pred = tf.placeholder(tf.float32, [None, 1])
-pred = tf.add(tf.matmul(A[-2], W[-1]), b[-1], name='pred')
+pred = tf.placeholder(tf.float32, [None, 1])
 rmse = tf.sqrt(tf.reduce_mean(tf.reduce_mean(tf.square(real - pred))))
 
 #*********************************
 # Strat session
 #*********************************
-epochs = 20
-#epochs = 1
-batchsize= 1
-nbatch = int(len(lDTime_train)/batchsize)
+epochs = 5
+nbatch = 80
+batchsize= len(lDTime_train)/nbatch
 NUM_CPU=2
 NUM_THREADS=4
 saver = tf.train.Saver(max_to_keep=3)
-
+#with tf.Session() as sess:
 with tf.Session(config=tf.ConfigProto(
   inter_op_parallelism_threads=NUM_CPU
  ,intra_op_parallelism_threads=NUM_THREADS)) as sess:
 
     sess.run(tf.global_variables_initializer())
     for epoch in range(epochs):    
-        np.random.shuffle(lDTime_train)  # Shuffle
-
         for ibatch in range(nbatch):
             if ibatch ==nbatch-1:
                 lDTime_trainTmp= lDTime_train[ibatch*batchsize:]
             else:
                 lDTime_trainTmp= lDTime_train[ibatch*batchsize:(ibatch+1)*batchsize]
-
+        
             TraX, TraY = read_data(lDTime_trainTmp, ldydx=ldydx, isurf=isurf) 
-            if TraX.shape[0]==0: continue
-
             TraY = TraY.reshape(-1,1)
             #TraX = unit(TraX)
             
@@ -301,18 +290,32 @@ with tf.Session(config=tf.ConfigProto(
             feed1 = {X:TraX, Y:TraY}
             sess.run(gogo, feed_dict = feed1)
             training_error = sess.run(cost, feed_dict = feed1)
-            #prediction     = sess.run(A[-1], feed_dict = {X:TesX})
-            prediction     = sess.run(pred, feed_dict = {X:TesX})
+            prediction     = sess.run(A[-1], feed_dict = {X:TesX})
             test_error     = sess.run(rmse, feed_dict = {real:TesY, pred:prediction})
             if ibatch % 4 == 0:    
-                print 'act=%d epoch=%d  ibatch=%d'%(act, epoch,ibatch)
+                print 'epoch=%d  ibatch=%d'%(epoch,ibatch)
                 print('Training Error:',training_error,'and','Testing Error:', test_error)
-                saveDir = '/work/hk01/utsumi/PMM/stop/ml-param-%d'%(act)
-                util.mk_dir(saveDir)
+                saveDir = '/work/hk01/utsumi/PMM/stop/ml-param'
                 savePath= saveDir + '/stop.%02d'%(isurf)
                 sv = saver.save(sess, savePath)
                 print sv
 
+
+
+sys.exit()
+
+
+
+label = a1stop_train  # for error function
+Max, Min = np.max(label), np.min(label)
+
+dim = [a2pc_train.shape[1], 30, 30, 30,10, a1stop_train.shape[1]]
+rmse2, cc2 = [], []
+for i in range(20):
+    #prediction   = FFN(trainX, trainY, testX, testY, 0.005, 50, 1024*4, dim, 1)
+    prediction   = FFN(a2pc_train, a1stop_train, a2pc_valid, a1stop_valid, 0.005, 50, 1024*4, dim, 0)
+    rmse2.append(Rmse(prediction, a1stop_valid))
+    cc2.append(cc(prediction, a1stop_valid))
 
 
 

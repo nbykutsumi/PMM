@@ -5,6 +5,8 @@ import sys, os
 from datetime import datetime, timedelta
 import myfunc.util as util
 from collections import deque
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 #*********************************
 # Functions
 #*********************************
@@ -202,12 +204,25 @@ lDTime_train = [datetime(2017,1,1)+timedelta(days=i) for i in ldays_train]
 lDTime_valid = [datetime(2017,1,1)+timedelta(days=i) for i in ldays_valid]
 ntc1 = 9
 ntc2 = 4
+
+restoreflag=True
 isurf = 3
-act  = 0  # 0: Normal. 1: Apply Error function
+#act  = 0  # 0: Normal. 1: Apply Error function
 #act  = 1  # 0: Normal. 1: Apply Error function
+#act  = 2  # Koo data with epoch=30
+#act  = 3  # No Unit for X, Const MinMax for Y 
+#act  = 4  # KooUnit for X, Const MinMax for Y 
+#act  = 5  # KooUnit for X, No Unit for Y 
+#act  = 6  # KooUnit for PCA(X), KooUnit for Y 
+#act  = 7  # KooUnit for PCA(X), Const MinMax for Y 
+#act  = 8  # KooUnit for X, Const MinMax for Y, with ReLU 
+#act  = 8  # KooUnit for X, Const MinMax for Y, with ReLU 
+#act  = 100 # my data, MinMaxUnit for X,Y, epoch=1
+act  = 101 # my data, MinMaxUnit for X,Y, epoch=3
 learning_rate = 0.005
 a2egvec, a1varratio, a1cumvarratio = read_pc_coef(isurf)
-npc_use = ma.masked_greater(a1cumvarratio,0.99).argmax()
+#npc_use = ma.masked_greater(a1cumvarratio,0.99).argmax()
+npc_use = 39
 
 ncomb = npc_use
 dim = [ncomb, 30, 30, 30,10, 1]
@@ -215,6 +230,63 @@ MinStop, MaxStop = 0, 32000  # [m]
 degree = 12  # Polyfit power degree
 coef_b = 5
 
+##*********************************
+## Prep Koo data # test
+##*********************************
+#kooDir = '/home/utsumi/temp/stop/report6'
+##train = np.concatenate([ np.loadtxt(kooDir + '/train3_12345.txt' ), 
+##                         np.loadtxt(kooDir + '/train3_6789.txt'  ), 
+##                         np.loadtxt(kooDir + '/train3_101112.txt')])
+##label = np.concatenate([ np.loadtxt(kooDir + '/label3_12345.txt' ), 
+##                         np.loadtxt(kooDir + '/label3_6789.txt'  ), 
+##                         np.loadtxt(kooDir + '/label3_101112.txt')]).reshape(-1,1)
+#
+#train = np.concatenate([ np.loadtxt(kooDir + '/train3_12345.txt' )])
+#label = np.concatenate([ np.loadtxt(kooDir + '/label3_12345.txt' )]).reshape(-1,1)
+#
+#
+#train.shape, label.shape
+##-----------------
+#cov = 1/len(train)*np.dot((train-train.mean(0)).T, train-train.mean(0))
+#u,s,v = np.linalg.svd(cov)
+#restriction = 39
+#print s[:restriction].sum()/s.sum()
+#U = u[:,:restriction]
+#reduction = np.dot(train, U)
+#Max, Min = np.max(label), np.min(label)
+#print reduction.shape
+##-----------------
+#pca = PCA()
+#reduction_pca = pca.fit_transform((train-train.mean(0))/train.std(0))[:,:restriction]
+##-----------------
+#def unit_koo(x):
+#    return (x-np.min(x,0))/(np.max(x,0)-np.min(x,0)) 
+#
+#if act in [0,1,2]:
+#    Train, Label = unit_koo(reduction), unit_koo(label)
+#elif act in [3]:
+#    Train, Label = reduction, unit(label,MinStop,MaxStop)
+#elif act in [4]:
+#    Train, Label = unit_koo(reduction), unit(label,MinStop,MaxStop)
+#elif act in [5]:
+#    Train, Label = unit_koo(reduction), label
+#elif act in [6]:
+#    Train, Label = unit_koo(reduction_pca), unit_koo(label)
+#elif act in [7,8]:
+#    Train, Label = unit_koo(reduction_pca), unit(label,MinStop,MaxStop)
+#
+#
+#
+#
+#ntrain       = int(0.7*len(reduction))
+#trainX, trainY, testX, testY = Train[:ntrain], Label[:ntrain], Train[ntrain:], Label[ntrain:]
+#print(trainX.shape, trainY.shape, testX.shape, testY.shape)
+#print 'trainX,min,max', trainX.min(), trainX.max()
+#print 'testX,min,max', testX.min(), testX.max()
+#
+#print 'trainY,min,max', trainY.min(), trainY.max()
+#print 'testY,min,max', testY.min(), testY.max()
+#
 #*********************************
 # Read Test data
 #*********************************
@@ -223,9 +295,10 @@ TesX, TesY = read_data(lDTime_valid, ldydx=ldydx, isurf=isurf)
 TesY = TesY.reshape(-1,1)
 TesY = unit(TesY, MinStop,MaxStop)
 
-print 'TesX.min,max',TesX.min(), TesX.max()
-print 'TesY.min,max',TesY.min(), TesY.max()
-#sys.exit()
+MinPC,MaxPC = TesX.min(), TesX.max()
+#print MinPC, MaxPC
+#sys.exit(
+TesX = unit(TesX, MinPC, MaxPC)
 #*********************************
 # Coefficient for error weight function
 #*********************************
@@ -235,7 +308,6 @@ PopY = PopY.reshape(-1,1)
 PopY = unit(PopY, MinStop, MaxStop)
 coef_poly  = mk_coef_polyfit(PopY, degree, coef_b)
 
-
 #*********************************
 # FFN Model
 #*********************************
@@ -243,6 +315,7 @@ fn1 = tf.nn.sigmoid
 fn2 = tf.nn.relu
 def fn3(x):
     return x/(1+np.abs(x))
+
 ac  = [fn1,fn3,fn1,fn3,fn1,fn1,fn1,fn1,fn1,fn1,fn1,fn1,fn1,fn1] # number of entry = len(dim) - 2
 
 tf.reset_default_graph()
@@ -257,8 +330,11 @@ for i in range(len(dim) - 2):
 A.append(tf.matmul(A[-1], W[-1]) + b[-1])  
 if act == 0:
     cost = tf.sqrt(tf.reduce_mean(tf.reduce_mean(tf.square(Y - A[-1]) ))) 
-if act == 1:
+elif act == 1:
     cost = tf.sqrt(tf.reduce_mean(tf.reduce_mean(tf.square(Y - A[-1])*error_func(Y,coef_poly) ))) 
+else:
+    cost = tf.sqrt(tf.reduce_mean(tf.reduce_mean(tf.square(Y - A[-1]) ))) 
+
 gogo = tf.train.AdamOptimizer(learning_rate).minimize(cost)
 real = tf.placeholder(tf.float32, [None, 1])
 #pred = tf.placeholder(tf.float32, [None, 1])
@@ -268,23 +344,41 @@ rmse = tf.sqrt(tf.reduce_mean(tf.reduce_mean(tf.square(real - pred))))
 #*********************************
 # Strat session
 #*********************************
-epochs = 20
+#epochs = 50   # test
+if act==100:
+    epochs = 1   # test
+elif act==101:
+    epochs = 1   # test
 #epochs = 1
 batchsize= 1
+#batchsize= 1024*4  # test
 nbatch = int(len(lDTime_train)/batchsize)
+#nbatch = int(trainX.shape[0]/batchsize)+1
+
 NUM_CPU=2
 NUM_THREADS=4
 saver = tf.train.Saver(max_to_keep=3)
+ckptDir = '/work/hk01/utsumi/PMM/stop/ml-param-%d'%(act)
+util.mk_dir(ckptDir)
+ckptPath= ckptDir + '/stop.%02d'%(isurf)
+
+#lDTime_train = lDTime_train[:3]  # test
 
 with tf.Session(config=tf.ConfigProto(
   inter_op_parallelism_threads=NUM_CPU
  ,intra_op_parallelism_threads=NUM_THREADS)) as sess:
+    if restoreflag==True: 
+        saver = tf.train.import_meta_graph(ckptPath + '.meta')
+        saver.restore(sess, tf.train.latest_checkpoint(ckptDir + '/'))
 
-    sess.run(tf.global_variables_initializer())
+    else:
+        sess.run(tf.global_variables_initializer())
+
     for epoch in range(epochs):    
         np.random.shuffle(lDTime_train)  # Shuffle
 
         for ibatch in range(nbatch):
+
             if ibatch ==nbatch-1:
                 lDTime_trainTmp= lDTime_train[ibatch*batchsize:]
             else:
@@ -294,25 +388,51 @@ with tf.Session(config=tf.ConfigProto(
             if TraX.shape[0]==0: continue
 
             TraY = TraY.reshape(-1,1)
-            #TraX = unit(TraX)
             
+            TraX = unit(TraX, MinPC, MaxPC)
             TraY = unit(TraY, MinStop, MaxStop)
-
+            ##-- Test --------------
+            #TraX = trainX[ibatch*batchsize:(ibatch+1)*batchsize]
+            #TraY = trainY[ibatch*batchsize:(ibatch+1)*batchsize]
+            #TesX = testX
+            #TesY = testY
+            ##----------------------
             feed1 = {X:TraX, Y:TraY}
             sess.run(gogo, feed_dict = feed1)
             training_error = sess.run(cost, feed_dict = feed1)
             #prediction     = sess.run(A[-1], feed_dict = {X:TesX})
             prediction     = sess.run(pred, feed_dict = {X:TesX})
             test_error     = sess.run(rmse, feed_dict = {real:TesY, pred:prediction})
-            if ibatch % 4 == 0:    
+            #if ibatch % 4 == 0:    
+            if ibatch % 10 == 0:    
                 print 'act=%d epoch=%d  ibatch=%d'%(act, epoch,ibatch)
                 print('Training Error:',training_error,'and','Testing Error:', test_error)
-                saveDir = '/work/hk01/utsumi/PMM/stop/ml-param-%d'%(act)
-                util.mk_dir(saveDir)
-                savePath= saveDir + '/stop.%02d'%(isurf)
-                sv = saver.save(sess, savePath)
+                sv = saver.save(sess, ckptPath)
                 print sv
 
+                print 'predicion.min,max=',prediction.min(),prediction.max()
 
-
-
+#*********************************
+# Figure
+#*********************************
+pred = prediction*(MaxStop-MinStop) + MinStop
+obs  = TesY*(MaxStop-MinStop) + MinStop
+print 'pred.shape',pred.shape, obs.shape
+print 'pred',pred
+print 'pred.min,max',pred.min(),pred.max()
+print ''
+print 'obs.min,max',obs.min(),obs.max()
+print 'obs',obs
+x = obs /1000.
+y = pred/1000.
+fig = plt.figure(figsize=(5,5))
+ax  = fig.add_axes([0.1,0.1,0.8,0.8])
+plt.scatter(x,y, s=1)
+vmax = 20
+plt.ylim([0,vmax])
+plt.xlim([0,vmax])
+plt.plot([0,vmax],[0,vmax],'-',color='k')
+figDir  = '/home/utsumi/temp/stop'
+figPath = figDir + '/scatter.%02d-act%d.png'%(isurf,act)
+plt.savefig(figPath)
+print figPath

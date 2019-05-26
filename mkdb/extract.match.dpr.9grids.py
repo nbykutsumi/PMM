@@ -23,7 +23,7 @@ radar = 'Ku'
 #iDTime = datetime(2017,1,1)
 #eDTime = datetime(2018,1,1)
 iDTime = datetime(2017,1,1)
-eDTime = datetime(2017,6,30)
+eDTime = datetime(2017,1,31)
 
 
 #-- exclude missing files --
@@ -37,8 +37,10 @@ for DTime in lDTimeTmp:
 
 ix0 = 83   # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
 ex0 = 137  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
+
 cx  = 110  # GMI center angle bin (py-idx)
-cw  = 55    # extract this width around center
+#cw  = 55    # extract this width around center
+cw  = 15    # extract this width around center
 w   = int(cw/2)
 
 
@@ -56,8 +58,10 @@ idxbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.IDX'%(f
 
 outrootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
-lvar = ['/NS/SLV/precipRate']
+#lvar = ['/NS/SLV/precipRate']
 #lvar = ['/NS/CSF/typePrecip']
+lvar = ['NS/PRE/heightStormTop']
+#lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/SLV/precipRate']
 #lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/SLV/precipRate']
 #lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/VER/heightZeroDeg']
 #lvar = ['/NS/Latitude','/NS/Longitude']
@@ -65,7 +69,7 @@ lvar = ['/NS/SLV/precipRate']
 #lvar = ['NS/SLV/precipRateESurface']
 
 #------------------------------------------
-def ave_9grids_3d(a3in, a1y, a1x, miss):
+def ave_9grids_3d(a3in, a1y, a1x, imiss, omiss, omiss_nomatch):
     '''
     returns 2-d array with the size of (nl,nz)
     a3in: (ny,nx,nz)
@@ -76,26 +80,26 @@ def ave_9grids_3d(a3in, a1y, a1x, miss):
     nydpr,nxdpr,nzdpr= a3in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
 
-    a1dprmask   = False
+    a1matchmask   = False
 
     a3datTmp    = empty([9,len(a1y),nzdpr], float32)
 
     for itmp, [dy,dx] in enumerate(ldydx):
         a1yTmp  = ma.masked_outside(a1y + dy, 0,nydpr-1)
         a1xTmp  = ma.masked_outside(a1x + dx, 0,nxdpr-1)
-        a1dprmask= a1dprmask + a1yTmp.mask + a1xTmp.mask
+        a1matchmask= a1matchmask + a1yTmp.mask + a1xTmp.mask
 
         a2datTmp= a3in[a1yTmp.filled(0),a1xTmp.filled(0),:]
 
         a3datTmp[itmp,:] = a2datTmp
 
 
-    a2datTmp = ma.masked_equal(a3datTmp,miss).mean(axis=0)
-    a2datTmp[a1dprmask,:] = miss
+    a2datTmp = ma.masked_equal(a3datTmp,imiss).mean(axis=0).filled(omiss)
+    a2datTmp[a1matchmask,:] = omiss_nomatch
     return a2datTmp
 
 #------------------------------------------
-def ave_9grids_2d(a2in, a1y, a1x, miss):
+def ave_9grids_2d(a2in, a1y, a1x, imiss, omiss, omiss_nomatch):
     '''
     returns 1-d array with the size of (nl)
     a2in: (ny,nx)
@@ -106,22 +110,22 @@ def ave_9grids_2d(a2in, a1y, a1x, miss):
     nydpr,nxdpr = a2in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
 
-    a1dprmask   = False
+    a1matchmask   = False
 
     a2datTmp    = empty([9,len(a1y)], float32)
+
 
     for itmp, [dy,dx] in enumerate(ldydx):
         a1yTmp  = ma.masked_outside(a1y + dy, 0,nydpr-1)
         a1xTmp  = ma.masked_outside(a1x + dx, 0,nxdpr-1)
-        a1dprmask= a1dprmask + a1yTmp.mask + a1xTmp.mask
+        a1matchmask= a1matchmask + a1yTmp.mask + a1xTmp.mask
 
         a1datTmp= a2in[a1yTmp.filled(0),a1xTmp.filled(0)]
-
+        
         a2datTmp[itmp,:] = a1datTmp
 
-
-    a1datTmp = ma.masked_equal(a2datTmp,miss).mean(axis=0)
-    a1datTmp[a1dprmask] = miss
+    a1datTmp = (ma.masked_equal(a2datTmp,imiss).mean(axis=0)).filled(omiss)
+    a1datTmp[a1matchmask] = omiss_nomatch
     return a1datTmp
 
 #------------------------------------------
@@ -158,13 +162,23 @@ for DTime in lDTime:
             hdpr.close() 
 
             datatype   = DatDPR.dtype
+
+
             if   datatype =='float32':
-                miss = -9999.9
+                imiss = -9999.9
+                omiss = -9999.
+                omiss_nomatch = -9999.
             elif datatype =='int32':
                 miss = -9999
+                imiss = -9999
+                omiss = -9999
+                omiss_nomatch = -9999
+
+            if var=='NS/PRE/heightStormTop':
+                DatDPR = ma.masked_less(DatDPR,0).filled(0.0) 
 
             if   len(DatDPR.shape)==2:
-                datout = ave_9grids_2d(DatDPR, a2y.flatten(), a2x.flatten(), miss)
+                datout = ave_9grids_2d(DatDPR, a2y.flatten(), a2x.flatten(), imiss, omiss, omiss_nomatch)
                 datout = datout.reshape(nygmi,nxgmi)
  
             elif len(DatDPR.shape)==3:
@@ -176,9 +190,15 @@ for DTime in lDTime:
                 miss     = -9999
                 datout   = (ma.masked_less(datout,0)*100).astype(datatype)
                 datout   = ma.masked_less(datout,0).filled(miss)
-
             else:
-                datout     = datout.data.astype(datatype)
+                datout     = datout.astype(datatype)
+
+            ##-- test --
+            #plt.imshow(ma.masked_less_equal(datout[:150],0), origin='lower')
+            #plt.colorbar()
+            #plt.savefig('/home/utsumi/temp/temp.png')
+            #sys.exit()
+            ##-- test --
 
             varName    = var.split('/')[-1] 
             outbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.9ave.%s'%(fullverGMI, mwscan, cx-w, cx+w, radar, fullverDPR, varName)

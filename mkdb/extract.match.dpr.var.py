@@ -61,8 +61,9 @@ idxbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.IDX'%(f
 
 outrootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
-lvar = ['/NS/SLV/precipRate']
+#lvar = ['/NS/SLV/precipRate']
 #lvar = ['/NS/CSF/typePrecip']
+lvar = ['NS/PRE/heightStormTop']
 #lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/SLV/precipRate']
 #lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/VER/heightZeroDeg']
 #lvar = ['/NS/Latitude','/NS/Longitude']
