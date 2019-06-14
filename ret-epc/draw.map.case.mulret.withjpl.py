@@ -7,30 +7,19 @@ from numpy import *
 import h5py
 from bisect import bisect_left
 import epcfunc
-import sys, os, glob
+import sys, os
 
+# QJRMS case, oid=012149, 2016/4/18
+oid = 12149
+iy, ey = 1038, 1098
+clat    = 32. # QJRMS case, oid=012149
+clon    = -94 # -180 - +180
+DB_MAXREC = 20000
 ## Africa case
 #oid = 2421
 #iy, ey = 2029, 2089
 #clat    = 14 # Africa case
 #clon    = 2  # -180 - +180
-
-# SE.US case, oid=003556, 2014/10/14
-oid = 3556
-Year,Mon,Day = 2014,10,14
-iy, ey = 1012, 1022
-clat    = 34    # SE.US case. oid = 003556
-clon    = -86   # 2014/10/14  05:42:03 UTC
-DB_MAXREC = 1000
-
-
-## QJRMS case, oid=012149, 2016/4/18
-#oid = 12149
-#iy, ey = 1038, 1098
-#clat    = 32. # QJRMS case, oid=012149
-#clon    = -94 # -180 - +180
-#DB_MAXREC = 20000
-
 
 dlatlon = 5
 #dscan   = 55
@@ -42,7 +31,7 @@ miss = -9999.
 
 srcDir = '/home/utsumi/temp/out'
 #stamp = '%06d.y%04d-%04d.nrec%d'%(oid, idx_c-dscan, idx_c+dscan,DB_MAXREC)
-stamp = '%06d.y%04d-%04d.nrec%d'%(oid, iy, ey, DB_MAXREC)
+stamp = '%06d.y%04d-%04d.nrec%d.npy'%(oid, iy, ey, DB_MAXREC)
 
 nsurfMSPath    = srcDir + '/nsurfMS.%s.npy'%(stamp)
 nsurfNSPath    = srcDir + '/nsurfNS.%s.npy'%(stamp)
@@ -52,15 +41,11 @@ nsurfNScmbPath = srcDir + '/nsurfNScmb.%s.npy'%(stamp)
 latPath   = srcDir + '/lat.%s.npy'%(stamp)
 lonPath   = srcDir + '/lon.%s.npy'%(stamp)
 #
-#-- GPROF --
-gprofDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05/%04d/%02d/%02d'%(Year,Mon,Day)
-ssearch  = gprofDir + '/2A.GPM.GMI.GPROF*.%06d.????.HDF5'%(oid)
-gprofPath= glob.glob(ssearch)[0]
+#jplPath  = '/home/utsumi/bin/PMM/ret-epc/GPM_EPC_002421_20140802_0726.NS_MS.nc'  # HDF file, Africa case
+jplPath  = '/home/utsumi/bin/PMM/ret-epc/GPM_EPC_012149_20160418_1228.NS_MS.nc'  # HDF file, QJRMS case
 
-#-- MRMS --
-mrmsDir  = '/work/hk01/PMM/MRMS/match-GMI-orbit'
-ssearch  = mrmsDir + '/GMI.MRMS.130W_55W_20N_55N.%04d%02d%02d.%06d.*.npy'%(Year,Mon,Day,oid)
-mrmsPath = glob.glob(ssearch)[0]
+#tbPath   = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05/2014/08/02/1C.GPM.GMI.XCAL2016-C.20140802-S062222-E075455.002421.V05A.HDF5'
+
 #*****************
 #- Read My data ----
 
@@ -73,30 +58,21 @@ a2lonMy = np.load(lonPath)
 
 
 #*****************
-#- Read GPROF data ----
-with h5py.File(gprofPath) as h:
-    a2esurfgp = h['S1/surfacePrecipitation'][:]
-    a2latgpOrg= h['S1/Latitude'][:]
-    a2longpOrg= h['S1/Longitude'][:]
+#- Read JPL data ----
+with h5py.File(jplPath) as h:
+    a2jplMScmb  = h['MS/precip'][:]
+    a2dpr       = h['CMB/precip_NS'][:]
+    a2latjplOrg = h['latitude'][:]
+    a2lonjplOrg = h['longitude'][:]
 
+a2jplMScmb, a2latjpl, a2lonjpl, iyjpl, eyjpl = epcfunc.extract_domain_2D(a2jplMScmb, a2latjplOrg, a2lonjplOrg, clat, clon, dlatlon, dscan, returnidx=True)
+a2jplMScmb = ma.masked_less_equal(a2jplMScmb,0)
 
-a2esurfgp, a2latgp, a2longp, iygp, eygp = epcfunc.extract_domain_2D(a2esurfgp, a2latgpOrg, a2longpOrg, clat, clon, dlatlon, dscan, returnidx=True)
+a2dpr, a2lattmp, a2lontmp = epcfunc.extract_domain_2D(a2dpr, a2latjplOrg, a2lonjplOrg, clat, clon, dlatlon, dscan)
+a2dpr = ma.masked_less_equal(a2dpr,0)
 
-a2esurfgp = ma.masked_less_equal(a2esurfgp,0)
-
-#*****************
-#- Read MRMS-on-orbit data ----
-iymr,eymr = map(int, mrmsPath.split('.')[-2].split('-'))
-a2mrms  = np.load(mrmsPath)
-a2latmr = a2latgpOrg[iymr:eymr+1]
-a2lonmr = a2longpOrg[iymr:eymr+1]
-
-
-#a2dpr, a2lattmp, a2lontmp = epcfunc.extract_domain_2D(a2dpr, a2latjplOrg, a2lonjplOrg, clat, clon, dlatlon, dscan)
-#a2dpr = ma.masked_less_equal(a2dpr,0)
-#
-#a2latjpl = a2latjplOrg[iyjpl:eyjpl+1,:]
-#a2lonjpl = a2lonjplOrg[iyjpl:eyjpl+1,:]
+a2latjpl = a2latjplOrg[iyjpl:eyjpl+1,:]
+a2lonjpl = a2lonjplOrg[iyjpl:eyjpl+1,:]
 ##-- Read Tb data --
 #with h5py.File(tbPath, 'r') as h:
 #    a3tb1    = h['/S1/Tc'][:]
@@ -146,43 +122,43 @@ ssize = 1
 for i in range(6):
     if i==0:
         ax = fig.add_axes([0.1,0.66,0.35,0.3])
-        a2dat = ma.masked_less_equal(a2MS,0)
+        a2dat = ma.masked_equal(a2MS,0)
         a2lat = a2latMy
         a2lon = a2lonMy
         stype = 'MS'
 
     elif i==1:
         ax = fig.add_axes([0.5,0.66,0.35,0.3])
-        a2dat = ma.masked_less_equal(a2NS,0)
+        a2dat = ma.masked_equal(a2NS,0)
         a2lat = a2latMy
         a2lon = a2lonMy
         stype = 'NS'
 
     elif i==2:
         ax = fig.add_axes([0.1,0.33,0.35,0.3])
-        a2dat = ma.masked_less_equal(a2MScmb,0)
+        a2dat = ma.masked_equal(a2MScmb,0)
         a2lat = a2latMy
         a2lon = a2lonMy
         stype = 'MScmb'
 
     elif i==3:
         ax = fig.add_axes([0.5,0.33,0.35,0.3])
-        a2dat = ma.masked_less_equal(a2NScmb,0)
+        a2dat = ma.masked_equal(a2NScmb,0)
         a2lat = a2latMy
         a2lon = a2lonMy
         stype = 'NScmb'
     elif i==4:
         ax = fig.add_axes([0.1,0.0,0.35,0.3])
-        a2dat = ma.masked_less_equal(a2esurfgp,0)
-        a2lat = a2latgp
-        a2lon = a2longp
-        stype = 'GPROF'
+        a2dat = ma.masked_equal(a2jplMScmb,0)
+        a2lat = a2latjpl
+        a2lon = a2lonjpl
+        stype = 'JPL-MScmb'
     elif i==5:
         ax = fig.add_axes([0.5,0.0,0.35,0.3])
-        a2dat = ma.masked_less_equal(a2mrms,0)
-        stype = 'MRMS'
-        a2lat = a2latmr
-        a2lon = a2lonmr
+        a2dat = ma.masked_equal(a2dpr,0)
+        stype = 'DPR'
+        a2lat = a2latjpl
+        a2lon = a2lonjpl
 
     M     = Basemap(resolution='l', llcrnrlat=lllat, llcrnrlon=lllon, urcrnrlat=urlat, urcrnrlon=urlon, ax=ax)
     im    = M.scatter(a2lon, a2lat, c=a2dat, cmap='jet', s=ssize, vmin=0, vmax=20)

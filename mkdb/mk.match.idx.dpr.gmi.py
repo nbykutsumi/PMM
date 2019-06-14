@@ -10,8 +10,8 @@ import sys, os, glob
 from datetime import datetime, timedelta
 import numpy as np
 
-iDTime = datetime(2016,4,18)
-eDTime = datetime(2016,4,18)
+iDTime = datetime(2014,10,14)
+eDTime = datetime(2014,10,14)
 
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)

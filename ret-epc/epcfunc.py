@@ -75,6 +75,21 @@ def mk_epc_id_25bins(a3epc, a2pc_edge):
     a2id_db = a2id_db.filled(-9999)
     return a2id_db
 
+def mk_epc_id_nbins(a3epc, a2pc_edge, nbins):
+    NEM_USE   = 3
+    ny,nx,nz  = a3epc.shape
+    a2id_db  = np.zeros([ny,nx],np.int32)
+    for iem in range(NEM_USE):
+        a1bin = a2pc_edge[iem]
+        a2idTmp = np.digitize(a3epc[:,:,iem], a1bin, right=False) - 1
+
+        a2idTmp = ma.masked_outside(a2idTmp,0,nbins-1)
+        a2id_db = a2id_db + a2idTmp*pow(nbins, NEM_USE-1-iem)
+
+    a2id_db = a2id_db.filled(-9999)
+    return a2id_db
+
+
 
 #------------------------------------------
 def extract_domain_2D(a2dat, a2lat, a2lon, clat, clon, dlatlon, dscan, returnidx=False):

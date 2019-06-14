@@ -9,8 +9,8 @@ import myfunc.util as util
 import glob
 import socket
 
-iDTime = datetime(2016,4,18)
-eDTime = datetime(2016,4,18)
+iDTime = datetime(2014,10,14)
+eDTime = datetime(2014,10,14)
 lDTimeDay = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 gmibaseDir = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05'
@@ -116,6 +116,7 @@ for DTimeDay in lDTimeDay:
     #print lsrcPath
     for srcPath in lsrcPath:
         #srcPath = '/home/utsumi/temp/1C.GPM.GMI.XCAL2016-C.20171206-S141617-E154850.021437.V05A.HDF5'
+        print srcPath
         gNum  = srcPath.split('.')[-3]
        
         with h5py.File(srcPath,'r') as h5:
@@ -134,6 +135,7 @@ for DTimeDay in lDTimeDay:
 
         for (lat1,lon0) in llatlon:
             if (lat1,lon0) not in ddem.keys():
+                #print '(lat1,lon0)'
                 continue
 
             if lat1==-60:

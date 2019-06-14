@@ -1,0 +1,174 @@
+
+HS
+
+/HS/ScanTime
+<HDF5 dataset "Year": shape (7932,), type "<i2">
+<HDF5 dataset "Month": shape (7932,), type "|i1">
+<HDF5 dataset "DayOfMonth": shape (7932,), type "|i1">
+<HDF5 dataset "Hour": shape (7932,), type "|i1">
+<HDF5 dataset "Minute": shape (7932,), type "|i1">
+<HDF5 dataset "Second": shape (7932,), type "|i1">
+<HDF5 dataset "MilliSecond": shape (7932,), type "<i2">
+<HDF5 dataset "DayOfYear": shape (7932,), type "<i2">
+<HDF5 dataset "SecondOfDay": shape (7932,), type "<f8">
+
+/HS/scanStatus
+<HDF5 dataset "dataQuality": shape (7932,), type "|i1">
+<HDF5 dataset "dataWarning": shape (7932,), type "|i1">
+<HDF5 dataset "missing": shape (7932,), type "|i1">
+<HDF5 dataset "modeStatus": shape (7932,), type "|i1">
+<HDF5 dataset "geoError": shape (7932,), type "<i2">
+<HDF5 dataset "geoWarning": shape (7932,), type "<i2">
+<HDF5 dataset "SCorientation": shape (7932,), type "<i2">
+<HDF5 dataset "pointingStatus": shape (7932,), type "<i2">
+<HDF5 dataset "acsModeMidScan": shape (7932,), type "|i1">
+<HDF5 dataset "targetSelectionMidScan": shape (7932,), type "|i1">
+<HDF5 dataset "operationalMode": shape (7932,), type "|i1">
+<HDF5 dataset "limitErrorFlag": shape (7932,), type "|i1">
+<HDF5 dataset "FractionalGranuleNumber": shape (7932,), type "<f8">
+
+/HS/PRETMP
+<HDF5 dataset "binRealSurfaceL1": shape (7932, 24), type "<i2">
+<HDF5 dataset "echoCountRealSurface": shape (7932, 24), type "|u1">
+<HDF5 dataset "echoPowerNoPrecipAve": shape (7932, 24), type "<f4">
+<HDF5 dataset "echoPowerNoPrecipNum": shape (7932, 24), type "<i2">
+
+/HS/VERTMP
+<HDF5 dataset "attenuationNPwv": shape (7932, 24, 88), type "<f4">
+<HDF5 dataset "attenuationNPoxygen": shape (7932, 24, 88), type "<f4">
+<HDF5 dataset "attenuationNPcl": shape (7932, 24, 88), type "<f4">
+<HDF5 dataset "zFactorNPCorrected": shape (7932, 24, 88), type "<f4">
+
+/HS/DSDTMP
+<HDF5 dataset "particleTemperature": shape (7932, 24, 88), type "<f4">
+<HDF5 dataset "flagDSD": shape (7932, 24, 88), type "<i4">
+<HDF5 dataset "attenParmAlpha": shape (7932, 24, 88), type "<f4">
+<HDF5 dataset "attenParmBeta": shape (7932, 24, 88), type "<f4">
+<HDF5 dataset "reliabEpsilon": shape (7932, 24), type "<f4">
+
+/HS/SLVTMP
+<HDF5 dataset "attenuationPrecip": shape (7932, 24, 88), type "<f4">
+<HDF5 dataset "precipWater": shape (7932, 24, 88), type "<f4">
+<HDF5 dataset "zFactorForward1": shape (7932, 24, 88), type "<f4">
+<HDF5 dataset "zFactorForward2": shape (7932, 24, 88), type "<f4">
+
+/HS/Latitude
+<HDF5 dataset "Latitude": shape (7932, 24), type "<f4">
+
+/HS/Longitude
+<HDF5 dataset "Longitude": shape (7932, 24), type "<f4">
+
+MS
+
+/MS/ScanTime
+<HDF5 dataset "Year": shape (7932,), type "<i2">
+<HDF5 dataset "Month": shape (7932,), type "|i1">
+<HDF5 dataset "DayOfMonth": shape (7932,), type "|i1">
+<HDF5 dataset "Hour": shape (7932,), type "|i1">
+<HDF5 dataset "Minute": shape (7932,), type "|i1">
+<HDF5 dataset "Second": shape (7932,), type "|i1">
+<HDF5 dataset "MilliSecond": shape (7932,), type "<i2">
+<HDF5 dataset "DayOfYear": shape (7932,), type "<i2">
+<HDF5 dataset "SecondOfDay": shape (7932,), type "<f8">
+
+/MS/scanStatus
+<HDF5 dataset "dataQuality": shape (7932,), type "|i1">
+<HDF5 dataset "dataWarning": shape (7932,), type "|i1">
+<HDF5 dataset "missing": shape (7932,), type "|i1">
+<HDF5 dataset "modeStatus": shape (7932,), type "|i1">
+<HDF5 dataset "geoError": shape (7932,), type "<i2">
+<HDF5 dataset "geoWarning": shape (7932,), type "<i2">
+<HDF5 dataset "SCorientation": shape (7932,), type "<i2">
+<HDF5 dataset "pointingStatus": shape (7932,), type "<i2">
+<HDF5 dataset "acsModeMidScan": shape (7932,), type "|i1">
+<HDF5 dataset "targetSelectionMidScan": shape (7932,), type "|i1">
+<HDF5 dataset "operationalMode": shape (7932,), type "|i1">
+<HDF5 dataset "limitErrorFlag": shape (7932,), type "|i1">
+<HDF5 dataset "FractionalGranuleNumber": shape (7932,), type "<f8">
+
+/MS/PRETMP
+<HDF5 dataset "binRealSurfaceL1": shape (7932, 25), type "<i2">
+<HDF5 dataset "echoCountRealSurface": shape (7932, 25), type "|u1">
+<HDF5 dataset "echoPowerNoPrecipAve": shape (7932, 25), type "<f4">
+<HDF5 dataset "echoPowerNoPrecipNum": shape (7932, 25), type "<i2">
+
+/MS/VERTMP
+<HDF5 dataset "attenuationNPwv": shape (7932, 25, 176), type "<f4">
+<HDF5 dataset "attenuationNPoxygen": shape (7932, 25, 176), type "<f4">
+<HDF5 dataset "attenuationNPcl": shape (7932, 25, 176), type "<f4">
+<HDF5 dataset "zFactorNPCorrected": shape (7932, 25, 176), type "<f4">
+
+/MS/DSDTMP
+<HDF5 dataset "attenParmAlpha": shape (7932, 25, 176), type "<f4">
+<HDF5 dataset "attenParmBeta": shape (7932, 25, 176), type "<f4">
+<HDF5 dataset "reliabEpsilon": shape (7932, 25), type "<f4">
+
+/MS/SLVTMP
+<HDF5 dataset "attenuationPrecip": shape (7932, 25, 176), type "<f4">
+<HDF5 dataset "zFactorForward1": shape (7932, 25, 176), type "<f4">
+<HDF5 dataset "zFactorForward2": shape (7932, 25, 176), type "<f4">
+
+/MS/Latitude
+<HDF5 dataset "Latitude": shape (7932, 25), type "<f4">
+
+/MS/Longitude
+<HDF5 dataset "Longitude": shape (7932, 25), type "<f4">
+
+NS
+
+/NS/ScanTime
+<HDF5 dataset "Year": shape (7932,), type "<i2">
+<HDF5 dataset "Month": shape (7932,), type "|i1">
+<HDF5 dataset "DayOfMonth": shape (7932,), type "|i1">
+<HDF5 dataset "Hour": shape (7932,), type "|i1">
+<HDF5 dataset "Minute": shape (7932,), type "|i1">
+<HDF5 dataset "Second": shape (7932,), type "|i1">
+<HDF5 dataset "MilliSecond": shape (7932,), type "<i2">
+<HDF5 dataset "DayOfYear": shape (7932,), type "<i2">
+<HDF5 dataset "SecondOfDay": shape (7932,), type "<f8">
+
+/NS/scanStatus
+<HDF5 dataset "dataQuality": shape (7932,), type "|i1">
+<HDF5 dataset "dataWarning": shape (7932,), type "|i1">
+<HDF5 dataset "missing": shape (7932,), type "|i1">
+<HDF5 dataset "modeStatus": shape (7932,), type "|i1">
+<HDF5 dataset "geoError": shape (7932,), type "<i2">
+<HDF5 dataset "geoWarning": shape (7932,), type "<i2">
+<HDF5 dataset "SCorientation": shape (7932,), type "<i2">
+<HDF5 dataset "pointingStatus": shape (7932,), type "<i2">
+<HDF5 dataset "acsModeMidScan": shape (7932,), type "|i1">
+<HDF5 dataset "targetSelectionMidScan": shape (7932,), type "|i1">
+<HDF5 dataset "operationalMode": shape (7932,), type "|i1">
+<HDF5 dataset "limitErrorFlag": shape (7932,), type "|i1">
+<HDF5 dataset "FractionalGranuleNumber": shape (7932,), type "<f8">
+
+/NS/PRETMP
+<HDF5 dataset "binRealSurfaceL1": shape (7932, 49), type "<i2">
+<HDF5 dataset "echoCountRealSurface": shape (7932, 49), type "|u1">
+<HDF5 dataset "echoPowerNoPrecipAve": shape (7932, 49), type "<f4">
+<HDF5 dataset "echoPowerNoPrecipNum": shape (7932, 49), type "<i2">
+
+/NS/VERTMP
+<HDF5 dataset "attenuationNPwv": shape (7932, 49, 176), type "<f4">
+<HDF5 dataset "attenuationNPoxygen": shape (7932, 49, 176), type "<f4">
+<HDF5 dataset "attenuationNPcl": shape (7932, 49, 176), type "<f4">
+<HDF5 dataset "zFactorNPCorrected": shape (7932, 49, 176), type "<f4">
+
+/NS/DSDTMP
+<HDF5 dataset "particleTemperature": shape (7932, 49, 176), type "<f4">
+<HDF5 dataset "flagDSD": shape (7932, 49, 176), type "<i4">
+<HDF5 dataset "attenParmAlpha": shape (7932, 49, 176), type "<f4">
+<HDF5 dataset "attenParmBeta": shape (7932, 49, 176), type "<f4">
+<HDF5 dataset "reliabEpsilon": shape (7932, 49), type "<f4">
+
+/NS/SLVTMP
+<HDF5 dataset "attenuationPrecip": shape (7932, 49, 176), type "<f4">
+<HDF5 dataset "precipWater": shape (7932, 49, 176), type "<f4">
+<HDF5 dataset "zFactorForward1": shape (7932, 49, 176), type "<f4">
+<HDF5 dataset "zFactorForward2": shape (7932, 49, 176), type "<f4">
+
+/NS/Latitude
+<HDF5 dataset "Latitude": shape (7932, 49), type "<f4">
+
+/NS/Longitude
+<HDF5 dataset "Longitude": shape (7932, 49), type "<f4">

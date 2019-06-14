@@ -10,8 +10,8 @@ from collections import deque
 import myfunc.util as util
 
 varName = 'nltb'
-iYM = [2017,1]
-eYM = [2017,1]
+iYM = [2017,2]
+eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
 #outDir= '/work/hk01/utsumi/PMM/TPCDB/PC_COEF'
 outDir= '/work/hk01/utsumi/PMM/stop/data'
