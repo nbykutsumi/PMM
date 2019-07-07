@@ -12,11 +12,14 @@ verGMI   = '05'
 subverGMI= 'A'
 fullverGMI='%s%s'%(verGMI, subverGMI)
 
-iYM = [2017,2]
-eYM = [2017,12]
-#eYM = [2017,1]
+#iYM = [2017,2]
+#eYM = [2017,12]
+iYM = [2017,1]
+eYM = [2017,1]
 lYM = util.ret_lYM(iYM,eYM)
-lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
+#lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
+#lepcid_range = [[0,5000],[5000,10000],[10000,15000],[15000,20000],[20000,25000]]  # 29*29*29 = 24389
+lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15000],[15000,17500],[17500,20000],[20000,22500],[22500,25000]]  # 29*29*29 = 24389
 
 
 cx  = 110  # GMI center angle bin (py-idx)
@@ -26,16 +29,17 @@ worg= 221  # GMI total angle bins
 
 #lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude'],['gprof','S1/surfaceTypeIndex'],['gprof','S1/surfacePrecipitation'], ['gmi','S1/Tc']]
 #lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude']]
-#lvar = [['gmi','S1/Tc']]
+#lvar = [['gmi','epc'],['gmi','S1/Tc'],['gmi','S1/pYXpmw'],['gprof','S1/surfaceTypeIndex']]
+#lvar = [['gmi','epc'],['gmi','Tc'],['gmi','S1/pYXpmw']]
 #lvar = [['gprof','S1/surfacePrecipitation']]
 #lvar = [['gmi','S1/Longitude']]
 #lvar = [['gmi','S1/Latitude']]
-lvar = [['gmi','S1/pYXpmw'],['gprof','S1/surfaceTypeIndex']]
+#lvar = [['gmi','S1/pYXpmw'],['gprof','S1/surfaceTypeIndex']]
 #lvar = [['gmi','epc']]
 #lvar = [['gmi','S1/pYXpmw'],['gmi','S1/gNum'],['gmi','S1/Tc'],['gmi','S1/ScanTime/Year'],['gmi','S1/ScanTime/mdhms']]
 #lvar = [['gmi','S1/pYXpmw'],['gmi','S1/gNum'],['gmi','S1/ScanTime/Year'],['gmi','S1/ScanTime/mdhms']]
 #lvar = [['gmi','S1/ScanTime/Year'],['gmi','S1/ScanTime/mdhms']]
-#lvar = [['gmi','S1/gNum']]
+lvar = [['gmi','S1/gNum']]
 #lvar = [['gmi','S1/ScanTime/Year']]
 #lvar = [['gmi','S1/ScanTime/mdhms']]
 #lvar = [['gmi','S1/LatLon']]
@@ -48,7 +52,6 @@ int32: -2147483648 ~ +2147483647
 dattype={
  'S1/Latitude' :'float32'
 ,'S1/Longitude':'float32'
-,'S1/Tc'       :'float32'
 ,'S1/ScanTime/Year':'int16'
 ,'S1/ScanTime/mdhms':'int8'
 ,'S1/surfaceTypeIndex':'int32'
@@ -56,12 +59,12 @@ dattype={
 ,'S1/pYXpmw': 'int16'
 ,'S1/gNum': 'int16'
 ,'epc': 'float32'
+,'Tc' : 'float32'
 }
 
 dnvect ={
  'S1/Latitude' :1
 ,'S1/Longitude':1
-,'S1/Tc'       :9
 ,'S1/ScanTime/Year':1
 ,'S1/ScanTime/mdhms':5
 ,'S1/surfaceTypeIndex':1
@@ -69,6 +72,7 @@ dnvect ={
 ,'S1/pYXpmw': 2
 ,'S1/gNum': 1
 ,'epc': 13
+,'Tc' : 13
 }
 
 #-- if vector size=11 --
@@ -105,7 +109,7 @@ for Year,Mon in lYM:
             maxrec   = dmaxrec[var]
             grp      = '/'.join(var.split('/')[:-1])
             varName  = var.split('/')[-1]
-            listPath = listDir + '/list.%s.V%s.%04d%02d.csv'%(prod,verGMI,Year,Mon)
+            listPath = listDir + '/list.shuffle.%s.V%s.%04d%02d.csv'%(prod,verGMI,Year,Mon)
             lobt = csv2list(listPath)
         
             dstack = {}
@@ -115,11 +119,11 @@ for Year,Mon in lYM:
                 dnum  [epcid] = 0
     
             ##-- test --
-            #lobt = lobt[:4]
+            #lobt = lobt[:3]
             ##----------    
             for (obtnum, Year,Mon,Day,time0, time1) in lobt:   
                 Year,Mon,Day = map(int, [Year,Mon,Day])
-                print obtnum,Year,Mon,Day
+                print var, obtnum,Year,Mon,Day
                 #-- read EPC-id --
                 extractDir = extractidDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
                 ssearch = extractDir + '/epcid-s1.%s.npy'%(obtnum)
@@ -133,7 +137,7 @@ for Year,Mon in lYM:
                     ssearch= srcDir + '/*.%s.V%s.HDF5'%(obtnum,fullverGMI)
                     srcPath= glob.glob(ssearch)[0]
                     print srcPath
-                elif (prodName=='gprof')&(varName !='epc'):
+                elif (prodName=='gmi')&(varName !='epc'):
                     srcDir = gprofbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
                     ssearch= srcDir + '/*.%s.V05?.HDF5'%(obtnum)
                     srcPath= glob.glob(ssearch)[0]
@@ -148,6 +152,17 @@ for Year,Mon in lYM:
                     epcPath = glob.glob(ssearch)[0]
                     Dat     = np.load(epcPath).reshape(-1,NEM)
  
+
+                elif varName=='Tc':
+                    NTB1 = 9
+                    NTB2 = 4
+                    extractDir1 = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp103-117.GMI.Tc/%04d/%02d/%02d'%(Year,Mon,Day)
+                    extractDir2 = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp103-117.GMI.TcS2/%04d/%02d/%02d'%(Year,Mon,Day)
+                    datPath1= extractDir1 + '/Tc.%s.npy'%(obtnum)
+                    datPath2= extractDir2 + '/TcS2.1.%s.npy'%(obtnum)
+                    Dat1    = np.load(datPath1).reshape(-1,NTB1)
+                    Dat2    = np.load(datPath2).reshape(-1,NTB2)
+                    Dat = np.concatenate([Dat1,Dat2],axis=1) 
     
                 elif varName=='mdhms':
                     h    = h5py.File(srcPath)
@@ -199,9 +214,12 @@ for Year,Mon in lYM:
                     h   = h5py.File(srcPath)
                     Dat = h[var][:]
                     h.close()
-   
+  
+                    print 'check varName'
+                    print 'varName'
+                    print 'exit' 
                     sys.exit()
- 
+                     
                     if len(Dat.shape)==2:
                         Dat = Dat[:,cx-w:cx+w+1].flatten()
                     elif len(Dat.shape)==3:

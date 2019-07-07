@@ -15,13 +15,12 @@ verDPR    = '06'
 subverDPR = 'A'
 fullverDPR= '%s%s'%(verDPR, subverDPR)
 
-iYM = [2017,1]
+iYM = [2017,2]
 eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
-lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
-#lepcid_range = [[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
-
-
+#lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
+#lepcid_range = [[0,5000],[5000,10000],[10000,15000],[15000,20000],[20000,25000]]  # 29*29*29 = 24389
+lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15000],[15000,17500],[17500,20000],[20000,22500],[22500,25000]]  # 29*29*29 = 24389
 
 cx  = 110  # GMI center angle bin (py-idx)
 cw  = 15    # extract this width around center
@@ -32,9 +31,13 @@ worg= 221  # GMI total angle bins
 
 #lvar = [['Ku','NS/SLV/zFactorCorrected'],['Ku','NS/SLV/precipRate']]
 #lvar = [['Ku','NS/SLV/zFactorCorrected']]
+#lvar = [['Ku','NS/PRE/zFactorMeasured'],['Ka','MS/PRE/zFactorMeasured'],['Ku','NS/PRE/elevation']]
+#lvar = [['DPRGMI','NS/precipTotWaterCont']]
+#lvar = [['DPRGMI','NS/surfPrecipTotRate']]
+lvar = [['DPRGMI','NS/surfPrecipTotRate'],['DPRGMI','NS/precipTotWaterCont']]
 #lvar = [['Ku','NS/SLV/precipRate']]
 #lvar = [['Ku','NS/SLV/precipRateESurface']]
-lvar = [['Ku','NS/PRE/elevation'],['Ku','NS/CSF/typePrecip'],['Ku','NS/PRE/heightStormTop']]
+#lvar = [['Ku','NS/PRE/elevation'],['Ku','NS/CSF/typePrecip'],['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','NS/PRE/heightStormTop']]
 
 
@@ -45,22 +48,38 @@ int16: -32768 ~ +32767
 int32: -2147483648 ~ +2147483647
 '''
 dattype={
- 'NS/SLV/zFactorCorrected': 'float32'
-,'NS/SLV/precipRate':       'float32'
+ 'NS/SLV/zFactorCorrected': 'int16'  # scaled by 100, (125m->250m)
+,'MS/SLV/zFactorCorrected': 'int16'  # scaled by 100, (125m->250m)
+,'NS/PRE/zFactorMeasured' : 'int16'  # scaled by 100, (125m->250m)
+,'MS/PRE/zFactorMeasured' : 'int16'  # scaled by 100, (125m->250m)
+,'NS/SLV/precipRate':       'int16'  # scaled by 100, (125m->250m)
 ,'NS/SLV/precipRateESurface':'float32'
 ,'NS/PRE/elevation':        'int16'  # float32 --> int16
 ,'NS/CSF/typePrecip':       'int16'  # convert to int16 (-32768, 32767)
 ,'NS/PRE/heightStormTop':   'int16'  # save as int16 (-32768, 32767)
+
+,'NS/precipTotWaterCont':   'float32'  # original:250m
+,'MS/precipTotWaterCont':   'float32'  # original:250m
+,'MS/surfPrecipTotRate' :   'float32' # DPRGMI
+,'NS/surfPrecipTotRate' :   'float32' # DPRGMI
+
 }
 
 dnvect ={
- 'NS/SLV/zFactorCorrected': 50
-,'NS/SLV/precipRate':       50
+ 'NS/SLV/zFactorCorrected': 60
+,'MS/SLV/zFactorCorrected': 60
+,'NS/PRE/zFactorMeasured': 60
+,'MS/PRE/zFactorMeasured': 60
+,'NS/SLV/precipRate':       60
 ,'NS/SLV/precipRateESurface':1
 ,'NS/PRE/elevation':        1
 ,'NS/CSF/typePrecip':       1
 ,'NS/PRE/heightStormTop':   1
 
+,'NS/precipTotWaterCont':  60
+,'MS/precipTotWaterCont':  60
+,'MS/surfPrecipTotRate' :  1
+,'NS/surfPrecipTotRate' :  1
 }
 
 #---------------------
@@ -213,13 +232,16 @@ def sum_9grids_2d(a2in, a1y, a1x, miss):
 
 #---------------
 for Year,Mon in lYM:
-    for (radar, var) in lvar:
+    for (radar, var) in lvar: 
         for epcid_range in lepcid_range:
             epcid_min, epcid_max = epcid_range
             maxrec   = dmaxrec[var]
             grp      = '/'.join(var.split('/')[:-1])
+            scanName = var.split('/')[0]
             varName  = var.split('/')[-1]
-            listPath = listDir + '/list.%s.V%s.%04d%02d.csv'%(prod,verGMI,Year,Mon)
+            varNameOut='%s_%s_%s'%(radar,scanName,varName)
+            nvect    = dnvect[var]
+            listPath = listDir + '/list.shuffle.%s.V%s.%04d%02d.csv'%(prod,verGMI,Year,Mon)
             lobt = csv2list(listPath)
         
             dstack = {}
@@ -229,12 +251,12 @@ for Year,Mon in lYM:
                 dnum  [epcid] = 0
     
             #-- test --
-            #lobt = lobt[:4]
+            #lobt = lobt[:3]
             #lobt = lobt[3:3+1]
             #----------    
             for (obtnum, Year,Mon,Day,time0, time1) in lobt:   
                 Year,Mon,Day = map(int, [Year,Mon,Day])
-                print obtnum,Year,Mon,Day
+                print varName, obtnum,Year,Mon,Day
                 #-- Read EPC-id --
                 extractDir = extractidDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
                 epcidPath = extractDir + '/epcid-s1.%s.npy'%(obtnum)
@@ -248,12 +270,20 @@ for Year,Mon in lYM:
                 a2dprx    = np.load(xPath)[:,cx-w-83:cx+w+1-83]
                 a2dpry    = np.load(yPath)[:,cx-w-83:cx+w+1-83]
 
+                if scanName =='MS':
+                    a2dprx = ma.masked_less(a2dprx,0)-12
+
                 a1dprx    = a2dprx.flatten()
                 a1dpry    = a2dpry.flatten()
 
                 #-- Search DPR granules --
-                dprbaseDir   = '/work/hk01/PMM/NASA/GPM.%s/2A/V%s'%(radar, verDPR)
-                if  (radar=='Ku'):
+                if radar in ['Ku','Ka']:
+                    prdLev = '2A'
+                elif radar in ['DPRGMI']:
+                    prdLev = '2B'
+
+                dprbaseDir   = '/work/hk01/PMM/NASA/GPM.%s/%s/V%s'%(radar, prdLev, verDPR)
+                if  (radar in ['Ku','Ka','DPRGMI']):
                     srcDir = dprbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
                     ssearch= srcDir + '/*.%s.V%s.HDF5'%(obtnum,fullverDPR)
                     srcPath= glob.glob(ssearch)[0]
@@ -262,10 +292,9 @@ for Year,Mon in lYM:
                     sys.exit()
 
                 #-- Read DPR variables --
-                if   varName =='zFactorCorrected':
-                    h    = h5py.File(srcPath)
-                    Dat0 = h[var][:]
-                    h.close() 
+                if   varName in ['zFactorCorrected','zFactorMeasured']:
+                    with h5py.File(srcPath) as h:
+                        Dat0 = h[var][:,:,:nvect*2]
 
                     #-- Convert dBZ --> Z ---
                     '''
@@ -291,13 +320,14 @@ for Year,Mon in lYM:
 
                     #-- Convert to dBZ --
                     Dat = 10*np.log10(ma.masked_equal(a2datTmp, -9999.9))
-                    Dat = ma.masked_invalid(Dat).filled(-9999.9).astype(float32)
+
+                    #-- Scale by 100, with int16 ---
+                    Dat = (100*ma.masked_invalid(Dat)).filled(-9999.9).astype(dattype[var])
 
 
                 elif   varName =='precipRate':
-                    h    = h5py.File(srcPath)
-                    Dat0 = h[var][:]
-                    h.close() 
+                    with h5py.File(srcPath) as h:
+                        Dat0 = h[var][:,:,:nvect*2]
 
                     #-- Average vertical ranges (over Linearlized Z)--
                     Dat_up  = average_4ranges_3d(Dat0[:,:,-120:-80],miss=-9999.9,dtype=float32, fill=False)
@@ -308,16 +338,19 @@ for Year,Mon in lYM:
 
                     Dat     = ave_9grids_3d(DatCnc, a1dpry, a1dprx, miss=-9999.9)
 
-                elif varName in ['precipRateESurface']:
-                    h   = h5py.File(srcPath)
-                    Dat0 = h[var][:]
-                    h.close()
-                    if   dattype[var]=='int32':
-                        miss=-9999
-                    elif dattype[var]=='float32':
-                        miss=-9999.9
-   
-                    Dat     = ave_9grids_2d(Dat0, a1dpry, a1dprx, miss=miss)
+                elif varName in ['precipTotWaterCont']:
+                    with h5py.File(srcPath) as h:
+                        Dat0 = h[var][:,:,:nvect]
+
+                    #-- Average 9 grids (over Linearlized Z)--
+
+                    Dat     = ave_9grids_3d(Dat0, a1dpry, a1dprx, miss=-9999.9)
+
+                elif varName in ['precipRateESurface','surfPrecipTotRate']:
+                    with h5py.File(srcPath) as h:
+                        Dat0 = h[var][:]
+
+                    Dat     = ave_9grids_2d(Dat0, a1dpry, a1dprx, miss=-9999.9)
 
 
                 elif varName in ['elevation']:
@@ -380,8 +413,8 @@ for Year,Mon in lYM:
                     if (len(dstack[epcid]))>maxrec:
                         dnum[epcid] = dnum[epcid] +1 
         
-                        outDir  = outbaseDir + '/%s/%04d%02d'%(varName,Year,Mon)
-                        outPath = outDir + '/%s.%05d.%d.npy'%(varName,epcid, dnum[epcid])
+                        outDir  = outbaseDir + '/%s/%04d%02d'%(varNameOut,Year,Mon)
+                        outPath = outDir + '/%s.%05d.%d.npy'%(varNameOut,epcid, dnum[epcid])
                         util.mk_dir(outDir)
                         np.save(outPath, array(dstack[epcid]).astype(dattype[var]))
         
@@ -395,8 +428,8 @@ for Year,Mon in lYM:
             for epcid in range(epcid_min,epcid_max):
                 dnum[epcid] = dnum[epcid] + 1 
                 if len(dstack[epcid])>0:
-                    outDir  = outbaseDir + '/%s/%04d%02d'%(varName,Year,Mon)
-                    outPath = outDir + '/%s.%05d.%d.npy'%(varName,epcid,dnum[epcid])
+                    outDir  = outbaseDir + '/%s/%04d%02d'%(varNameOut,Year,Mon)
+                    outPath = outDir + '/%s.%05d.%d.npy'%(varNameOut,epcid,dnum[epcid])
                     util.mk_dir(outDir)
     
                     np.save(outPath, array(dstack[epcid]).astype(dattype[var]))
@@ -407,8 +440,8 @@ for Year,Mon in lYM:
     
             #--- Joint segments ---
             for epcid in range(epcid_min,epcid_max):
-                outDir  = outbaseDir + '/%s/%04d%02d'%(varName,Year,Mon)
-                ssearch = outDir + '/%s.%05d.*.npy'%(varName,epcid)
+                outDir  = outbaseDir + '/%s/%04d%02d'%(varNameOut,Year,Mon)
+                ssearch = outDir + '/%s.%05d.*.npy'%(varNameOut,epcid)
                 lsrcPath= sort(glob.glob(ssearch))
     
                 if len(lsrcPath)==0: continue
@@ -418,7 +451,7 @@ for Year,Mon in lYM:
                     atmp = np.load(srcPath)
                     aout.extend(atmp)
     
-                outPath =  outDir + '/%s.%05d.npy'%(varName,epcid)
+                outPath =  outDir + '/%s.%05d.npy'%(varNameOut,epcid)
     
                 np.save(outPath, aout)
                 print outPath

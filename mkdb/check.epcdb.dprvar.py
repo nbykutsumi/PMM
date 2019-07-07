@@ -12,8 +12,8 @@ verGMI   = '05'
 subverGMI= 'A'
 fullverGMI='%s%s'%(verGMI, subverGMI)
 
-iYM = [2017,2]
-eYM = [2017,2]
+iYM = [2017,1]
+eYM = [2017,1]
 lYM = util.ret_lYM(iYM,eYM)
 nrand= 10
 
@@ -26,11 +26,13 @@ verDPR    = '06'
 subverDPR = 'A'
 fullverDPR= '%s%s'%(verDPR, subverDPR)
 
-radar= 'Ku'
+prodDPR = '2B'
+#radar= 'Ku'
+radar= 'DPRGMI'
 
 #gmibaseDir   = '/work/hk01/PMM/NASA/GPM.GMI/%s/V%s'%(prod,verGMI)
 #gprofbaseDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05'
-dprbaseDir   = '/work/hk01/PMM/NASA/GPM.%s/2A/V%s'%(radar, verDPR)
+dprbaseDir   = '/work/hk01/PMM/NASA/GPM.%s/%s/V%s'%(radar, prodDPR, verDPR)
 
 dbbaseDir   = '/work/hk01/utsumi/PMM/EPCDB/GMI.V%s.%s.ABp%03d-%03d'%(fullverGMI, 'S1', cx-w, cx+w)
 
@@ -94,10 +96,22 @@ def ave_9grids_2d(a2in, a1y, a1x, miss):
 
 
 for Year,Mon in lYM:
+    #-- Read granule list --
+    listPath = '/work/hk01/utsumi/PMM/EPCDB/list/list.1C.V05.%04d%02d.csv'%(Year,Mon)
+    f=open(listPath,'r'); lines=f.readlines(); f.close()
+    dymd = {}
+    for line in lines:
+        line = map(int, line.strip().split(','))
+        oid, yyyy,mm,dd,itime,etime = line
+        dymd[oid] = [yyyy,mm,dd]
+
+
     #-- make epcid list --
     ssearch = dbbaseDir + '/pYXpmw/%04d%02d/pYXpmw.*.npy'%(Year,Mon)
     lyxPath = glob.glob(ssearch)
-    lipath  = random.sample(range(len(lyxPath)), k=5)
+    lyxPath = sort(lyxPath)
+    #lipath  = random.sample(range(len(lyxPath)), k=5)
+    lipath  = [10,11,12,13,14]
     lipath  = sort(lipath)
 
     for ipath in lipath:
@@ -107,16 +121,19 @@ for Year,Mon in lYM:
         print 'epcid=',epcid
 
         gnumPath = dbbaseDir + '/gNum/%04d%02d/gNum.%s.npy'%(Year,Mon, epcid)
-        mdhmsPath= dbbaseDir + '/mdhms/%04d%02d/mdhms.%s.npy'%(Year,Mon, epcid)
-        yearPath = dbbaseDir + '/Year/%04d%02d/Year.%s.npy'%(Year,Mon, epcid)
-        esurfPath= dbbaseDir + '/precipRateESurface/%04d%02d/precipRateESurface.%s.npy'%(Year,Mon, epcid)
+        #mdhmsPath= dbbaseDir + '/mdhms/%04d%02d/mdhms.%s.npy'%(Year,Mon, epcid)
+        #yearPath = dbbaseDir + '/Year/%04d%02d/Year.%s.npy'%(Year,Mon, epcid)
+        #esurfPath= dbbaseDir + '/precipRateESurface/%04d%02d/precipRateESurface.%s.npy'%(Year,Mon, epcid)
+        watcontPath= dbbaseDir + '/DPRGMI_NS_precipTotWaterCont/%04d%02d/DPRGMI_NS_precipTotWaterCont.%s.npy'%(Year,Mon, epcid)
 
         #-- Read files --
         a1gnum   = np.load(gnumPath)
         a2yx     = np.load(yxPath)
-        a2mdhms  = np.load(mdhmsPath)
-        a2year   = np.load(yearPath)
-        a2esurf  = np.load(esurfPath)
+        a2watcont= np.load(watcontPath)
+
+        #a2mdhms  = np.load(mdhmsPath)
+        #a2year   = np.load(yearPath)
+        #a2esurf  = np.load(esurfPath)
 
 
         #-- Loop in a single EPC subset database
@@ -129,10 +146,12 @@ for Year,Mon in lYM:
       
         for ient in lient:
             gnum = a1gnum[ient]
-            Mon1,Day1,Hour1,Mnt1,Sec1 = a2mdhms[ient]
-            Year1= a2year[ient]
             gmiy,gmix  = a2yx[ient]
-            esurf= a2esurf[ient]
+            watcont1  = a2watcont[ient]
+            #Mon1,Day1,Hour1,Mnt1,Sec1 = a2mdhms[ient]
+            #Year1= a2year[ient]
+            #esurf= a2esurf[ient]
+            Year1,Mon1,Day1 = dymd[gnum]
 
             #-- location matching file (GMI-->DPR) --
             dpridxDir= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.IDX/%04d/%02d/%02d'%(Year1,Mon1, Day1)
@@ -148,30 +167,36 @@ for Year,Mon in lYM:
             dprx = a2dprx[gmiy, gmix-83]
             
 
-            #-- Read GMI granule HDF file --
+            #-- Read DPR granule HDF file --
             dprDir = dprbaseDir + '/%04d/%02d/%02d'%(Year1,Mon1,Day1)
             ssearch= dprDir + '/*.%06d.V???.HDF5'%(gnum)
             dprPath= glob.glob(ssearch)[0]
 
-            h = h5py.File(dprPath)
-            a2hour2 = h['/NS/ScanTime/Hour'][:]
-            a2mnt2  = h['/NS/ScanTime/Minute'][:]
-            a2sec2  = h['/NS/ScanTime/Second'][:]
-            a2esurf2= h['/NS/SLV/precipRateESurface'][:]
-
-            Hour2   = a2hour2[dpry]
-            Mnt2    = a2mnt2[dpry]
-            Sec2    = a2sec2[dpry]
+            with h5py.File(dprPath) as h:
+                a3watcont2 = h['/NS/precipTotWaterCont'][:]
+    
+                #a2hour2 = h['/NS/ScanTime/Hour'][:]
+                #a2mnt2  = h['/NS/ScanTime/Minute'][:]
+                #a2sec2  = h['/NS/ScanTime/Second'][:]
+                #a2esurf2= h['/NS/SLV/precipRateESurface'][:]
+    
+                #Hour2   = a2hour2[dpry]
+                #Mnt2    = a2mnt2[dpry]
+                #Sec2    = a2sec2[dpry]
 
             #-- average 9-grids --
-            esurf2  = ave_9grids_2d(a2esurf2, array([dpry]), array([dprx]), miss=-9999.9)[0]
+            watcont2 = ave_9grids_3d(a3watcont2, array([dpry]), array([dprx]), miss=-9999.9)[0][:60].astype(float32)
+            #esurf2  = ave_9grids_2d(a2esurf2, array([dpry]), array([dprx]), miss=-9999.9)[0]
  
 
             print '-'*10
-            print 'Hour  ',Hour1,Hour2
-            print 'Mnt   ',Mnt1, Mnt2
-            print 'Sec   ',Sec1, Sec2
-            print 'esurf ',esurf, esurf2
+            print watcont1
+            print watcont2
+            print watcont1-watcont2
+            #print 'Hour  ',Hour1,Hour2
+            #print 'Mnt   ',Mnt1, Mnt2
+            #print 'Sec   ',Sec1, Sec2
+            #print 'esurf ',esurf, esurf2
             print '-'*10
             
         

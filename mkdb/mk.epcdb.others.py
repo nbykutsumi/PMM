@@ -71,7 +71,7 @@ for Year,Mon in lYM:
             epcid_min, epcid_max = epcid_range
             maxrec   = dmaxrec[var]
             grp      = '/'.join(var.split('/')[:-1])
-            listPath = listDir + '/list.%s.V%s.%04d%02d.csv'%(prod,verGMI,Year,Mon)
+            listPath = listDir + '/list.shuffle.%s.V%s.%04d%02d.csv'%(prod,verGMI,Year,Mon)
             lobt = csv2list(listPath)
         
             dstack = {}

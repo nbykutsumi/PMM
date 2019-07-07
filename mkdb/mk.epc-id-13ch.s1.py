@@ -4,16 +4,17 @@ import matplotlib.pyplot as plt
 from numpy import *
 import myfunc.util as util
 import myfunc.IO.GPM.l1_gmi as l1_gmi
-
 import glob
 from datetime import datetime, timedelta
 import numpy as np
 import sys
 from f_match_fov import *
+import mkdbfunc
 
 NEM     = 12
 NTBREG  = 13
 NEM_USE = 3
+NPCHIST = 29
 
 gmi    = l1_gmi.L1_GMI()
 
@@ -171,42 +172,49 @@ def mk_epc_9ch(a3tb):
     return a3epc
 
 
-def mk_epc_id_25bins(a3epc):
-    ny,nx,nz  = a3epc.shape
-    a2id_db  = zeros([ny,nx],int32)
-    for iem in range(NEM_USE):
-        a1bin = a2pc_range[iem]
-        a2idTmp = np.digitize(a3epc[:,:,iem], a1bin, right=False) - 1
-    
-        a2idTmp = ma.masked_outside(a2idTmp,0,24)
-        a2id_db = a2id_db + a2idTmp*pow(25, NEM_USE-1-iem)
-
-    a2id_db = a2id_db.filled(-9999)
-    return a2id_db
+#def mk_epc_id_25bins(a3epc):
+#    ny,nx,nz  = a3epc.shape
+#    a2id_db  = zeros([ny,nx],int32)
+#    for iem in range(NEM_USE):
+#        a1bin = a2pc_range[iem]
+#        a2idTmp = np.digitize(a3epc[:,:,iem], a1bin, right=False) - 1
+#    
+#        a2idTmp = ma.masked_outside(a2idTmp,0,24)
+#        a2id_db = a2id_db + a2idTmp*pow(25, NEM_USE-1-iem)
+#
+#    a2id_db = a2id_db.filled(-9999)
+#    return a2id_db
 
 
 
 #-- Read EPC range files --
-coefDir   = '/home/utsumi/bin/ENSPR/EPC_COEF/GMI'
-rangePath = coefDir + '/PC_MIN_MAX_25_no_overlap.txt'
-a2tmp     = read_table(rangePath)
-a2tmp     = a2tmp[:,3:]
+#coefDir   = '/home/utsumi/bin/ENSPR/EPC_COEF/GMI'
+#rangePath = coefDir + '/PC_MIN_MAX_25_no_overlap.txt'
+#a2tmp     = read_table(rangePath)
+#a2tmp     = a2tmp[:,3:]
+#
+#nytmp, nxtmp = a2tmp.shape
+#a2pc_range     = zeros([nytmp,nxtmp/2+1]) # 12*(25+1)
+#a2pc_range_min = zeros([nytmp,nxtmp/2])   # 12*25
+#a2pc_range_max = zeros([nytmp,nxtmp/2])   # 12*25
+#for ytmp in range(nytmp):
+#    for xtmp in range(0,nxtmp,2):
+#        a2pc_range_min[ytmp,xtmp/2] = a2tmp[ytmp,xtmp]
+#        a2pc_range_max[ytmp,xtmp/2] = a2tmp[ytmp,xtmp+1]
+#
+#a2pc_range[:,:-1] = a2pc_range_min
+#a2pc_range[:,-1]  = a2pc_range_max[:,-1]
 
-nytmp, nxtmp = a2tmp.shape
-a2pc_range     = zeros([nytmp,nxtmp/2+1]) # 12*(25+1)
-a2pc_range_min = zeros([nytmp,nxtmp/2])   # 12*25
-a2pc_range_max = zeros([nytmp,nxtmp/2])   # 12*25
-for ytmp in range(nytmp):
-    for xtmp in range(0,nxtmp,2):
-        a2pc_range_min[ytmp,xtmp/2] = a2tmp[ytmp,xtmp]
-        a2pc_range_max[ytmp,xtmp/2] = a2tmp[ytmp,xtmp+1]
-
-a2pc_range[:,:-1] = a2pc_range_min
-a2pc_range[:,-1]  = a2pc_range_max[:,-1]
+coefDir = '/work/hk01/utsumi/JPLDB/EPC_COEF/GMI'
+rangePath = coefDir + '/PC_MIN_MAX_29.txt'
+a2pc_edge = read_table(rangePath)
+a2pc_edge[:,0]   = a2pc_edge[:,0] - 1.e6
+a2pc_edge[:,-1]  = a2pc_edge[:,-1]+ 1.e6
 
 
 #-- Read EPC conversion Coefficient file --
-coefDir  = '/home/utsumi/bin/ENSPR/EPC_COEF/GMI'
+#coefDir  = '/home/utsumi/bin/ENSPR/EPC_COEF/GMI'
+#coefDir = '/work/hk01/utsumi/JPLDB/EPC_COEF/GMI'
 coefPath = coefDir + '/coef_pc.txt'
 a2coef   = read_table(coefPath)
 a2coef   = a2coef[:,1:]
@@ -264,7 +272,8 @@ for DTime in lDTime:
         #print 'make epc'
         a3epc= mk_epc(a3tb, a2coef)
         #print 'make epc done'
-        a2epcid = mk_epc_id_25bins(a3epc)
+        #a2epcid = mk_epc_id_25bins(a3epc)
+        a2epcid = mkdbfunc.mk_epc_id_nbins(a3epc, a2pc_edge, NPCHIST)
 
         #-- save epc --
         outvarName    = 'epc-s1'

@@ -245,7 +245,6 @@ else:
 coefPath = coefDir + '/coef_pc.txt'
 a2coef   = read_table(coefPath)
 a2coef   = a2coef[:,1:]
-
 #-- Read EPC range files --
 rangePath = coefDir + '/PC_MIN_MAX_29.txt'
 a2pc_edge = read_table(rangePath)

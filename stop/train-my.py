@@ -356,14 +356,15 @@ print 'Define functions'
 #***********************************************************
 Year  = 2017
 lMon   = [1]
-#lisurf = [4]
-lisurf = range(1,14+1)
+lisurf = [4]
+#lisurf = range(1,14+1)
 coef_b = 5
-#saveprep = 1
-#savemodel= 1
+saveprep = 1
+savemodel= 1
 restmodel = 0
 #lact = ['H','L','LT']
-lact = ['L','LT']
+#lact = ['L','LT']
+lact = ['H']
 llatminmax = [[-90,90]]
 
 for act in lact:

@@ -85,7 +85,7 @@ for varName in lvarName:
 
             print Year,Mon,aTmp.shape
             #-- Sample entries --
-            seed = (epcid,Year,Mon)
+            random.seed(epcid,Year,Mon)
             aidx = random.sample(range(nrec),k=nuse)
             aTmp = aTmp[aidx] 
             astack.append(aTmp)
@@ -95,7 +95,7 @@ for varName in lvarName:
         astack = concatenate(astack, axis=0)
 
         #-- Random sampling from stacked data --
-        seed = (epcid,0)
+        random.seed(epcid,0)
         ntot = len(astack)
         aidx = random.sample(range(ntot), k=ntot)
         astack = astack[aidx].astype(dtype=dtype)
