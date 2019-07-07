@@ -4,21 +4,21 @@ import numpy as np
 import os,sys
 
 iYM = [2017,1]
-eYM = [2017,12]
+eYM = [2017,1]
 lYM = util.ret_lYM(iYM,eYM)
-varName = 'precipRateESurface'  # Any 1-dimensional variable
+varName = 'DPRGMI_NS_surfPrecipTotRate'  # Any 1-dimensional variable
 baseDir = '/work/hk01/utsumi/PMM/EPCDB/GMI.V05A.S1.ABp103-117/%s'%(varName)
 
 listDir = '/work/hk01/utsumi/PMM/EPCDB/list'
 
-lepcid  = range(0,25*25*25) # 25*25*25=15625
-#lepcid  = range(0,100+1) # 25*25*25=15625
+#lepcid  = range(0,25*25*25) # 25*25*25=15625
+lepcid  = range(0,29*29*29) # 29*29*29 = 24389
 
 for (Year,Mon) in lYM:
     lout   = []
     for epcid in lepcid:
         srcDir  = baseDir + '/%04d%02d'%(Year,Mon)
-        srcPath = srcDir + '/precipRateESurface.%05d.npy'%(epcid)
+        srcPath = srcDir + '/%s.%05d.npy'%(varName, epcid)
         print Year,Mon,epcid
         if os.path.exists(srcPath):
             avar    = np.load(srcPath)

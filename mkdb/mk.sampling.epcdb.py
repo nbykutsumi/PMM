@@ -6,15 +6,16 @@ import numpy as np
 import os, sys
 
 lYear = [2017]
-lMon  = [1,2,3]
+lMon  = [1]
 lYM   = [[Year,Mon] for Year in lYear for Mon in lMon]
 
-#lvarName = ['precipRateESurface']
-lvarName = ['precipRate']
-NREC  = 20000
+lvarName = ['DPRGMI_NS_surfPrecipTotRate']
+#lvarName = ['epc']
+#NREC  = 20000
+NREC  = 5000
 ibaseDir = '/work/hk01/utsumi/PMM/EPCDB/GMI.V05A.S1.ABp103-117'
 obaseDir = '/work/hk01/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117'%(NREC)
-lepcid = range(0,25*25*25)
+lepcid = range(0,29*29*29)
 
 
 '''
@@ -22,23 +23,7 @@ int8 : -128 ~ +127
 int16: -32768 ~ +32767
 int32: -2147483648 ~ +2147483647
 '''
-dattype={
- 'Latitude' :'float32'
-,'Longitude':'float32'
-,'Tc'       :'float32'
-,'ScanTime/Year':'int16'
-,'ScanTime/mdhms':'int8'
-,'surfaceTypeIndex':'int32'
-,'surfacePrecipitation':'float32'
-,'pYXpmw': 'int16'
-,'gNum': 'int16'
-,'epc': 'float32'
 
-,'zFactorCorrected': 'float32'
-,'precipRate':       'float32'
-,'precipRateESurface':'float32'
-,'elevation':        'float32'
-}
 
 
 #-- Read nrec files --
@@ -60,10 +45,8 @@ for (Year,Mon) in lYM:
 
 #------ Ramdom sampling of entries ---------
 for varName in lvarName:
-    dtype = dattype[varName]
-
-    for epcid in lepcid[:1]:
-
+    #for epcid in lepcid[:1]:
+    for epcid in lepcid:
         #-- Sample from monthly data ---
         astack = []
         for (Year,Mon) in lYM:
@@ -81,24 +64,27 @@ for varName in lvarName:
             if os.path.exists(srcPath):
                 aTmp   = np.load(srcPath)
             else:
-                aTmp   = array([]).astype(dtype=dtype) 
+                #aTmp   = array([]).astype(dtype=dtype)
+                continue 
 
             print Year,Mon,aTmp.shape
             #-- Sample entries --
-            random.seed(epcid,Year,Mon)
-            aidx = random.sample(range(nrec),k=nuse)
-            aTmp = aTmp[aidx] 
+            #random.seed(epcid,Year,Mon)
+            #aidx = random.sample(range(nrec),k=nuse)
+            #aTmp = aTmp[aidx] 
+            aTmp = aTmp[:nuse]
             astack.append(aTmp)
 
             print Year,Mon,nrec
 
+        if len(astack)==0: continue
         astack = concatenate(astack, axis=0)
 
-        #-- Random sampling from stacked data --
-        random.seed(epcid,0)
-        ntot = len(astack)
-        aidx = random.sample(range(ntot), k=ntot)
-        astack = astack[aidx].astype(dtype=dtype)
+        ##-- Random sampling from stacked data --
+        #random.seed(epcid,0)
+        #ntot = len(astack)
+        #aidx = random.sample(range(ntot), k=ntot)
+        #astack = astack[aidx].astype(dtype=dtype)
 
         #-- Save data ---
         outDir  = obaseDir + '/%s'%(varName)
