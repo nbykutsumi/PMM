@@ -1,0 +1,71 @@
+from numpy import *
+import myfunc.util as util
+import os, sys
+import glob
+import h5py
+
+Year, Mon, Day = 2017,1,1
+loid = range(16155,16155+5)
+
+#------------------------------------------------
+def ret_aprof(a4clusterProf, a2tIndex, a3profNum, a3profScale, lspecies=[0,2,3,4]):
+    nh = 28.
+    ny,nx = a2tIndex.shape
+    a4out = empty([len(lspecies),ny. nx, len(a1tIndex), nh]).astype(float32)
+
+    for i,species in enumerate(lspecies):
+        a1profNum  = a3profNum[:,:,species].reshape(1)
+        a1profScale= a2profScale[:,species]
+        a2prof = a1profScale.reshape(-1,1) * a4clusterProf[a1profNum-1,:,a1tIndex-1,species]
+        a3out[i] = a2prof
+
+    a2prof = a3out.sum(axis=0)
+    #a2out  = gv_fsub.extract_slice_clusterprof(a2prof.T, agroundBin, nh_out).T
+
+    return a3out
+#------------------------------------------------
+
+for oid in loid:
+    
+    gprofbaseDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05'
+    gprofDir = gprofbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
+    ssearch = gprofDir + '/2A.GPM.GMI.GPROF2017v1.*.%06d.V05A.HDF5'%(oid)
+    print ssearch
+    gprofPath = glob.glob(ssearch)[0]
+    
+    print gprofPath
+    
+    #-- Read and Save profile database of GPROF (Only once) ----
+    with h5py.File(gprofPath,'r') as h:
+        a4clusterProf= h['GprofDHeadr/clusterProfiles'][:]  # (nspecies, ntemp, nlev, profNumber)
+        a1hgtTopLayer= h['GprofDHeadr/hgtTopLayer'][:]  # (28,)
+        species    = h['GprofDHeadr/speciesDescription'][:]
+        species    = [''.join( map(chr, line) ) for line in species]
+
+        '''
+        #--- Species ---
+        ['Rain Water Content\x00\x05\x00',
+         'Cloud Water Content\x00!',
+         'Ice Water Content\x00\x00\x00\x00',
+         'Snow Water Content\x00  ',
+         'Grauple/Hail Content\x00']
+        '''
+    
+    #print species
+    print clusterProf.shape
+    print clusterProf.sum(), clusterProf.min(), clusterProf.max()
+   
+
+    #-- Read GPROF ---------------------------------------------
+    with h5py.File(gprofPath,'r') as h: 
+        a2qFlag    = h['S1/qualityFlag'][:]  # (Y,X)
+        a2eSurf    = h['S1/surfacePrecipitation'][:]  # (Y,X)
+        a2mlPrecip = h['S1/mostLikelyPrecipitation'][:] # (Y,X) 
+        a2tIndex   = h['S1/profileTemp2mIndex'][:] # (Y,X)
+        a3profNum  = h['S1/profileNumber'][:] # (Y,X, nspecies)
+        a3profScale= h['S1/profileScale'][:]  # (Y,X, nspecies)
+
+
+    #print profScale
+    profg = ret_aprof(a4clusterProf, a2tIndex, a3profNum, a3profScale)
+    print profScale

@@ -24,8 +24,8 @@ elif myhost =="well":
 
 #iDTime  = datetime(2014,10,14)
 #iDTime  = datetime(2017,1,1)
-iDTime  = datetime(2017,12,26)
-eDTime  = datetime(2017,12,31)
+iDTime  = datetime(2018,5,22)
+eDTime  = datetime(2018,5,22)
 #eDTime  = datetime(2014,10,14)
 dDTime  = timedelta(days=1)
 lDTime  = util.ret_lDTime(iDTime, eDTime, dDTime)
@@ -35,9 +35,9 @@ lDTime  = util.ret_lDTime(iDTime, eDTime, dDTime)
 #spec      = ["GPM","GMI","2A-CLIM","gprof","V05","A"] # input=ECMWF
 #spec      = ["GPM","GMI","2A","gprof","V05","A"] # input=GANAL
 #spec      = ["GPM","Ku","2A","radar","V06","A"]
-#spec      = ["GPM","Ka","2A","radar","V06","A"]
+spec      = ["GPM","Ka","2A","radar","V06","A"]
 #spec      = ["GPM","DPR","2A","radar","V06","A"]
-spec      = ["GPM","DPRGMI","2B","radar","V06","A"]
+#spec      = ["GPM","DPRGMI","2B","radar","V06","A"]
 
 sate      = spec[0]
 sensor    = spec[1]
@@ -78,7 +78,7 @@ for DTime in lDTime:
         fName = os.path.basename(sPath)
         prdNameTmp, sateTmp, sensorTmp, algFullTmp, dtime, gNum, verFullTmp, sfx = fName.split('.')
         ymd = dtime.split('-')[0]
-
+        if fName.split('.')[3]=='GPM-SLH': continue
         if ymd        !='%04d%02d%02d'%(Year,Mon,Day): continue
         if prdNameTmp !=prdName: continue
         if sateTmp    !=sate   : continue

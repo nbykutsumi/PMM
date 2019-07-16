@@ -6,13 +6,13 @@ import numpy as np
 import os, sys
 
 lYear = [2017]
-lMon  = [1]
+lMon  = [1,2,3]
 lYM   = [[Year,Mon] for Year in lYear for Mon in lMon]
 
-lvarName = ['DPRGMI_NS_surfPrecipTotRate']
+lvarName = ['epc','DPRGMI_NS_surfPrecipTotRate','Ka_MS_zFactorMeasured']
 #lvarName = ['epc']
-#NREC  = 20000
-NREC  = 5000
+NREC  = 20000
+#NREC  = 5000
 ibaseDir = '/work/hk01/utsumi/PMM/EPCDB/GMI.V05A.S1.ABp103-117'
 obaseDir = '/work/hk01/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117'%(NREC)
 lepcid = range(0,29*29*29)
@@ -67,7 +67,7 @@ for varName in lvarName:
                 #aTmp   = array([]).astype(dtype=dtype)
                 continue 
 
-            print Year,Mon,aTmp.shape
+            #print Year,Mon,aTmp.shape
             #-- Sample entries --
             #random.seed(epcid,Year,Mon)
             #aidx = random.sample(range(nrec),k=nuse)
@@ -75,7 +75,7 @@ for varName in lvarName:
             aTmp = aTmp[:nuse]
             astack.append(aTmp)
 
-            print Year,Mon,nrec
+            #print Year,Mon,nrec
 
         if len(astack)==0: continue
         astack = concatenate(astack, axis=0)
@@ -92,4 +92,4 @@ for varName in lvarName:
         outPath = outDir + '/%05d.npy'%(epcid)
         np.save(outPath, astack)
         print outPath
-        print astack.shape 
+        #print astack.shape 

@@ -18,10 +18,10 @@ import sys, os, glob
 # SE.US case, oid=003556, 2014/10/14
 oid = 3556
 Year,Mon,Day = 2014,10,14
-iy, ey = 1012, 1022
+iy, ey = 927, 1107
 clat    = 34    # SE.US case. oid = 003556
 clon    = -86   # 2014/10/14  05:42:03 UTC
-DB_MAXREC = 1000
+DB_MAXREC = 20000
 
 
 ## QJRMS case, oid=012149, 2016/4/18
@@ -40,7 +40,8 @@ BBox    = [[clat-dlatlon, clon-dlatlon],[clat+dlatlon,clon+dlatlon]]
 miss = -9999.
 
 
-srcDir = '/home/utsumi/temp/out'
+#srcDir = '/home/utsumi/temp/out'
+srcDir = '/home/utsumi/temp/out/my'
 #stamp = '%06d.y%04d-%04d.nrec%d'%(oid, idx_c-dscan, idx_c+dscan,DB_MAXREC)
 stamp = '%06d.y%04d-%04d.nrec%d'%(oid, iy, ey, DB_MAXREC)
 

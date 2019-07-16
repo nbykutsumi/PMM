@@ -15,7 +15,7 @@ verDPR    = '06'
 subverDPR = 'A'
 fullverDPR= '%s%s'%(verDPR, subverDPR)
 
-iYM = [2017,1]
+iYM = [2017,3]
 eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
 #lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
@@ -32,9 +32,8 @@ worg= 221  # GMI total angle bins
 #lvar = [['Ku','NS/SLV/zFactorCorrected'],['Ku','NS/SLV/precipRate']]
 #lvar = [['Ku','NS/SLV/zFactorCorrected']]
 #lvar = [['Ku','NS/PRE/zFactorMeasured'],['Ka','MS/PRE/zFactorMeasured'],['Ku','NS/PRE/elevation']]
-#lvar = [['Ka','MS/PRE/zFactorMeasured']]
-#lvar = [['Ku','NS/PRE/zFactorMeasured']]
-lvar = [['DPRGMI','NS/precipTotWaterCont']]
+lvar = [['Ka','MS/PRE/zFactorMeasured']]
+#lvar = [['DPRGMI','NS/precipTotWaterCont']]
 #lvar = [['DPRGMI','NS/surfPrecipTotRate']]
 #lvar = [['DPRGMI','NS/surfPrecipTotRate'],['DPRGMI','NS/precipTotWaterCont']]
 #lvar = [['Ku','NS/SLV/precipRate']]
@@ -283,7 +282,6 @@ for Year,Mon in lYM:
 
                 if scanName =='MS':
                     a2dprx = ma.masked_less(a2dprx,0)-12
-                    a2dprx = ma.masked_outside(a2dprx, 0, 24).filled(-9999)
 
                 a1dprx    = a2dprx.flatten()
                 a1dpry    = a2dpry.flatten()
@@ -306,7 +304,7 @@ for Year,Mon in lYM:
                 #-- Read DPR variables --
                 if   varName in ['zFactorCorrected','zFactorMeasured']:
                     with h5py.File(srcPath) as h:
-                        Dat0 = h[var][:,:,-nvect*2:]
+                        Dat0 = h[var][:,:,:nvect*2]
 
                     #-- Convert dBZ --> Z ---
                     '''
@@ -315,14 +313,17 @@ for Year,Mon in lYM:
                     #No need to multiply Z0.
                     #(Because they are devided by Z0 when converted to dBZ at the end)
                     '''
-                    DatLN = np.power(10, 0.1*ma.masked_less_equal(Dat0,-9999.9)).filled(-9999.9)
+                    DatLN = np.power(10, 0.1*ma.masked_equal(Dat0,-9999.9)).filled(-9999.9)
 
                     #-- Average vertical ranges (over Linearlized Z)--
                     '''
                     # original: vertical 176bins (with 125m resol)
-                    # 125m ->250m (total 40bin)
+                    # 0-10km  (-80:last bin): 125m ->250m (total 40bin)
+                    # 10-15km (-120:-80 bin): 125m ->500m (total 10bin)
                     '''
-                    DatLN = average_2ranges_3d(DatLN, miss=-9999.9, dtype=float32, fill=False)
+                    Dat_up  = average_4ranges_3d(DatLN[:,:,-120:-80],miss=-9999.9,dtype=float32, fill=False)
+                    Dat_low = average_2ranges_3d(DatLN[:,:,-80:],miss=-9999.9, dtype=float32, fill=False)
+                    DatLN   = concatenate([Dat_up, Dat_low],axis=2)
 
                     #-- Average 9 grids (over Linearlized Z)--
                     a2datTmp = ave_9grids_3d(DatLN, a1dpry, a1dprx, miss=-9999.9)
@@ -336,10 +337,12 @@ for Year,Mon in lYM:
 
                 elif   varName =='precipRate':
                     with h5py.File(srcPath) as h:
-                        Dat0 = h[var][:,:,-nvect*2:]
+                        Dat0 = h[var][:,:,:nvect*2]
 
                     #-- Average vertical ranges (over Linearlized Z)--
-                    DatCnc = average_2ranges_3d(Dat0, miss=-9999.9, dtype=float32, fill=False)
+                    Dat_up  = average_4ranges_3d(Dat0[:,:,-120:-80],miss=-9999.9,dtype=float32, fill=False)
+                    Dat_low = average_2ranges_3d(Dat0[:,:,-80:],miss=-9999.9, dtype=float32, fill=False)
+                    DatCnc  = concatenate([Dat_up, Dat_low],axis=2)
 
                     #-- Average 9 grids (over Linearlized Z)--
 
@@ -347,9 +350,9 @@ for Year,Mon in lYM:
 
                 elif varName in ['precipTotWaterCont']:
                     with h5py.File(srcPath) as h:
-                        Dat0 = h[var][:,:,-nvect:]
+                        Dat0 = h[var][:,:,:nvect]
 
-                    #-- Average 9 grids --
+                    #-- Average 9 grids (over Linearlized Z)--
 
                     Dat     = ave_9grids_3d(Dat0, a1dpry, a1dprx, miss=-9999.9)
 

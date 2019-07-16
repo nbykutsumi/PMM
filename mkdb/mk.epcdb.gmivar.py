@@ -14,8 +14,8 @@ fullverGMI='%s%s'%(verGMI, subverGMI)
 
 #iYM = [2017,2]
 #eYM = [2017,12]
-iYM = [2017,1]
-eYM = [2017,1]
+iYM = [2017,2]
+eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
 #lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
 #lepcid_range = [[0,5000],[5000,10000],[10000,15000],[15000,20000],[20000,25000]]  # 29*29*29 = 24389
@@ -105,6 +105,9 @@ def csv2list(srcPath):
 for Year,Mon in lYM:
     for (prodName, var) in lvar:
         for epcid_range in lepcid_range:
+
+            #if ((Mon==4)&(epcid_range==[0,2500])): continue  # test
+
             epcid_min, epcid_max = epcid_range
             maxrec   = dmaxrec[var]
             grp      = '/'.join(var.split('/')[:-1])

@@ -26,8 +26,10 @@ verDPR    = '06'
 subverDPR = 'A'
 fullverDPR= '%s%s'%(verDPR, subverDPR)
 
+#prodDPR = '2A'
 prodDPR = '2B'
 #radar= 'Ku'
+#radar= 'Ka'
 radar= 'DPRGMI'
 
 #gmibaseDir   = '/work/hk01/PMM/NASA/GPM.GMI/%s/V%s'%(prod,verGMI)
@@ -94,6 +96,39 @@ def ave_9grids_2d(a2in, a1y, a1x, miss):
     a1datTmp[a1dprmask] = miss
     return a1datTmp
 
+def average_2ranges_3d(a3in,miss=None,dtype=float32, fill=True):
+    '''
+    a3in: (ny, nx, nz) --> a2out: (ny, nx, nz/2)
+    nz should be an even number
+    '''
+    ny,nx,nz = a3in.shape
+    a4out = empty([2,ny,nx,nz/2], dtype)
+    a4out[0] = a3in[:,:,::2]
+    a4out[1] = a3in[:,:,1::2]
+    if fill==True:
+        a3out = ma.masked_equal(a4out,miss).mean(axis=0).filled(miss).astype(dtype)
+    else:
+        a3out = ma.masked_equal(a4out,miss).mean(axis=0).astype(dtype)
+    return a3out
+
+def average_4ranges_3d(a3in,miss=None,dtype=float32, fill=True):
+    '''
+    a3in: (ny, nx, nz) --> a2out: (ny, nx, nz/4)
+    nz should be an even number
+    '''
+    ny,nx,nz = a3in.shape
+    a4out = empty([4,ny,nx,nz/4], dtype)
+    a4out[0] = a3in[:,:,::4]
+    a4out[1] = a3in[:,:,1::4]
+    a4out[2] = a3in[:,:,2::4]
+    a4out[3] = a3in[:,:,3::4]
+    if fill==True:
+        a3out = ma.masked_equal(a4out,miss).mean(axis=0).filled(miss).astype(dtype)
+    else:
+        a3out = ma.masked_equal(a4out,miss).mean(axis=0).astype(dtype)
+    return a3out
+
+
 
 for Year,Mon in lYM:
     #-- Read granule list --
@@ -111,30 +146,39 @@ for Year,Mon in lYM:
     lyxPath = glob.glob(ssearch)
     lyxPath = sort(lyxPath)
     #lipath  = random.sample(range(len(lyxPath)), k=5)
-    lipath  = [10,11,12,13,14]
+    lipath  = range(4)
     lipath  = sort(lipath)
 
     for ipath in lipath:
         yxPath = lyxPath[ipath]
         #print yxPath
         epcid  = yxPath.split('/')[-1].split('.')[1]
+        #if epcid != '02994':
+        #    continue
         print 'epcid=',epcid
 
+        
         gnumPath = dbbaseDir + '/gNum/%04d%02d/gNum.%s.npy'%(Year,Mon, epcid)
         #mdhmsPath= dbbaseDir + '/mdhms/%04d%02d/mdhms.%s.npy'%(Year,Mon, epcid)
         #yearPath = dbbaseDir + '/Year/%04d%02d/Year.%s.npy'%(Year,Mon, epcid)
         #esurfPath= dbbaseDir + '/precipRateESurface/%04d%02d/precipRateESurface.%s.npy'%(Year,Mon, epcid)
+
+        #surfPath= dbbaseDir + '/DPRGMI_NS_surfPrecipTotRate/%04d%02d/DPRGMI_NS_surfPrecipTotRate.%s.npy'%(Year,Mon, epcid)
+
         watcontPath= dbbaseDir + '/DPRGMI_NS_precipTotWaterCont/%04d%02d/DPRGMI_NS_precipTotWaterCont.%s.npy'%(Year,Mon, epcid)
+        zmkaPath = dbbaseDir + '/Ka_MS_zFactorMeasured/%04d%02d/Ka_MS_zFactorMeasured.%s.npy'%(Year,Mon, epcid)
+        #zmkuPath = dbbaseDir + '/Ku_NS_zFactorMeasured/%04d%02d/Ku_NS_zFactorMeasured.%s.npy'%(Year,Mon, epcid)
 
         #-- Read files --
         a1gnum   = np.load(gnumPath)
         a2yx     = np.load(yxPath)
+        #a2zmka   = np.load(zmkaPath)
+        #a2zmku   = np.load(zmkuPath)
         a2watcont= np.load(watcontPath)
 
         #a2mdhms  = np.load(mdhmsPath)
         #a2year   = np.load(yearPath)
-        #a2esurf  = np.load(esurfPath)
-
+        #a1surf   = np.load(surfPath)
 
         #-- Loop in a single EPC subset database
         if len(a1gnum)>nsample:
@@ -147,10 +191,12 @@ for Year,Mon in lYM:
         for ient in lient:
             gnum = a1gnum[ient]
             gmiy,gmix  = a2yx[ient]
+            #zmka1  = a2zmka[ient]
+            #zmku1  = a2zmku[ient]
             watcont1  = a2watcont[ient]
             #Mon1,Day1,Hour1,Mnt1,Sec1 = a2mdhms[ient]
             #Year1= a2year[ient]
-            #esurf= a2esurf[ient]
+            #surf1 = a1surf[ient]
             Year1,Mon1,Day1 = dymd[gnum]
 
             #-- location matching file (GMI-->DPR) --
@@ -160,6 +206,10 @@ for Year,Mon in lYM:
     
             a2dprx  = np.load(dprxPath)
             a2dpry  = np.load(dpryPath)
+
+            if radar=='Ka':
+                a2dprx = (ma.masked_less(a2dprx,0) - 12)
+                a2dprx = ma.masked_outside(a2dprx, 0,24).filled(-9999)
             #----------------------------------------
 
 
@@ -173,23 +223,69 @@ for Year,Mon in lYM:
             dprPath= glob.glob(ssearch)[0]
 
             with h5py.File(dprPath) as h:
-                a3watcont2 = h['/NS/precipTotWaterCont'][:]
+                #a3zmka2 = h['/MS/PRE/zFactorMeasured'][:,:,-60*2:]
+                #a3zmku2 = h['/NS/PRE/zFactorMeasured'][:,:,-60*2:]
+                a3watcont2 = h['/NS/precipTotWaterCont'][:,:,-60:]
     
                 #a2hour2 = h['/NS/ScanTime/Hour'][:]
                 #a2mnt2  = h['/NS/ScanTime/Minute'][:]
                 #a2sec2  = h['/NS/ScanTime/Second'][:]
                 #a2esurf2= h['/NS/SLV/precipRateESurface'][:]
+                #a2surf2= h['/NS/surfPrecipTotRate'][:]
     
                 #Hour2   = a2hour2[dpry]
                 #Mnt2    = a2mnt2[dpry]
                 #Sec2    = a2sec2[dpry]
 
             #-- average 9-grids --
-            watcont2 = ave_9grids_3d(a3watcont2, array([dpry]), array([dprx]), miss=-9999.9)[0][:60].astype(float32)
+            #zmka2 = a3zmka2[dpry-1:dpry+1+1,dprx-1:dprx+1+1]
+            #zmku2 = a3zmku2[dpry-1:dpry+1+1,dprx-1:dprx+1+1]
+            watcont2 = ave_9grids_3d(a3watcont2, array([dpry]), array([dprx]), miss=-9999.9).astype(float32)[0]
             #esurf2  = ave_9grids_2d(a2esurf2, array([dpry]), array([dprx]), miss=-9999.9)[0]
+            #surf2  = ave_9grids_2d(a2surf2, array([dpry]), array([dprx]), miss=-9999.9)[0]
  
 
-            print '-'*10
+            ##****** Only Zm ****************
+            ##-- Convert dBZ --> Z ---
+            #'''
+            ##XdBZ = 10*log_10(Z/Z0)
+            ##Z    = Z0* 10^(X*0.1)
+            ##No need to multiply Z0.
+            ##(Because they are devided by Z0 when converted to dBZ at the end)
+            #'''
+            #Dat0  = zmka2
+            ##Dat0  = zmku2
+            #DatLN = np.power(10, 0.1*ma.masked_less_equal(Dat0,-9999.9)).filled(-9999.9)
+
+            ##-- Average vertical ranges (over Linearlized Z)--
+            #'''
+            ## original: vertical 176bins (with 125m resol)
+            ## 0-10km  (-80:last bin): 125m ->250m (total 40bin)
+            ## 10-15km (-120:-80 bin): 125m ->500m (total 10bin)
+            #'''
+            #DatLN = average_2ranges_3d(DatLN,miss=-9999.9, dtype=float32, fill=False)
+
+            ##-- Average 9 grids (over Linearlized Z)--
+            #a2datTmp = ave_9grids_3d(DatLN, array([1]), array([1]), miss=-9999.9)
+
+            ##-- Convert to dBZ --
+            #Dat = 10*np.log10(ma.masked_equal(a2datTmp, -9999.9))
+
+            ##-- Scale by 100, with int16 ---
+            #Dat = (100*ma.masked_invalid(Dat)).filled(-9999.9).astype(int16)
+            ##**********************************
+
+
+            #print '-'*10
+            #print zmka1[-1:]
+            ##print zmku1[-1:]
+            #print ''
+            #print Dat[0,-1:]
+            ##print zmka1.shape
+            #print zmka2.shape
+            #print zmku1.shape
+            #print zmku2.shape
+            #print Dat.shape
             print watcont1
             print watcont2
             print watcont1-watcont2
@@ -197,6 +293,7 @@ for Year,Mon in lYM:
             #print 'Mnt   ',Mnt1, Mnt2
             #print 'Sec   ',Sec1, Sec2
             #print 'esurf ',esurf, esurf2
+            #print 'surf ',surf1, surf2
             print '-'*10
             
         

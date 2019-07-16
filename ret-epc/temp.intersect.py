@@ -149,6 +149,9 @@ a1latMy  = np.load(srcDir + '/lat.%s.npy'%(stamp))[:,xpos]
 a1lonMy  = np.load(srcDir + '/lon.%s.npy'%(stamp))[:,xpos]
 
 
+#--- test --------------------
+
+
 
 print a2topzmNS.shape
 for i,a in enumerate(a2topzmMS):

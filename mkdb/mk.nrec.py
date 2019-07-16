@@ -3,8 +3,8 @@ import myfunc.util as util
 import numpy as np
 import os,sys
 
-iYM = [2017,1]
-eYM = [2017,1]
+iYM = [2017,2]
+eYM = [2017,6]
 lYM = util.ret_lYM(iYM,eYM)
 varName = 'DPRGMI_NS_surfPrecipTotRate'  # Any 1-dimensional variable
 baseDir = '/work/hk01/utsumi/PMM/EPCDB/GMI.V05A.S1.ABp103-117/%s'%(varName)

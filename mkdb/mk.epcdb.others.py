@@ -12,10 +12,11 @@ verGMI   = '05'
 subverGMI= 'A'
 fullverGMI='%s%s'%(verGMI, subverGMI)
 
-iYM = [2017,1]
-eYM = [2017,1]
+iYM = [2017,12]
+eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
-lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
+#lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
+lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15000],[15000,17500],[17500,20000],[20000,22500],[22500,25000]]  # 29*29*29 = 24389
 
 
 cx  = 110  # GMI center angle bin (py-idx)
@@ -81,11 +82,11 @@ for Year,Mon in lYM:
                 dnum  [epcid] = 0
     
             ##-- test --
-            lobt = lobt[:4]
+            #lobt = lobt[:4]
             ##----------    
             for (obtnum, Year,Mon,Day,time0, time1) in lobt:   
                 Year,Mon,Day = map(int, [Year,Mon,Day])
-                print obtnum,Year,Mon,Day
+                print varName, epcid_range,obtnum,Year,Mon,Day
 
                 #-- Read EPC-id --
                 extractDir = extractidDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
@@ -112,7 +113,7 @@ for Year,Mon in lYM:
                 lepcidset = ma.masked_greater_equal(lepcidset, epcid_max)
                 lepcidset = lepcidset.compressed()
 
-                print 'epc_min,epc_max,setlen=',epcid_min,epcid_max,len(lepcidset)
+                #print 'epc_min,epc_max,setlen=',epcid_min,epcid_max,len(lepcidset)
                 for epcid in lepcidset:
                     if epcid ==-9999: continue
                     a1bool = ma.masked_equal(a1epcid, epcid).mask
@@ -131,7 +132,7 @@ for Year,Mon in lYM:
                         dstack[epcid] = deque([])
                         gc.collect()
                          
-                        print outPath
+                        #print outPath
         
             #--- save ---
             for epcid in range(epcid_min,epcid_max):
