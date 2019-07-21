@@ -112,8 +112,8 @@ if len(argvs)==1:
         dbDir   = '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE_TEST29'
         nrainDIr= '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE_TEST29'
     elif dbtype=='my':
-        dbDir   = '/work/hk01/utsumi/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117' 
-        nrainDir= '/work/hk01/utsumi/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117/nrain' 
+        dbDir   = '/work/hk01/utsumi/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117.01-03' 
+        nrainDir= '/work/hk01/utsumi/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117.01-03/nrain' 
     
     #-- Single Run ---------
     #clat    = 30.00   # SE.US, oid=016166
@@ -611,11 +611,11 @@ for i,idx_db in enumerate(lidxset):
         #    sys.exit()
         
         #-- Screen DB candidates --
-        #a1flagNS   = a1prflagNS * a1tsflag * a1revflag
-        #a1flagMS   = a1prflagMS * a1tsflag * a1revflag
+        a1flagNS   = a1prflagNS * a1tsflag * a1revflag
+        a1flagMS   = a1prflagMS * a1tsflag * a1revflag
 
-        a1flagNS   = a1prflagNS  # test
-        a1flagMS   = a1prflagMS  # test 
+        #a1flagNS   = a1prflagNS  # test
+        #a1flagMS   = a1prflagMS  # test 
 
         #if a2epcdb.shape[0]>100:  # test
         #    sys.exit()

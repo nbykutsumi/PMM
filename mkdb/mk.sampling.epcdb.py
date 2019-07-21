@@ -8,13 +8,14 @@ import os, sys
 lYear = [2017]
 lMon  = [1,2,3]
 lYM   = [[Year,Mon] for Year in lYear for Mon in lMon]
+iMon,eMon = lMon[0],lMon[-1]
 
-lvarName = ['epc','DPRGMI_NS_surfPrecipTotRate','Ka_MS_zFactorMeasured']
+lvarName = ['epc','DPRGMI_NS_surfPrecipTotRate','Ka_MS_zFactorMeasured','Ku_NS_zFactorMeasured','DPRGMI_NS_precipTotWaterCont','Tc','gNum','t2m']
 #lvarName = ['epc']
 NREC  = 20000
 #NREC  = 5000
 ibaseDir = '/work/hk01/utsumi/PMM/EPCDB/GMI.V05A.S1.ABp103-117'
-obaseDir = '/work/hk01/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117'%(NREC)
+obaseDir = '/work/hk01/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.%02d-%02d'%(NREC,iMon,eMon)
 lepcid = range(0,29*29*29)
 
 

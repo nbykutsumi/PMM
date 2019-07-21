@@ -15,7 +15,7 @@ verDPR    = '06'
 subverDPR = 'A'
 fullverDPR= '%s%s'%(verDPR, subverDPR)
 
-iYM = [2017,1]
+iYM = [2017,2]
 eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
 #lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
@@ -32,9 +32,9 @@ worg= 221  # GMI total angle bins
 #lvar = [['Ku','NS/SLV/zFactorCorrected'],['Ku','NS/SLV/precipRate']]
 #lvar = [['Ku','NS/SLV/zFactorCorrected']]
 #lvar = [['Ku','NS/PRE/zFactorMeasured'],['Ka','MS/PRE/zFactorMeasured'],['Ku','NS/PRE/elevation']]
-#lvar = [['Ka','MS/PRE/zFactorMeasured']]
+lvar = [['Ka','MS/PRE/zFactorMeasured']]
 #lvar = [['Ku','NS/PRE/zFactorMeasured']]
-lvar = [['DPRGMI','NS/precipTotWaterCont']]
+#lvar = [['DPRGMI','NS/precipTotWaterCont']]
 #lvar = [['DPRGMI','NS/surfPrecipTotRate']]
 #lvar = [['DPRGMI','NS/surfPrecipTotRate'],['DPRGMI','NS/precipTotWaterCont']]
 #lvar = [['Ku','NS/SLV/precipRate']]
@@ -243,7 +243,9 @@ for Year,Mon in lYM:
     for (radar, var) in lvar: 
         for epcid_range in lepcid_range:
 
-            #if ((Mon ==3) & (epcid_range in [[0,2500],[2500,5000],[5000,7500],[7500,10000]])): continue # test
+            #lepcskip = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15000],[15000,17500],[17500,20000],[20000,22500],[22500,25000]]  # 29*29*29 = 24389
+            #lepcskip = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15000],[15000,17500]]  # 29*29*29 = 24389
+            #if ((Mon ==2) & (epcid_range in lepcskip)): continue # test
 
             epcid_min, epcid_max = epcid_range
             maxrec   = dmaxrec[var]
@@ -267,7 +269,7 @@ for Year,Mon in lYM:
             #----------    
             for (obtnum, Year,Mon,Day,time0, time1) in lobt:   
                 Year,Mon,Day = map(int, [Year,Mon,Day])
-                print varName, obtnum,Year,Mon,Day
+                print var, obtnum,Year,Mon,Day
                 #-- Read EPC-id --
                 extractDir = extractidDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
                 epcidPath = extractDir + '/epcid-s1.%s.npy'%(obtnum)

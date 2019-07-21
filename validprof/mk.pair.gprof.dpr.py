@@ -144,8 +144,8 @@ for DTime in lDTime:
         a1sfcprecd[a1mask] = miss_out
         a2profd[a1mask,:] = miss_out
         #-- Screen no precipitation cases -----------------------
-        a1flag1 = ma.masked_greater_equal(a1sfcprecd, 1).mask
-        a1flag2 = ma.masked_greater_equal(a1sfcprecg, 1).mask
+        a1flag1 = ma.masked_greater(a1sfcprecd, 0).mask
+        a1flag2 = ma.masked_greater(a1sfcprecg, 0).mask
         a1flag  = a1flag1 + a1flag2 
        
         # screen a1sfcprecd==-9999. --
