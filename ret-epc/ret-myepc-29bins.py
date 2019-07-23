@@ -142,9 +142,9 @@ if len(argvs)==1:
     dlatlon = 3  # used to search the domain center
     iscan   = -9999
     escan   = -9999
-    dscan   = 90   # set iscan and dscan =-9999 for entire orbit
+    #dscan   = 90   # set clat and iscan =-9999 for entire orbit
     #dscan   = 55
-    #dscan   = 5
+    dscan   = 5
     
     NEM     = 12
     NTBREG  = 13
@@ -158,7 +158,7 @@ if len(argvs)==1:
         NLEV_DPR    = 50  # extract this number of layers
         NLEV_PRECIP = 50
     
-    thwtmin = 0.01
+    thwtmin = 0.5
     miss    = -9999.
     
     
@@ -185,8 +185,7 @@ if len(argvs)==1:
     #srcPath = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05/2014/08/02/1C.GPM.GMI.XCAL2016-C.20140802-S062222-E075455.002421.V05A.HDF5'
     #s2xPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2014/08/02/Xpy.1.002421.npy'
     #s2yPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2014/08/02/Ypy.1.002421.npy'
-    #tsPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.t2m/2014/08/02/t2m.002421.npy'
-    ##tsPath = '/home/utsumi/bin/JPLCODE/EPC_ret_20190221/1C.GPM.GMI.XCAL2016-C.20140802-S062222-E075455.002421.V05A.HDF5.MERRA2.nc'
+    #t2mPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.t2m/2014/08/02/t2m.002421.npy'
     #elevPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.gtopo/2014/08/02/gtopo.002421.npy'
         
      
@@ -194,7 +193,7 @@ if len(argvs)==1:
     srcPath = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05/2014/10/14/1C.GPM.GMI.XCAL2016-C.20141014-S050829-E064102.003556.V05A.HDF5'
     s2xPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2014/10/14/Xpy.1.003556.npy'
     s2yPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2014/10/14/Ypy.1.003556.npy'
-    tsPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.t2m/2014/10/14/t2m.003556.npy'
+    t2mPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.t2m/2014/10/14/t2m.003556.npy'
     elevPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.gtopo/2014/10/14/gtopo.003556.npy'
     
     
@@ -202,7 +201,7 @@ if len(argvs)==1:
     #srcPath = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05/2016/04/18/1C.GPM.GMI.XCAL2016-C.20160418-S115529-E132803.012149.V05A.HDF5'
     #s2xPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2016/04/18/Xpy.1.012149.npy'
     #s2yPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2016/04/18/Ypy.1.012149.npy'
-    #tsPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.t2m/2016/04/18/t2m.012149.npy'
+    #t2mPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.t2m/2016/04/18/t2m.012149.npy'
     #elevPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.gtopo/2016/04/18/gtopo.012149.npy'
     #
 
@@ -251,7 +250,8 @@ else:
     srcPath   = dargv['srcPath'] 
     s2xPath   = dargv['s2xPath'] 
     s2yPath   = dargv['s2yPath'] 
-    tsPath    = dargv['tsPath']   
+    #tsPath    = dargv['tsPath']   
+    t2mPath   = dargv['t2mPath']   
     elevPath  = dargv['elevPath']
     outDir    = dargv['outDir']
 
@@ -310,7 +310,8 @@ a3tb = concatenate([a3tb1, a3tb2],axis=2)
 #a3tb    = np.load(tmpPath)
 
 #-- Read MERRA2 data ---------
-a2ts = np.load(tsPath)
+#a2ts = np.load(tsPath)
+a2t2m = np.load(t2mPath)
 #nc = netCDF4.Dataset(tsPath)
 #a2ts = nc.variables['t2m'][:]
 #-- Read elevation data ---------
@@ -330,7 +331,8 @@ else:
     a3tb  = a3tb  [iscan: escan+1]
     a2lat = a2lat [iscan: escan+1]
     a2lon = a2lon [iscan: escan+1]
-    a2ts  = a2ts  [iscan: escan+1]
+    #a2ts  = a2ts  [iscan: escan+1]
+    a2t2m  = a2t2m[iscan: escan+1]
     a2elev= a2elev[iscan: escan+1]
 
 #****************************************************
@@ -365,19 +367,6 @@ print 'calc idx done'
 
 a2idx_db = ma.masked_where(a2mask, a2idx_db).filled(miss)
 
-##-- test ---------
-#print 'lat,lon=',a2lat[50,125], a2lon[50,125]
-#print 'epc-vect',a3epc[50,125]
-#print 'idx_db=    ',a2idx_db[50,125]
-#
-#print 'idx_db_man=',25**2*5 + 25**1*24 + 0
-#plt.imshow(ma.masked_less(a2idx_db,0))
-#plt.colorbar()
-#plt.savefig('/home/utsumi/temp/out/temp.idx.png')
-#
-#np.save('/home/utsumi/temp/out/temp.idx.npy', a2idx_db)
-#
-#sys.exit()
 #-----------------
 lidxset  = list(set(a2idx_db.flatten()))
 lidxset  = sort(lidxset)
@@ -394,6 +383,7 @@ a2nsurfNScmb = ones([nyout,nxout],float32)*miss
 
 a3prprofNS   = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
 a3prprofNScmb= ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+a3prwatprofNS= ones([nyout,nxout,NLEV_PRECIP],float32)*miss
 
 a2top_idxdbMS   = ones([nyout,nxout],int32)*miss
 a2top_idxdbNS   = ones([nyout,nxout],int32)*miss
@@ -401,11 +391,17 @@ a2top_idxdbNS   = ones([nyout,nxout],int32)*miss
 a2top_irecMS   = ones([nyout,nxout],int32)*miss
 a2top_irecNS   = ones([nyout,nxout],int32)*miss
 
+a2top_nsurfMS = ones([nyout,nxout],float32)*miss
+a2top_nsurfNS = ones([nyout,nxout],float32)*miss
+a2top_nsurfMScmb = ones([nyout,nxout],float32)*miss
+a2top_nsurfNScmb = ones([nyout,nxout],float32)*miss
+
 a3top_zmMS    = ones([nyout,nxout,NLEV_DPR],int32)*miss
 a3top_zmNS    = ones([nyout,nxout,NLEV_DPR],int32)*miss
 
-a3top_prprofNS    = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
-a3top_prprofNScmb = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+#a3top_prprofNS    = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+#a3top_prprofNScmb = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+a3top_prwatprofNS = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
 
 a3top_tbMS      = ones([nyout,nxout,NTBREG],float32)*miss
 a3top_tbNS      = ones([nyout,nxout,NTBREG],float32)*miss
@@ -504,15 +500,18 @@ for i,idx_db in enumerate(lidxset):
         a2epcdbTmp = db.get_var('pc_emis', nrec=DB_MAXREC)[:,:NEM]  # (nrec, 12)
         a1nsurfMScmbTmp = db.get_var('precip_MS_cmb', nrec=DB_MAXREC)
         a1nsurfNScmbTmp = db.get_var('precip_NS_cmb', nrec=DB_MAXREC)
-        a1nsurfMSTmp    = db.get_var('precip_esfc_MS', nrec=DB_MAXREC)
-        a1nsurfNSTmp    = db.get_var('precip_esfc_NS', nrec=DB_MAXREC)
+        a1nsurfMSTmp    = db.get_var('precip_nsfc_MS', nrec=DB_MAXREC)
+        a1nsurfNSTmp    = db.get_var('precip_nsfc_NS', nrec=DB_MAXREC)
 
-        #a2prprofNSTmp   = ma.masked_less(db.get_var('precip_prof_MS',     nrec=DB_MAXREC), 0).filled(0.0)
-        a2prprofNSTmp   = db.get_var('precip_prof_NS',     nrec=DB_MAXREC)[:,-NLEV_PRECIP:]  # test
-        a2prprofNScmbTmp= ma.masked_less(db.get_var('precip_prof_NS_cmb', nrec=DB_MAXREC), 0).filled(0.0)[:,-NLEV_PRECIP:]
+        #a2prprofNSTmp   = ma.masked_less(db.get_var('precip_prof_MS',     nrec=DB_MAXREC), 0).filled(0.0)[:,-NLEV_PRECIP:]
+        #a2prprofNSTmp   = db.get_var('precip_prof_NS',     nrec=DB_MAXREC)[:,-NLEV_PRECIP:]  # test
+        #a2prprofNScmbTmp= ma.masked_less(db.get_var('precip_prof_NS_cmb', nrec=DB_MAXREC), 0).filled(0.0)[:,-NLEV_PRECIP:]
+
+        a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS', nrec=DB_MAXREC)[:,-NLEV_PRECIP:]).filled(-9999.)
+
 
         a1t2mdbTmp = db.get_var('t2m', nrec=DB_MAXREC) 
-        a1tsdbTmp  = db.get_var('ts',  nrec=DB_MAXREC) 
+        #a1tsdbTmp  = db.get_var('ts',  nrec=DB_MAXREC) 
         a1tqvdbTmp = db.get_var('tqv', nrec=DB_MAXREC) 
         a1revdbTmp = db.get_var('rev', nrec=DB_MAXREC) 
         a1elevdbTmp= db.get_var('elev', nrec=DB_MAXREC) 
@@ -532,10 +531,12 @@ for i,idx_db in enumerate(lidxset):
             a1nsurfMS    = a1nsurfMSTmp
             a1nsurfNS    = a1nsurfNSTmp
 
-            a2prprofNS    = a2prprofNSTmp
-            a2prprofNScmb = a2prprofNScmbTmp
+            #a2prprofNS    = a2prprofNSTmp
+            #a2prprofNScmb = a2prprofNScmbTmp
+            a2prwatprofNS = a2prwatprofNSTmp
 
-            a1tsdb  = a1tsdbTmp
+            #a1tsdb  = a1tsdbTmp
+            a1t2mdb = a1t2mdbTmp
             a1revdb = a1revdbTmp
             a1elevdb= a1elevdbTmp
 
@@ -549,10 +550,12 @@ for i,idx_db in enumerate(lidxset):
             a1nsurfMS    = concatenate([a1nsurfMS,     a1nsurfMSTmp], axis=0)
             a1nsurfNS    = concatenate([a1nsurfNS,     a1nsurfNSTmp], axis=0)
 
-            a2prprofNS    = concatenate([a2prprofNS, a2prprofNSTmp], axis=0)
-            a2prprofNScmb = concatenate([a2prprofNScmb, a2prprofNScmbTmp], axis=0)
+            #a2prprofNS    = concatenate([a2prprofNS, a2prprofNSTmp], axis=0)
+            #a2prprofNScmb = concatenate([a2prprofNScmb, a2prprofNScmbTmp], axis=0)
+            a2prwatprofNS = concatenate([a2prwatprofNS, a2prwatprofNSTmp])
 
-            a1tsdb  = concatenate([a1tsdb,   a1tsdbTmp], axis=0) 
+            #a1tsdb  = concatenate([a1tsdb,   a1tsdbTmp], axis=0) 
+            a1t2mdb  = concatenate([a1t2mdb,  a1t2mdbTmp], axis=0) 
             a1revdb = concatenate([a1revdb,  a1revdbTmp], axis=0) 
             a1elevdb= concatenate([a1elevdb, a1elevdbTmp], axis=0) 
 
@@ -592,10 +595,16 @@ for i,idx_db in enumerate(lidxset):
         a1prflagNS = ma.masked_greater_equal(a1nsurfNScmb,0).mask
         a1prflagMS = ma.masked_greater_equal(a1nsurfMScmb,0).mask
 
-        #-- Ts --
-        ts    = a2ts[y,x]
+        ##-- Ts --
+        #ts    = a2ts[y,x]
 
-        a1tsflag = ma.masked_inside( a1tsdb-ts, -MAX_T2M_DIFF, MAX_T2M_DIFF).mask
+        #a1tsflag = ma.masked_inside( a1tsdb-ts, -MAX_T2M_DIFF, MAX_T2M_DIFF).mask
+
+        ##-- T2m --
+        t2m  = a2t2m[y,x]
+
+        a1t2mflag = ma.masked_inside( a1t2mdb-t2m, -MAX_T2M_DIFF, MAX_T2M_DIFF).mask
+
 
         ##-- Elevation --
         #elev = a2elev[y,x]
@@ -611,9 +620,10 @@ for i,idx_db in enumerate(lidxset):
         #    sys.exit()
         
         #-- Screen DB candidates --
-        a1flagNS   = a1prflagNS * a1tsflag * a1revflag
-        a1flagMS   = a1prflagMS * a1tsflag * a1revflag
+        a1flagNS   = a1prflagNS * a1t2mflag * a1revflag
+        a1flagMS   = a1prflagMS * a1t2mflag * a1revflag
 
+        #-------------------------------
         #a1flagNS   = a1prflagNS  # test
         #a1flagMS   = a1prflagMS  # test 
 
@@ -640,8 +650,9 @@ for i,idx_db in enumerate(lidxset):
         a1nsurfMSSC    = a1nsurfMS   [a1flagMS]
         a1nsurfNSSC    = a1nsurfNS   [a1flagNS]
 
-        a2prprofNSSC   = a2prprofNS   [a1flagNS]
-        a2prprofNScmbSC= a2prprofNScmb[a1flagNS]
+        #a2prprofNSSC   = a2prprofNS   [a1flagNS]
+        #a2prprofNScmbSC= a2prprofNScmb[a1flagNS]
+        a2prwatprofNSSC= a2prwatprofNS[a1flagNS]
 
         a1idxdbMSSC    = a1idxdb[a1flagMS]
         a1idxdbNSSC    = a1idxdb[a1flagNS]
@@ -649,9 +660,6 @@ for i,idx_db in enumerate(lidxset):
         a1irecMSSC    = a1irec[a1flagMS]
         a1irecNSSC    = a1irec[a1flagNS]
 
-
-
-        print 'screened a2epcdb.shape',a2epcdbNSSC.shape
 
         #-- RMSE --
         a1rmsdMS = np.sqrt(np.square((a2epcdbMSSC - a1epc)/a1pc_std).sum(axis=1)/NEM)
@@ -661,6 +669,26 @@ for i,idx_db in enumerate(lidxset):
         idxtopNS = np.argmin(a1rmsdNS)
         rmsd_minMS = a1rmsdMS[idxtopMS]
         rmsd_minNS = a1rmsdNS[idxtopNS]
+
+
+        ##-- test use 2nd, not 1st top ----------
+        #idxtopMS = np.argmin(ma.masked_less_equal(a1rmsdMS,rmsd_minMS))
+        #idxtopNS = np.argmin(ma.masked_less_equal(a1rmsdNS,rmsd_minNS))
+        #rmsd_minMS = a1rmsdMS[idxtopMS]
+        #rmsd_minNS = a1rmsdNS[idxtopNS]
+
+        ##-- test use 3rd, not 1st top ----------
+        #idxtopMS = np.argmin(ma.masked_less_equal(a1rmsdMS,rmsd_minMS))
+        #idxtopNS = np.argmin(ma.masked_less_equal(a1rmsdNS,rmsd_minNS))
+        #rmsd_minMS = a1rmsdMS[idxtopMS]
+        #rmsd_minNS = a1rmsdNS[idxtopNS]
+
+        ##-- test use 4th not 1st top ----------
+        #idxtopMS = np.argmin(ma.masked_less_equal(a1rmsdMS,rmsd_minMS))
+        #idxtopNS = np.argmin(ma.masked_less_equal(a1rmsdNS,rmsd_minNS))
+        #rmsd_minMS = a1rmsdMS[idxtopMS]
+        #rmsd_minNS = a1rmsdNS[idxtopNS]
+
 
         #-- Top ranked entris ---
         a2top_idxdbMS[y,x] = a1idxdbMSSC[idxtopMS]
@@ -686,6 +714,7 @@ for i,idx_db in enumerate(lidxset):
 
         topirec = topirecMS
 
+
         a3top_zmMS[y,x,:] = db.get_var('z_ka', nrec=1, origin=topirec).flatten()[-NLEV_DPR:] 
         a3top_tbMS[y,x,:] = db.get_var('tb', nrec=1, origin=topirec).flatten() 
 
@@ -704,12 +733,20 @@ for i,idx_db in enumerate(lidxset):
         a3top_zmNS[y,x,:] = db.get_var('z_ku', nrec=1, origin=topirec).flatten()[-NLEV_DPR:] 
         a3top_tbNS[y,x,:] = db.get_var('tb', nrec=1, origin=topirec).flatten()
 
-        a3top_prprofNS[y,x,:] = db.get_var('precip_prof_NS', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
-        a3top_prprofNScmb[y,x,:] = db.get_var('precip_prof_NS_cmb', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
+        #a3top_prprofNS[y,x,:] = db.get_var('precip_prof_NS', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
+        #a3top_prprofNScmb[y,x,:] = db.get_var('precip_prof_NS_cmb', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
+        a3top_prwatprofNS[y,x,:] = db.get_var('precip_water_prof_NS', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
+
+        a2top_nsurfMS[y,x] = db.get_var('precip_nsfc_MS', nrec=1, origin=topirecNS)
+        a2top_nsurfNS[y,x] = db.get_var('precip_nsfc_NS', nrec=1, origin=topirecNS)
+
+        a2top_nsurfMScmb[y,x] = db.get_var('precip_MS_cmb', nrec=1, origin=topirecNS)
+        a2top_nsurfNScmb[y,x] = db.get_var('precip_NS_cmb', nrec=1, origin=topirecNS)
 
         #-- Weight --
         a1wtMS = np.exp(-0.5*np.square(a1rmsdMS/rmsd_minMS))
         a1wtNS = np.exp(-0.5*np.square(a1rmsdNS/rmsd_minNS))
+
         a1wtMS[idxtopMS] = 1.0
         a1wtNS[idxtopNS] = 1.0
 
@@ -734,13 +771,18 @@ for i,idx_db in enumerate(lidxset):
         a2nsurfMScmb[y,x] = nsurfMScmb
         a2nsurfNScmb[y,x] = nsurfNScmb
 
-        prprofNS   = (a2prprofNSSC[a1boolwtNS] * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
-        prprofNScmb= (a2prprofNScmbSC[a1boolwtNS] * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
-        a3prprofNS[y,x,:]    = prprofNS
-        a3prprofNScmb[y,x,:] = prprofNScmb
+        #prprofNS   = (a2prprofNSSC[a1boolwtNS] * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
+        #prprofNScmb= (a2prprofNScmbSC[a1boolwtNS] * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
+        #a3prprofNS[y,x,:]    = prprofNS
+        #a3prprofNScmb[y,x,:] = prprofNScmb
+
+        prwatprofNS   = (ma.masked_less(a2prwatprofNSSC[a1boolwtNS],0) * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
+        a3prwatprofNS[y,x,:]    = prwatprofNS.filled(-9999.)
 
 
-        #print '%.1f'%nsurfMS, a2prprofNSTmp.min(),a2prprofNSTmp.max()
+        #if ((y==3)&(x==100)):
+        #    print a1wtNS
+        #    sys.exit()
 
 
 #--- save (temporary)--
@@ -753,8 +795,10 @@ np.save(outDir + '/nsurfNS.%s.npy'%(stamp), a2nsurfNS)
 np.save(outDir + '/nsurfMScmb.%s.npy'%(stamp), a2nsurfMScmb)
 np.save(outDir + '/nsurfNScmb.%s.npy'%(stamp), a2nsurfNScmb)
 
-np.save(outDir + '/prprofNS.%s.npy'%(stamp), a3prprofNS)
-np.save(outDir + '/prprofNScmb.%s.npy'%(stamp), a3prprofNScmb)
+#np.save(outDir + '/prprofNS.%s.npy'%(stamp), a3prprofNS)
+#np.save(outDir + '/prprofNScmb.%s.npy'%(stamp), a3prprofNScmb)
+np.save(outDir + '/prwatprofNS.%s.npy'%(stamp), a3prwatprofNS)
+
 np.save(outDir + '/lat.%s.npy'%(stamp), a2lat)
 np.save(outDir + '/lon.%s.npy'%(stamp), a2lon)
 
@@ -767,11 +811,19 @@ np.save(outDir + '/top-irecNS.%s.npy'%(stamp), a2top_irecNS)
 np.save(outDir + '/top-zmMS.%s.npy'%(stamp), a3top_zmMS)
 np.save(outDir + '/top-zmNS.%s.npy'%(stamp), a3top_zmNS)
 
-np.save(outDir + '/top-prprofNS.%s.npy'%(stamp), a3top_prprofNS)
-np.save(outDir + '/top-prprofNScmb.%s.npy'%(stamp), a3top_prprofNScmb)
+#np.save(outDir + '/top-prprofNS.%s.npy'%(stamp), a3top_prprofNS)
+#np.save(outDir + '/top-prprofNScmb.%s.npy'%(stamp), a3top_prprofNScmb)
+np.save(outDir + '/top-prwatprofNS.%s.npy'%(stamp), a3top_prwatprofNS)
 
 np.save(outDir + '/top-tbMS.%s.npy'%(stamp), a3top_tbMS)
 np.save(outDir + '/top-tbNS.%s.npy'%(stamp), a3top_tbNS)
+
+
+np.save(outDir + '/top-nsurfMS.%s.npy'%(stamp), a2top_nsurfMS)
+np.save(outDir + '/top-nsurfNS.%s.npy'%(stamp), a2top_nsurfNS)
+
+np.save(outDir + '/top-nsurfMScmb.%s.npy'%(stamp), a2top_nsurfMScmb)
+np.save(outDir + '/top-nsurfNScmb.%s.npy'%(stamp), a2top_nsurfNScmb)
 
 
 

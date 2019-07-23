@@ -10,8 +10,8 @@ lMon  = [1,2,3]
 lYM   = [[Year,Mon] for Year in lYear for Mon in lMon]
 iMon,eMon = lMon[0],lMon[-1]
 
-lvarName = ['epc','DPRGMI_NS_surfPrecipTotRate','Ka_MS_zFactorMeasured','Ku_NS_zFactorMeasured','DPRGMI_NS_precipTotWaterCont','Tc','gNum','t2m']
-#lvarName = ['epc']
+#lvarName = ['epc','DPRGMI_NS_surfPrecipTotRate','Ka_MS_zFactorMeasured','Ku_NS_zFactorMeasured','DPRGMI_NS_precipTotWaterCont','Tc','gNum','t2m']
+lvarName = ['DPRGMI_MS_surfPrecipTotRate']
 NREC  = 20000
 #NREC  = 5000
 ibaseDir = '/work/hk01/utsumi/PMM/EPCDB/GMI.V05A.S1.ABp103-117'

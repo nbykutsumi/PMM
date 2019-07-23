@@ -19,10 +19,10 @@ import sys, os, glob
 oid = 3556
 Year,Mon,Day = 2014,10,14
 stamp = '%04d/%02d/%02d OID=%d'%(Year,Mon,Day,oid)
-#iy, ey = 1012, 1022
+iy, ey = 1012, 1022
 #iy, ey = 1007, 1027
 #iy, ey = 962, 1072
-iy, ey = 927, 1107
+#iy, ey = 927, 1107
 clat    = 34    # SE.US case. oid = 003556
 clon    = -86   # 2014/10/14  05:42:03 UTC
 DB_MAXREC = 20000
@@ -139,23 +139,28 @@ stamp = '%06d.y%04d-%04d.nrec%d'%(oid, iy, ey, DB_MAXREC)
 
 a2topzmMS  = np.load(srcDir + '/top-zmMS.%s.npy'%(stamp))[:, xpos, :]
 a2topzmNS  = np.load(srcDir + '/top-zmNS.%s.npy'%(stamp))[:, xpos, :]
-a2topprNS  = np.load(srcDir + '/top-prprofNS.%s.npy'%(stamp))[:, xpos, :]
-a2topprNScmb= np.load(srcDir + '/top-prprofNScmb.%s.npy'%(stamp))[:, xpos, :]
+#a2topprNS  = np.load(srcDir + '/top-prprofNS.%s.npy'%(stamp))[:, xpos, :]
+#a2topprNScmb= np.load(srcDir + '/top-prprofNScmb.%s.npy'%(stamp))[:, xpos, :]
+a2topprwatNS = np.load(srcDir + '/top-prwatprofNS.%s.npy'%(stamp))[:, xpos, :]
+a2topprwatMS = a2topprwatNS*0 - 9999.  # test
+
 a2toptbNS  = np.load(srcDir + '/top-tbNS.%s.npy'%(stamp))[:, xpos, :][:,::-1]  # Flip
 
-a2prNS   = np.load(srcDir + '/prprofNS.%s.npy'%(stamp))[:, xpos, :]
-a2prNScmb= np.load(srcDir + '/prprofNScmb.%s.npy'%(stamp))[:,xpos,:]
+#a2prNS   = np.load(srcDir + '/prprofNS.%s.npy'%(stamp))[:, xpos, :]
+#a2prNScmb= np.load(srcDir + '/prprofNScmb.%s.npy'%(stamp))[:,xpos,:]
+a2prwatNS= np.load(srcDir + '/prwatprofNS.%s.npy'%(stamp))[:, xpos, :]
+a2prwatMS= a2prwatNS*0 -9999. # test
+
 a1latMy  = np.load(srcDir + '/lat.%s.npy'%(stamp))[:,xpos]
 a1lonMy  = np.load(srcDir + '/lon.%s.npy'%(stamp))[:,xpos]
 
 
-
-print a2topzmNS.shape
-for i,a in enumerate(a2topzmMS):
-    print ''
-    print 'i=',i
-    print a
-sys.exit()
+#print a2topzmNS.shape
+#for i,a in enumerate(a2topzmMS):
+#    print ''
+#    print 'i=',i
+#    print a
+#sys.exit()
 #***********************************
 #- Read GMI 1C (Tb) ----
 #-----------------------------------
@@ -178,11 +183,17 @@ dprPath = glob.glob(dprDir + '/2A.GPM.Ku.*.%06d.V06A.HDF5'%(oid))[0]
 #srcPath = '/work/hk01/PMM/NASA/GPM.Ku/2A/V06/2017/01/01/2A.GPM.Ku.V8-20180723.20170101-S173441-E190714.016166.V06A.HDF5'
 with h5py.File(dprPath, 'r') as h:
     a3dprzmNS = h['NS/PRE/zFactorMeasured'][:]
-    a3dprprNS = h['NS/SLV/precipRate'][:]
+    #a3dprprNS = h['NS/SLV/precipRate'][:]
     #a2latdpr = h['NS/Latitude'][:]
     #a2londpr = h['NS/Longitude'][:]
     #a2cfbBin = h['NS/PRE/binClutterFreeBottom'][:]
     #a2surfBin= h['NS/PRE/binRealSurface'][:]
+
+#-- Read DPRCMB (Ku) ----
+cmbDir  = '/work/hk01/PMM/NASA/GPM.DPRGMI/2B/V06/%04d/%02d/%02d'%(Year,Mon,Day)
+dprPath = glob.glob(cmbDir + '/2B.GPM.DPRGMI.*.%06d.V06A.HDF5'%(oid))[0]
+with h5py.File(dprPath, 'r') as h:
+    a3cmbprwatNS = h['NS/precipTotWaterCont'][:]
 
 
 ##-- Read DPR (DPR) ----
@@ -199,11 +210,13 @@ with h5py.File(dprPath, 'r') as h:
 #- extract lower levels --
 a3dprzmNS = a3dprzmNS[:,:,-88*2:]   # 125 m layers
 #a3dprzmMS = a3dprzmMS[:,:,-88*2:]  # 125 m layers
-a3dprprNS = a3dprprNS[:,:,-44:]
+#a3dprprNS = a3dprprNS[:,:,-44:]
+a3cmbprwatNS = a3cmbprwatNS[:,:,-50:]
+
 
 #- average every 2-levels --
 a3dprzmNS = average_2ranges_3d(a3dprzmNS, miss=-9999.9)
-a3dprprNS = average_2ranges_3d(a3dprprNS, miss=-9999.9)
+#a3dprprNS = average_2ranges_3d(a3dprprNS, miss=-9999.9)
 
 
 ##- Extract and average 9-grids Zm ---
@@ -214,10 +227,10 @@ a3dprprNS = average_2ranges_3d(a3dprprNS, miss=-9999.9)
 #a2dprprNS = ave_9grids_3d(a3dprprNS, a1ydpr, a1xdpr, miss=-9999.9).reshape(-1, nztmp)
 
 
-#- Extract DPR pixels that correspond GMI ---
-a2dprprNS = a3dprprNS[a1ydpr,a1xdpr]
+#- Extract Radar pixels that correspond GMI ---
+#a2dprprNS = a3dprprNS[a1ydpr,a1xdpr]
 a2dprzmNS = a3dprzmNS[a1ydpr,a1xdpr]
-
+a2cmbprwatNS = a3cmbprwatNS[a1ydpr,a1xdpr]
 #- Screen dB less than 15dB 
 a2topzmMS = (ma.masked_less(a2topzmMS, 1500)*0.01).filled(miss)
 a2topzmNS = (ma.masked_less(a2topzmNS, 1500)*0.01).filled(miss)
@@ -237,12 +250,13 @@ a2dprzmNS = a2dprzmNS[:,-64:]
 fig   = plt.figure(figsize=(12,12))
 ssize = 1
 
-nx    = a2prNS.shape[0]
-nbin  = a2prNS.shape[1]
+#nx    = a2prNS.shape[0]
+#nbin  = a2prNS.shape[1]
+nx    = a2dprzmNS.shape[0]
+nbin  = a2dprzmNS.shape[1]
 aspect1 = 0.16*nx/nbin
 aspect2 = aspect1*5
 
-prmin, prmax = 0, 10
 zmin,  zmax  = 15, 45
 tbmin, tbmax = 140, 300
 tick_locs88 = [88, 80, 72, 64, 56, 48, 40, 32, 24, 16, 8, 0]
@@ -254,7 +268,7 @@ tick_lblsTb = [None]
 #for i in range(6):
 #for i in range(8):
 for i in range(5):
-    nx,nh = a2prNS.shape
+    nx,nh = a2dprzmNS.shape
     a1y   = arange(nh)*0.25
     a1x   = a1latMy
     cmap  = 'jet'
@@ -311,10 +325,6 @@ for i in range(5):
         cbarlbl='db (uncorrected)'
 
 
-    print ''
-    print stype
-    print a2dat.min(),a2dat.max()
-
     ax = fig.add_axes([x0, y0, w, h])
     cax= fig.add_axes([x0+w+0.01, y0, 0.03, h*0.9])
     im = ax.imshow(a2dat, interpolation='none', aspect=aspect, cmap=cmap, vmin=vmin, vmax=vmax)
@@ -351,6 +361,98 @@ plt.savefig(outPath)
 print outPath
 plt.clf()
 
+
+#******************************************************
+# Precipitation water content profile
+#******************************************************
+fig   = plt.figure(figsize=(12,12))
+ssize = 1
+
+nx    = a2prwatNS.shape[0]
+nbin  = a2prwatNS.shape[1]
+aspect1 = 0.16*nx/nbin
+aspect2 = aspect1*5
+prmin, prmax = 0, 2.0
+tick_locs22 = [22, 14, 6]
+tick_lbls22 = [' 0',' 2',' 4']
+
+for i in range(5):
+    nx,nh = a2prwatNS.shape
+    a1y   = arange(nh)*0.25
+    a1x   = a1latMy
+    cmap  = 'jet'
+
+    x0= 0.1
+    h = 0.14
+    w = 0.7
+
+    #--- Precip water content -------------- 
+    if i==0:
+        y0 = 0.02
+        a2dat = ma.masked_less_equal(a2cmbprwatNS.T,0)
+        vmin, vmax = prmin, prmax
+        tick_locs, tick_lbls = tick_locs22, tick_lbls22
+        aspect= aspect1
+        stype = 'CMB/NS precip water product'
+        cbarlbl='g/m3'
+
+    elif i==1:
+        y0 = 0.22
+        a2dat = ma.masked_less_equal(a2prwatNS.T,0)
+        vmin, vmax = prmin, prmax
+        tick_locs, tick_lbls = tick_locs22, tick_lbls22
+        aspect= aspect1
+        stype = 'Ret=CMB/NS'
+        cbarlbl='g/m3'
+
+    elif i==2:
+        y0 = 0.42
+        a2dat = ma.masked_less_equal(a2prwatMS.T,0)
+        vmin, vmax = prmin, prmax
+        tick_locs, tick_lbls = tick_locs22, tick_lbls22
+        aspect= aspect1
+        stype = 'Ret=CMB/MS'
+        cbarlbl='g/m3'
+
+    elif i==3:
+        y0 = 0.62
+        a2dat = ma.masked_less_equal(a2topprwatNS.T,0)
+
+        vmin, vmax = prmin, prmax
+        tick_locs, tick_lbls = tick_locs22, tick_lbls22
+        aspect= aspect1
+        stype = 'Top-Ranked Precip water(CMB/NS)'
+        cbarlbl='g/m3'
+
+    elif i==4:
+        y0 = 0.82
+        a2dat = ma.masked_less_equal(a2topprwatMS.T,0)
+        vmin, vmax = prmin, prmax
+        tick_locs, tick_lbls = tick_locs22, tick_lbls22
+        aspect= aspect1
+        stype = 'Top-Ranked Precip water (CMB/MS)'
+        cbarlbl='g/m3'
+
+
+    ax = fig.add_axes([x0, y0, w, h])
+    cax= fig.add_axes([x0+w+0.01, y0, 0.03, h*0.9])
+    im = ax.imshow(a2dat, interpolation='none', aspect=aspect, cmap=cmap, vmin=vmin, vmax=vmax)
+    ax.grid()
+    ax.set_title(stype+' '+stamp)
+    plt.yticks(tick_locs, tick_lbls, fontsize=14)
+
+    cbar = plt.colorbar(im, cax=cax, orientation='vertical')
+    cbar.set_label(cbarlbl)
+
+##------------
+outPath  = outDir + '/prof.precipTotWater.y%04d-%04d.nrec%d.png'%(iy,ey,DB_MAXREC)
+plt.savefig(outPath)
+print outPath
+plt.clf()
+
+
+
+'''
 #******************************************************
 # Precipitation profile
 #******************************************************
@@ -443,6 +545,7 @@ plt.savefig(outPath)
 print outPath
 plt.clf()
 
+'''
 
 
 

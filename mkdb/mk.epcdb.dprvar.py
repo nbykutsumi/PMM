@@ -15,7 +15,7 @@ verDPR    = '06'
 subverDPR = 'A'
 fullverDPR= '%s%s'%(verDPR, subverDPR)
 
-iYM = [2017,2]
+iYM = [2017,8]
 eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
 #lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
@@ -32,10 +32,11 @@ worg= 221  # GMI total angle bins
 #lvar = [['Ku','NS/SLV/zFactorCorrected'],['Ku','NS/SLV/precipRate']]
 #lvar = [['Ku','NS/SLV/zFactorCorrected']]
 #lvar = [['Ku','NS/PRE/zFactorMeasured'],['Ka','MS/PRE/zFactorMeasured'],['Ku','NS/PRE/elevation']]
-lvar = [['Ka','MS/PRE/zFactorMeasured']]
+#lvar = [['Ka','MS/PRE/zFactorMeasured']]
 #lvar = [['Ku','NS/PRE/zFactorMeasured']]
 #lvar = [['DPRGMI','NS/precipTotWaterCont']]
 #lvar = [['DPRGMI','NS/surfPrecipTotRate']]
+lvar = [['DPRGMI','MS/surfPrecipTotRate']]
 #lvar = [['DPRGMI','NS/surfPrecipTotRate'],['DPRGMI','NS/precipTotWaterCont']]
 #lvar = [['Ku','NS/SLV/precipRate']]
 #lvar = [['Ku','NS/SLV/precipRateESurface']]

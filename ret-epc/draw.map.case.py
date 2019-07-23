@@ -6,182 +6,205 @@ import numpy as np
 from numpy import *
 import h5py
 from bisect import bisect_left
+import epcfunc
+import sys, os, glob
 
-clat    = 30.00
-clon    = 269.0 -360  # -180 - +180
-dlatlon = 6
+## Africa case
+#oid = 2421
+#iy, ey = 2029, 2089
+#clat    = 14 # Africa case
+#clon    = 2  # -180 - +180
+
+# SE.US case, oid=003556, 2014/10/14
+oid = 3556
+Year,Mon,Day = 2014,10,14
+#iy, ey = 927, 1107
+iy, ey = 1012, 1022
+clat    = 34    # SE.US case. oid = 003556
+clon    = -86   # 2014/10/14  05:42:03 UTC
+DB_MAXREC = 20000
+
+
+## QJRMS case, oid=012149, 2016/4/18
+#oid = 12149
+#iy, ey = 1038, 1098
+#clat    = 32. # QJRMS case, oid=012149
+#clon    = -94 # -180 - +180
+#DB_MAXREC = 20000
+
+
+dlatlon = 5
+#dscan   = 55
 dscan   = 30
 BBox    = [[clat-dlatlon, clon-dlatlon],[clat+dlatlon,clon+dlatlon]]
 [[lllat,lllon],[urlat,urlon]] = BBox
+miss = -9999.
 
 
-oid = 16166
-iy, ey = 1952, 2012
-srcDir = '/home/utsumi/temp/out'
-prcpPath = srcDir + '/esurf.%06d.y%04d-%04d.npy'%(oid, iy, ey)
-latPath  = srcDir + '/lat.%06d.y%04d-%04d.npy'%(oid, iy, ey)
-lonPath  = srcDir + '/lon.%06d.y%04d-%04d.npy'%(oid, iy, ey)
+#srcDir = '/home/utsumi/temp/out'
+srcDir = '/home/utsumi/temp/out/my'
+#stamp = '%06d.y%04d-%04d.nrec%d'%(oid, idx_c-dscan, idx_c+dscan,DB_MAXREC)
+stamp = '%06d.y%04d-%04d.nrec%d'%(oid, iy, ey, DB_MAXREC)
 
-a2dat = np.load(prcpPath)
-a2lat = np.load(latPath)
-a2lon = np.load(lonPath)
+nsurfMSPath    = srcDir + '/nsurfMS.%s.npy'%(stamp)
+nsurfNSPath    = srcDir + '/nsurfNS.%s.npy'%(stamp)
+nsurfMScmbPath = srcDir + '/nsurfMScmb.%s.npy'%(stamp)
+nsurfNScmbPath = srcDir + '/nsurfNScmb.%s.npy'%(stamp)
+topnsurfMScmbPath = srcDir + '/top-nsurfMScmb.%s.npy'%(stamp)
+topnsurfNScmbPath = srcDir + '/top-nsurfNScmb.%s.npy'%(stamp)
 
-a2dat = ma.masked_less_equal(a2dat,0)
 
-ssize = 1
-#********************************
-# Functions
-#--------------------------------
-def extract_domain_2D(a2dat, a2lat, a2lon, clat, clon, dlatlon, dscan):
+latPath   = srcDir + '/lat.%s.npy'%(stamp)
+lonPath   = srcDir + '/lon.%s.npy'%(stamp)
+#
+#-- GPROF --
+gprofDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05/%04d/%02d/%02d'%(Year,Mon,Day)
+ssearch  = gprofDir + '/2A.GPM.GMI.GPROF*.%06d.????.HDF5'%(oid)
+gprofPath= glob.glob(ssearch)[0]
 
-    nyTmp, nxTmp = a2lat.shape
-    a1lat = a2lat[:,nxTmp/2]
-    a1lon = a2lon[:,nxTmp/2]
-    
-    idx_latmax = np.argmax(a1lat)
-    a1lat0 = a1lat[:idx_latmax+1]
-    a1lat1 = a1lat[idx_latmax+1:]
-    a1lon0 = a1lon[:idx_latmax+1]
-    a1lon1 = a1lon[idx_latmax+1:]
-    
-    if (-180<=clat)and(clat <=180):
-        #-- search first half: ascending --
-        found_domain = 0
-        idx_c  = bisect_left(a1lat0, clat)
-        latTmp = a1lat0[idx_c]
-        lonTmp = a1lon0[idx_c]
-        if (clat-dlatlon<=latTmp)&(latTmp <=clat+dlatlon)&(clon-dlatlon<=lonTmp)&(lonTmp<=clon+dlatlon):
-            found_domain = 1
-        else:
-            #-- search second half: descending --
-            idx_c  = bisect_left(a1lat1[::-1], clat)
-            idx_c  = len(a1lat) - idx_c -1
-            latTmp = a1lat[idx_c]
-            lonTmp = a1lon[idx_c]
-    
-            if (clat-dlatlon<=latTmp)&(latTmp <=clat+dlatlon)&(clon-dlatlon<=lonTmp)&(lonTmp<=clon+dlatlon):
-                found_domain =1
-    
-        if found_domain==1:
-            idx_first = idx_c - dscan
-            idx_last  = idx_c + dscan
-            a2odat  = a2dat[idx_first:idx_last+1,:]
-            a2olat  = a2lat[idx_first:idx_last+1,:]    
-            a2olon  = a2lon[idx_first:idx_last+1,:]
-    
-        else:
-            print 'No matching scans in the target domain are found.'
-            print 'Exit'
-            sys.exit()
-    
-        print 'Extract target domain'
-        print 'Extracted array size=', a2dat.shape
-    
-    else:
-        pass
-    
-    return a2odat, a2olat, a2olon 
+#-- MRMS --
+mrmsDir  = '/work/hk01/PMM/MRMS/match-GMI-orbit'
+ssearch  = mrmsDir + '/GMI.MRMS.130W_55W_20N_55N.%04d%02d%02d.%06d.*.npy'%(Year,Mon,Day,oid)
+mrmsPath = glob.glob(ssearch)[0]
+#*****************
+#- Read My data ----
+
+#a2MS    = np.load(nsurfMSPath)
+#a2NS    = np.load(nsurfNSPath)
+a2MScmb = np.load(nsurfMScmbPath)
+a2NScmb = np.load(nsurfNScmbPath)
+a2topMScmb = np.load(topnsurfMScmbPath)
+a2topNScmb = np.load(topnsurfNScmbPath)
+
+a2latMy = np.load(latPath)
+a2lonMy = np.load(lonPath)
+
+
+#*****************
+#- Read GPROF data ----
+with h5py.File(gprofPath) as h:
+    a2esurfgp = h['S1/surfacePrecipitation'][:]
+    a2latgpOrg= h['S1/Latitude'][:]
+    a2longpOrg= h['S1/Longitude'][:]
+
+
+a2esurfgp, a2latgp, a2longp, iygp, eygp = epcfunc.extract_domain_2D(a2esurfgp, a2latgpOrg, a2longpOrg, clat, clon, dlatlon, dscan, returnidx=True)
+
+a2esurfgp = ma.masked_less_equal(a2esurfgp,0)
+
+#*****************
+#- Read MRMS-on-orbit data ----
+iymr,eymr = map(int, mrmsPath.split('.')[-2].split('-'))
+a2mrms  = np.load(mrmsPath)
+a2latmr = a2latgpOrg[iymr:eymr+1]
+a2lonmr = a2longpOrg[iymr:eymr+1]
+
+
+#a2dpr, a2lattmp, a2lontmp = epcfunc.extract_domain_2D(a2dpr, a2latjplOrg, a2lonjplOrg, clat, clon, dlatlon, dscan)
+#a2dpr = ma.masked_less_equal(a2dpr,0)
+#
+#a2latjpl = a2latjplOrg[iyjpl:eyjpl+1,:]
+#a2lonjpl = a2lonjplOrg[iyjpl:eyjpl+1,:]
+##-- Read Tb data --
+#with h5py.File(tbPath, 'r') as h:
+#    a3tb1    = h['/S1/Tc'][:]
+#    a3tb2org = h['/S2/Tc'][:]
+#    a2lattb = h['/S1/Latitude'][:]
+#    a2lontb = h['/S1/Longitude'][:]
+#
+#s2xPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2014/08/02/Xpy.1.002421.npy'
+#s2yPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2014/08/02/Ypy.1.002421.npy'
+#
+#
+##-- Matchup and Joint S1 and S2 Tb --
+#a1x2  = np.load(s2xPath).flatten()
+#a1y2  = np.load(s2yPath).flatten()
+#
+#a1mask= ma.masked_less(a1x2,0).mask
+#a1x2  = ma.masked_less(a1x2,0).filled(0)
+#a1y2  = ma.masked_less(a1y2,0).filled(0)
+#
+#nytmp, nxtmp, ztmp = a3tb2org.shape
+#a2tb2 = a3tb2org[a1y2, a1x2]
+#a2tb2[a1mask] = miss
+#a3tb2 = a2tb2.reshape(nytmp,nxtmp,-1)
+#a3tb = concatenate([a3tb1, a3tb2],axis=2)
+#a2mask = np.any(ma.masked_outside(a3tb, 50, 350).mask, axis=2)
+#
+#print a2mask.shape, a2lattb.shape, a2lontb.shape
+#a2mask, a2lattmp, a2lontmp = epcfunc.extract_domain_2D(a2mask, a2lattb, a2lontb, clat, clon, dlatlon, dscan)
+#
+##-- test ---
+#plt.imshow(a2mask*1)
+#plt.colorbar()
+#plt.savefig('/home/utsumi/temp/out/temp.png')
+#plt.clf()
+#print 'check a2dat'
+#print a2mask[50:55,105:110]
+
+
+
 
 #********************************
 #-- Draw figure ---
 fig   = plt.figure(figsize=(8,8))
+ssize = 1
 
 #-- My retrieval --
-#ax    = fig.add_subplot(111)
-ax    = fig.add_axes([0.1,0.5,0.3,0.3])
-M     = Basemap(resolution='l', llcrnrlat=lllat, llcrnrlon=lllon, urcrnrlat=urlat, urcrnrlon=urlon, ax=ax)
-im    = M.scatter(a2lon, a2lat, c=a2dat, cmap='jet', s=ssize, vmin=0, vmax=20)
-M.drawcoastlines()
+for i in range(6):
+    if i==0:
+        ax = fig.add_axes([0.1,0.66,0.35,0.3])
+        a2dat = ma.masked_less_equal(a2topMScmb,0)
+        a2lat = a2latMy
+        a2lon = a2lonMy
+        stype = 'top_MScmb'
 
-dgrid      = 5
-parallels  = arange(-90,90, dgrid)
-meridians  = arange(-180,180,dgrid)
-M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d')
-M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d')
-plt.colorbar(im, orientation='horizontal')
+    elif i==1:
+        ax = fig.add_axes([0.5,0.66,0.35,0.3])
+        a2dat = ma.masked_less_equal(a2topNScmb,0)
+        a2lat = a2latMy
+        a2lon = a2lonMy
+        stype = 'top_NScmb'
 
-plt.title('EPC')
-#*****************
-#- Read GPROF ----
-gpDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05/2017/01/01/2A.GPM.GMI.GPROF2017v1.20170101-S173441-E190714.016166.V05A.HDF5'
-with h5py.File(gpDir) as h:
-    a2esurfgp = h['S1/surfacePrecipitation'][:]
-    a2latgp   = h['S1/Latitude'][:]
-    a2longp   = h['S1/Longitude'][:]
+    elif i==2:
+        ax = fig.add_axes([0.1,0.33,0.35,0.3])
+        a2dat = ma.masked_less_equal(a2MScmb,0)
+        a2lat = a2latMy
+        a2lon = a2lonMy
+        stype = 'MScmb'
 
-print a2esurfgp.shape
-print a2latgp.shape
-a2esurfgp, a2latgp, a2longp = extract_domain_2D(a2esurfgp, a2latgp, a2longp, clat, clon, dlatlon, dscan)
-a2esurfgp = ma.masked_less_equal(a2esurfgp,0)
+    elif i==3:
+        ax = fig.add_axes([0.5,0.33,0.35,0.3])
+        a2dat = ma.masked_less_equal(a2NScmb,0)
+        a2lat = a2latMy
+        a2lon = a2lonMy
+        stype = 'NScmb'
+    elif i==4:
+        ax = fig.add_axes([0.1,0.0,0.35,0.3])
+        a2dat = ma.masked_less_equal(a2esurfgp,0)
+        a2lat = a2latgp
+        a2lon = a2longp
+        stype = 'GPROF'
+    elif i==5:
+        ax = fig.add_axes([0.5,0.0,0.35,0.3])
+        a2dat = ma.masked_less_equal(a2mrms,0)
+        stype = 'MRMS'
+        a2lat = a2latmr
+        a2lon = a2lonmr
 
-#- fig --
-ax2 = fig.add_axes([0.1,0.1,0.3,0.3])
-M   = Basemap(resolution='l', llcrnrlat=lllat, llcrnrlon=lllon, urcrnrlat=urlat, urcrnrlon=urlon, ax=ax2)
-im    = M.scatter(a2longp, a2latgp, c=a2esurfgp, cmap='jet', s=ssize, vmin=0, vmax=20)
-print a2esurfgp
-M.drawcoastlines()
-M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d')
-M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d')
-plt.colorbar(im, orientation='horizontal')
-
-plt.title('GPROF')
-#------------
-#- Read DPR ----
-gpDir = '/work/hk01/PMM/NASA/GPM.Ku/2A/V06/2017/01/01/2A.GPM.Ku.V8-20180723.20170101-S173441-E190714.016166.V06A.HDF5'
-with h5py.File(gpDir) as h:
-    a2datfig  = h['NS/SLV/precipRateESurface'][:]
-    a2latfig  = h['NS/Latitude'][:]
-    a2lonfig  = h['NS/Longitude'][:]
-
-a2datfig, a2latfig, a2lonfig = extract_domain_2D(a2datfig, a2latfig, a2lonfig, clat, clon, dlatlon, dscan*5)
-a2datfig = ma.masked_less_equal(a2datfig,0)
-
-#- fig --
-ax2 = fig.add_axes([0.5,0.1,0.3,0.3])
-M   = Basemap(resolution='l', llcrnrlat=lllat, llcrnrlon=lllon, urcrnrlat=urlat, urcrnrlon=urlon, ax=ax2)
-im    = M.scatter(a2lonfig, a2latfig, c=a2datfig, cmap='jet', s=ssize, vmin=0, vmax=20)
-print a2esurfgp
-M.drawcoastlines()
-M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d')
-M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d')
-plt.colorbar(im, orientation='horizontal')
-
-plt.title('DPR')
-
-#------------
-#- Read DPR 9grid mean ----
-dprmeanPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.9ave.precipRateESurface/2017/01/01/precipRateESurface.016166.npy'
-a2datfig   = np.load(dprmeanPath)
-a2datfig   = a2datfig[iy:ey+1]
-
-a2datfig = ma.masked_less_equal(a2datfig,0)
-
-#- lat and lon from GPROF ----
-gpDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05/2017/01/01/2A.GPM.GMI.GPROF2017v1.20170101-S173441-E190714.016166.V05A.HDF5'
-with h5py.File(gpDir) as h:
-    a2latgmi = h['S1/Latitude'][:]
-    a2longmi = h['S1/Longitude'][:]
-
-a2latfig = a2latgmi[iy:ey+1,83:137+1]
-a2lonfig = a2longmi[iy:ey+1,83:137+1]
-
-print a2datfig.shape, a2latfig.shape, a2lonfig.shape
-#- fig --
-ax2 = fig.add_axes([0.5,0.5,0.3,0.3])
-M   = Basemap(resolution='l', llcrnrlat=lllat, llcrnrlon=lllon, urcrnrlat=urlat, urcrnrlon=urlon, ax=ax2)
-im    = M.scatter(a2lonfig, a2latfig, c=a2datfig, cmap='jet', s=ssize, vmin=0, vmax=20)
-print a2esurfgp
-M.drawcoastlines()
-M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d')
-M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d')
-plt.colorbar(im, orientation='horizontal')
-
-plt.title('DPR-9ave')
-#------------
-
-
-
-
-outPath  = srcDir + '/esurf.png'
+    M     = Basemap(resolution='l', llcrnrlat=lllat, llcrnrlon=lllon, urcrnrlat=urlat, urcrnrlon=urlon, ax=ax)
+    im    = M.scatter(a2lon, a2lat, c=a2dat, cmap='jet', s=ssize, vmin=0, vmax=20)
+    M.drawcoastlines()
+    
+    dgrid      = 5
+    parallels  = arange(-90,90, dgrid)
+    meridians  = arange(-180,180,dgrid)
+    M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d')
+    M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d')
+    plt.colorbar(im, orientation='horizontal')
+    
+    plt.title(stype)
+##------------
+outPath  = srcDir + '/prcp.map.%06d.y%d-%d.png'%(oid,iy,ey)
 plt.savefig(outPath)
 print outPath

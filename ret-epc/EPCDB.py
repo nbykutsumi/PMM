@@ -20,7 +20,7 @@ class EPCDB(object):
         self.dictvars    = odict((
             ('satid',            ['',   'h']),                 # PMW
             ('satid2',           ['',   'h']),                 # Radar:GPM
-            ('rev',              ['gnum',   'i']),             # PMW
+            ('rev',              ['gNum',   'i']),             # PMW
             ('rev2',             ['',   'i']),                 # Radar:GPM
             ('SC_orientation',   ['',   'h']),                 #
             ('SC_orientation2',  ['',   'h']),                 #
@@ -89,7 +89,7 @@ class EPCDB(object):
 
             ('precip_NS_cmb',      ['DPRGMI_NS_surfPrecipTotRate', 'f']),      # Precip from Combined product: near surface, not esurf. (surfPrecipTotRate)
             ('precip_max_NS_cmb',  ['', 'f']),                 #
-            ('precip_MS_cmb',      ['', 'f']),                 #
+            ('precip_MS_cmb',      ['DPRGMI_MS_surfPrecipTotRate', 'f']),                 #
             ('precip_max_MS_cmb',  ['', 'f']),                 #
 
             ('type_precip_NS',     ['','3h']),                 # Number of radar pixels for each typePrecip (from DPR product) in PMW pixel.
@@ -102,7 +102,7 @@ class EPCDB(object):
             ('frozen_precip_GPROF',['', 'f']),                 #
 
             ('ts',                 ['', 'f']),                 # MERRA2 (Interpolated to space and time)
-            ('t2m',                ['', 'f']),                 #
+            ('t2m',                ['t2m', 'f']),              #
             ('t2m_dew',            ['', 'f']),                 #
             ('t2m_wet',            ['', 'f']),                 #
             ('tqv',                ['', 'f']),                 #
@@ -131,7 +131,7 @@ class EPCDB(object):
             ('z_ku',              ['Ku_NS_zFactorMeasured', '%ih'%NLEV_DPR]), # Reflectivity Zm (zFactorMeasured) from DPR product, scaled by 100
             ('z_ka',              ['Ka_MS_zFactorMeasured', '%ih'%NLEV_DPR]), #
 
-            ('precip_cont_NS',    ['DPRGMI_NS_precipTotWaterCont', '%if'%NLEV_PRECIP]),  # precipitation water content profile from Comb product
+            ('precip_water_prof_NS',    ['DPRGMI_NS_precipTotWaterCont', '%if'%NLEV_PRECIP]),  # precipitation water content profile from Comb product
 
             ))
 
