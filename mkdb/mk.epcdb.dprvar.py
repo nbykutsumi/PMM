@@ -15,8 +15,8 @@ verDPR    = '06'
 subverDPR = 'A'
 fullverDPR= '%s%s'%(verDPR, subverDPR)
 
-iYM = [2017,8]
-eYM = [2017,12]
+iYM = [2017,7]
+eYM = [2017,7]
 lYM = util.ret_lYM(iYM,eYM)
 #lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
 #lepcid_range = [[0,5000],[5000,10000],[10000,15000],[15000,20000],[20000,25000]]  # 29*29*29 = 24389
@@ -41,6 +41,7 @@ lvar = [['DPRGMI','MS/surfPrecipTotRate']]
 #lvar = [['Ku','NS/SLV/precipRate']]
 #lvar = [['Ku','NS/SLV/precipRateESurface']]
 #lvar = [['Ku','NS/SLV/precipRateNearSurface']]
+#lvar = [['Ka','MS/SLV/precipRateNearSurface']]
 #lvar = [['Ku','NS/PRE/elevation'],['Ku','NS/CSF/typePrecip'],['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','NS/PRE/heightStormTop']]
 

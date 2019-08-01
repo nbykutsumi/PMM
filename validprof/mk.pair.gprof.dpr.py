@@ -116,7 +116,7 @@ for DTime in lDTime:
             a3profd = h['NS/precipTotWaterCont'][:,:,16:]     # g/m3  (0-18 g/m3), 250m layers, missing=-9999.9,  Cut-off first 16 layers (22km-18km)
     
     
-        a3profd = prof250mTo500m(a3profd, miss_out=miss_out)[:,:,::-1] # convert to 500m layers up to 18km (36-layers)
+        a3profd = prof250mTo500m(a3profd, miss_out=miss_out)[:,:,::-1] # convert to 500m layers up to 18km (36-layers): From bottom to top. 
     
     
         #-- Read GMI-DPR matching index file ----------------------
@@ -154,8 +154,8 @@ for DTime in lDTime:
  
         a1sfcprecd = a1sfcprecd[a1flag] 
         a1sfcprecg = a1sfcprecg[a1flag] 
-        a2profd    = a2profd[a1flag]
-        a2profg    = a2profg[a1flag]
+        a2profd    = a2profd[a1flag]   # Bottom to top
+        a2profg    = a2profg[a1flag]   # Bottom to top
    
         outbaseDir = '/tank/utsumi/validprof/pair.gprof'
         outDir     = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)

@@ -15,14 +15,32 @@ import sys, os, glob
 #clat    = 14 # Africa case
 #clon    = 2  # -180 - +180
 
-# SE.US case, oid=003556, 2014/10/14
-oid = 3556
-Year,Mon,Day = 2014,10,14
+## SE.US case, oid=003556, 2014/10/14
+#oid = 3556
+#Year,Mon,Day = 2014,10,14
 #iy, ey = 927, 1107
-iy, ey = 1012, 1022
-clat    = 34    # SE.US case. oid = 003556
-clon    = -86   # 2014/10/14  05:42:03 UTC
+##iy, ey = 1012, 1022
+#clat    = 34    # SE.US case. oid = 003556
+#clon    = -86   # 2014/10/14  05:42:03 UTC
+#DB_MAXREC = 20000
+
+## SW.Japan typhoon case, oid=019015, 2017/07/03
+#oid = 19015
+#Year,Mon,Day = 2017,7,3
+#iy, ey = 1793, 1973
+#clat    = 33    # SE.US case. oid = 003556
+#clon    = 130   # 2014/10/14  05:42:03 UTC
+#DB_MAXREC = 20000
+
+# SW.Japan typhoon case, oid=019015, 2017/07/03
+oid = 16166
+Year,Mon,Day = 2017,1,1
+#iy, ey = -9999,-9999
+iy, ey = 2246, 2446
+clat    = -10    # SE.US case. oid = 003556
+clon    = -75   # 2014/10/14  05:42:03 UTC
 DB_MAXREC = 20000
+
 
 
 ## QJRMS case, oid=012149, 2016/4/18
@@ -32,17 +50,21 @@ DB_MAXREC = 20000
 #clon    = -94 # -180 - +180
 #DB_MAXREC = 20000
 
+if clat !=-9999.:
+    dlatlon = 20
+    #dscan   = 55
+    dscan   = 200  # used to extract GPROf
+    BBox    = [[clat-dlatlon, clon-dlatlon],[clat+dlatlon,clon+dlatlon]]
+else:
+    BBox    = [[-60,-180],[60,180]]
 
-dlatlon = 5
-#dscan   = 55
-dscan   = 30
-BBox    = [[clat-dlatlon, clon-dlatlon],[clat+dlatlon,clon+dlatlon]]
 [[lllat,lllon],[urlat,urlon]] = BBox
 miss = -9999.
 
 
 #srcDir = '/home/utsumi/temp/out'
-srcDir = '/home/utsumi/temp/out/my'
+#srcDir = '/home/utsumi/temp/out/my'
+srcDir = '/tank/utsumi/PMM/retepc/glb.wprof/2017/01/01'
 #stamp = '%06d.y%04d-%04d.nrec%d'%(oid, idx_c-dscan, idx_c+dscan,DB_MAXREC)
 stamp = '%06d.y%04d-%04d.nrec%d'%(oid, iy, ey, DB_MAXREC)
 
@@ -50,8 +72,8 @@ nsurfMSPath    = srcDir + '/nsurfMS.%s.npy'%(stamp)
 nsurfNSPath    = srcDir + '/nsurfNS.%s.npy'%(stamp)
 nsurfMScmbPath = srcDir + '/nsurfMScmb.%s.npy'%(stamp)
 nsurfNScmbPath = srcDir + '/nsurfNScmb.%s.npy'%(stamp)
-topnsurfMScmbPath = srcDir + '/top-nsurfMScmb.%s.npy'%(stamp)
-topnsurfNScmbPath = srcDir + '/top-nsurfNScmb.%s.npy'%(stamp)
+#topnsurfMScmbPath = srcDir + '/top-nsurfMScmb.%s.npy'%(stamp)
+#topnsurfNScmbPath = srcDir + '/top-nsurfNScmb.%s.npy'%(stamp)
 
 
 latPath   = srcDir + '/lat.%s.npy'%(stamp)
@@ -65,16 +87,21 @@ gprofPath= glob.glob(ssearch)[0]
 #-- MRMS --
 mrmsDir  = '/work/hk01/PMM/MRMS/match-GMI-orbit'
 ssearch  = mrmsDir + '/GMI.MRMS.130W_55W_20N_55N.%04d%02d%02d.%06d.*.npy'%(Year,Mon,Day,oid)
-mrmsPath = glob.glob(ssearch)[0]
+try:
+    mrmsPath = glob.glob(ssearch)[0]
+except:
+    mrmsPath = 'xx'
 #*****************
 #- Read My data ----
-
+print 'Read my data'
 #a2MS    = np.load(nsurfMSPath)
 #a2NS    = np.load(nsurfNSPath)
+a2MS    = np.load(nsurfMSPath)
+a2NS    = np.load(nsurfNSPath)
 a2MScmb = np.load(nsurfMScmbPath)
 a2NScmb = np.load(nsurfNScmbPath)
-a2topMScmb = np.load(topnsurfMScmbPath)
-a2topNScmb = np.load(topnsurfNScmbPath)
+#a2topMScmb = np.load(topnsurfMScmbPath)
+#a2topNScmb = np.load(topnsurfNScmbPath)
 
 a2latMy = np.load(latPath)
 a2lonMy = np.load(lonPath)
@@ -82,22 +109,29 @@ a2lonMy = np.load(lonPath)
 
 #*****************
 #- Read GPROF data ----
+print 'Read GPROF'
 with h5py.File(gprofPath) as h:
     a2esurfgp = h['S1/surfacePrecipitation'][:]
     a2latgpOrg= h['S1/Latitude'][:]
     a2longpOrg= h['S1/Longitude'][:]
 
+if clat != -9999.:
+    a2esurfgp, a2latgp, a2longp, iygp, eygp = epcfunc.extract_domain_2D(a2esurfgp, a2latgpOrg, a2longpOrg, clat, clon, dlatlon, dscan, returnidx=True)
 
-a2esurfgp, a2latgp, a2longp, iygp, eygp = epcfunc.extract_domain_2D(a2esurfgp, a2latgpOrg, a2longpOrg, clat, clon, dlatlon, dscan, returnidx=True)
+else:
+    a2latgp = a2latgpOrg
+    a2longp = a2longpOrg
 
 a2esurfgp = ma.masked_less_equal(a2esurfgp,0)
 
 #*****************
 #- Read MRMS-on-orbit data ----
-iymr,eymr = map(int, mrmsPath.split('.')[-2].split('-'))
-a2mrms  = np.load(mrmsPath)
-a2latmr = a2latgpOrg[iymr:eymr+1]
-a2lonmr = a2longpOrg[iymr:eymr+1]
+if os.path.exists(mrmsPath):
+    print 'Read MRMS'
+    iymr,eymr = map(int, mrmsPath.split('.')[-2].split('-'))
+    a2mrms  = np.load(mrmsPath)
+    a2latmr = a2latgpOrg[iymr:eymr+1]
+    a2lonmr = a2longpOrg[iymr:eymr+1]
 
 
 #a2dpr, a2lattmp, a2lontmp = epcfunc.extract_domain_2D(a2dpr, a2latjplOrg, a2lonjplOrg, clat, clon, dlatlon, dscan)
@@ -147,24 +181,26 @@ a2lonmr = a2longpOrg[iymr:eymr+1]
 
 #********************************
 #-- Draw figure ---
+print 'Draw figure'
 fig   = plt.figure(figsize=(8,8))
 ssize = 1
 
 #-- My retrieval --
-for i in range(6):
+#for i in range(6):
+for i in range(5):
     if i==0:
         ax = fig.add_axes([0.1,0.66,0.35,0.3])
-        a2dat = ma.masked_less_equal(a2topMScmb,0)
+        a2dat = ma.masked_less_equal(a2MS,0)
         a2lat = a2latMy
         a2lon = a2lonMy
-        stype = 'top_MScmb'
+        stype = 'MS'
 
     elif i==1:
         ax = fig.add_axes([0.5,0.66,0.35,0.3])
-        a2dat = ma.masked_less_equal(a2topNScmb,0)
+        a2dat = ma.masked_less_equal(a2NS,0)
         a2lat = a2latMy
         a2lon = a2lonMy
-        stype = 'top_NScmb'
+        stype = 'NS'
 
     elif i==2:
         ax = fig.add_axes([0.1,0.33,0.35,0.3])
@@ -205,6 +241,7 @@ for i in range(6):
     
     plt.title(stype)
 ##------------
-outPath  = srcDir + '/prcp.map.%06d.y%d-%d.png'%(oid,iy,ey)
+figDir   = '/home/utsumi/temp/out/my'
+outPath  = figDir + '/prcp.map.%06d.y%d-%d.png'%(oid,iy,ey)
 plt.savefig(outPath)
 print outPath

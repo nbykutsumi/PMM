@@ -1,18 +1,32 @@
 from numpy import *
 import socket, sys, os
-import Image
+import PIL.Image as Image
 import myfunc.regrid.Regrid as Regrid
 import myfunc.IO.CLOUDTYPE as CLOUDTYPE
 import myfunc.util          as util
 
+#------
+Image.MAX_IMAGE_PIXELS = 933120000  # To avoid PIL.Image.DecompressionBombError
+#------
+
+
 if   socket.gethostname()=="well":
   baseDir = "/media/disk2/share"
+  srcDir   = os.path.join(baseDir, "data/GLCC2/data")
 elif socket.gethostname()=="mizu":
   baseDir = "/home/utsumi/mnt/wellshare"
+  srcDir   = os.path.join(baseDir, "data/GLCC2/data")
+elif socket.gethostname()=='shui':
+  baseDir = '/tank/utsumi'
+  srcDir   = os.path.join(baseDir, "GLCC2/data")
+  print 'baseDir=',baseDir
+  print 'srcDir=',srcDir
+else:
+  print 'hostname=',socket.gethostname()
+  sys.exit()
 
 #srcDir   = baseDir + "/data/GLCC2/data"
 #srcDir   = "/home/utsumi/bin/PMM/CLOUD"
-srcDir   = os.path.join(baseDir, "data/GLCC2/data")
 srcPath  = srcDir  + "/gblulcgeo20.tif"
 #srcDir   = baseDir + "/data/GLCC2/seto"
 #srcPath  = srcDir  + "/gusgs2_0ll.img"
@@ -90,9 +104,10 @@ us(LatOrg, LonOrg, LatUp, LonUp, globflag=False)
 a2up   = us.upscale(a2fin, pergrid=False, miss_in=-9999., miss_out=-9999.)
 #outDir = "/home/utsumi/mnt/well.share/PMM/WNP.261x265/MASK"
 #outDir = "/home/utsumi/mnt/wellshare/PMM/WNP.261x265/MASK"
-outDir = "/home/utsumi/mnt/wellshare/data/const"
+#outDir = "/home/utsumi/mnt/wellshare/data/const"
+outDir = '/tank/utsumi/validprof/const'
 util.mk_dir(outDir)
-outPath= outDir + "/landfrac.37SN.%dx%d"%(len(LatUp),len(LonUp) )
+outPath= outDir + "/landfrac.37SN.sa.%dx%d"%(len(LatUp),len(LonUp) )
 a2up.tofile(outPath)
 print outPath
 

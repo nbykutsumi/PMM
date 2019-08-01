@@ -94,7 +94,8 @@ plt.ylabel('Profile error(RMSE)', fontsize=labelsize)
 
 plt.ylim(0,5)
 plt.xlim(bratlim)
-
+#print rmse.max()
+#sys.exit()
 figPath = '/home/utsumi/temp/validprof/plot.brat.rmse.png'
 plt.savefig(figPath)
 plt.clf()

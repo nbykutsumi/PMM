@@ -4,7 +4,7 @@ import numpy as np
 import os,sys
 
 iMon = 1
-eMon = 3
+eMon = 12
 NREC = 20000
 varName = 'DPRGMI_NS_surfPrecipTotRate'  # surface precipitation
 baseDir = '/work/hk01/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.%02d-%02d'%(NREC,iMon,eMon)

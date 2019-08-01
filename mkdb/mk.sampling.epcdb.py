@@ -6,12 +6,14 @@ import numpy as np
 import os, sys
 
 lYear = [2017]
-lMon  = [1,2,3]
+lMon  = range(1,12+1)
 lYM   = [[Year,Mon] for Year in lYear for Mon in lMon]
 iMon,eMon = lMon[0],lMon[-1]
 
-#lvarName = ['epc','DPRGMI_NS_surfPrecipTotRate','Ka_MS_zFactorMeasured','Ku_NS_zFactorMeasured','DPRGMI_NS_precipTotWaterCont','Tc','gNum','t2m']
-lvarName = ['DPRGMI_MS_surfPrecipTotRate']
+#lvarName = ['epc','Ka_MS_zFactorMeasured','Tc','gNum','t2m']
+#lvarName = ['DPRGMI_NS_precipTotWaterCont','DPRGMI_MS_surfPrecipTotRate','DPRGMI_NS_surfPrecipTotRate','Ku_NS_precipRateNearSurface']
+#lvarName = ['Ka_MS_precipRateNearSurface']
+lvarName = ['gtopo']
 NREC  = 20000
 #NREC  = 5000
 ibaseDir = '/work/hk01/utsumi/PMM/EPCDB/GMI.V05A.S1.ABp103-117'
@@ -46,7 +48,7 @@ for (Year,Mon) in lYM:
 
 #------ Ramdom sampling of entries ---------
 for varName in lvarName:
-    #for epcid in lepcid[:1]:
+    #for epcid in [4150]:
     for epcid in lepcid:
         #-- Sample from monthly data ---
         astack = []
@@ -62,6 +64,8 @@ for varName in lvarName:
             #-- Read epcdb --
             srcDir = ibaseDir + '/%s/%04d%02d'%(varName, Year,Mon)
             srcPath= srcDir + '/%s.%05d.npy'%(varName,epcid) 
+
+            #print Year,Mon,srcPath
             if os.path.exists(srcPath):
                 aTmp   = np.load(srcPath)
             else:
@@ -76,11 +80,9 @@ for varName in lvarName:
             aTmp = aTmp[:nuse]
             astack.append(aTmp)
 
-            #print Year,Mon,nrec
 
         if len(astack)==0: continue
         astack = concatenate(astack, axis=0)
-
         ##-- Random sampling from stacked data --
         #random.seed(epcid,0)
         #ntot = len(astack)

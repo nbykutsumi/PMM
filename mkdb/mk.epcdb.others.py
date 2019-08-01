@@ -12,7 +12,7 @@ verGMI   = '05'
 subverGMI= 'A'
 fullverGMI='%s%s'%(verGMI, subverGMI)
 
-iYM = [2017,12]
+iYM = [2017,1]
 eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
 #lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
@@ -24,7 +24,9 @@ cw  = 15    # extract this width around center
 w   = int(cw/2)
 worg= 221  # GMI total angle bins
 
-lvar = ['t2m']
+#lvar = ['t2m']
+#lvar = ['tqv']
+lvar = ['gtopo']
 
 '''
 int8 : -128 ~ +127
@@ -33,10 +35,14 @@ int32: -2147483648 ~ +2147483647
 '''
 dattype={
  't2m' :'float32'
+,'tqv' :'float32'
+,'gtopo' :'float32'
 }
 
 dnvect ={
  't2m' :1
+,'tqv' :1
+,'gtopo' :1
 }
 
 #-- if vector size=11 --
@@ -97,11 +103,17 @@ for Year,Mon in lYM:
     
    
                 #-- Read Output variables --
-                if varName  in ['t2m']:
+                if varName  in ['t2m','tqv']:
                     baseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.%s'%(varName)
                     srcDir  = baseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
                     srcPath = srcDir + '/%s.%s.npy'%(varName, obtnum)
                     Dat     = np.load(srcPath)[:,cx-w:cx+w+1].flatten()
+                elif varName  in ['gtopo']:
+                    baseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.%s'%(varName)
+                    srcDir  = baseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
+                    srcPath = srcDir + '/%s.%s.npy'%(varName, obtnum)
+                    Dat     = np.load(srcPath)[:,cx-w:cx+w+1].flatten()
+
  
                 else:
                     print 'check varName',varName 

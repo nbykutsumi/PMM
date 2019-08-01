@@ -1,5 +1,6 @@
 import matplotlib
 matplotlib.use('Agg')
+#a2ts = nc.variables['t2m'][:]
 import matplotlib.pyplot as plt
 from numpy import *
 import h5py
@@ -36,13 +37,14 @@ def read_nrain(idx_db):
      /* second six= same for when T2m > 278K */
     '''
     #srcPath = dbDir + '/db_%05d.bin.nrain.txt'%(idx_db)
+    nrainDir= dbDir + '/nrain'
     srcPath = nrainDir + '/db_%05d.bin.nrain.txt'%(idx_db)
     a1nrain = read_table(srcPath,type=int32)[0]
     a1nrain_cold = a1nrain[:6]
     a1nrain_warm = a1nrain[6:]
     return a1nrain_warm, a1nrain_cold 
 
-def ret_domain_cy(a2lat, a2lon, clat, dlatlon):
+def ret_domain_cy(a2lat, a2lon, clat, clon, dlatlon):
     nyTmp, nxTmp = a2lat.shape
     a1lat = a2lat[:,nxTmp/2]
     a1lon = a2lon[:,nxTmp/2]
@@ -108,12 +110,11 @@ if len(argvs)==1:
     coefDir = '/work/hk01/utsumi/JPLDB/EPC_COEF/%s'%(sensor)
 
     if dbtype=='JPL':  
-        #dbDir   = '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE'
         dbDir   = '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE_TEST29'
-        nrainDIr= '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE_TEST29'
+        #nrainDIr= '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE_TEST29'
     elif dbtype=='my':
-        dbDir   = '/work/hk01/utsumi/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117.01-03' 
-        nrainDir= '/work/hk01/utsumi/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117.01-03/nrain' 
+        dbDir   = '/work/hk01/utsumi/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117.01-12' 
+        #nrainDir= '/work/hk01/utsumi/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117.01-12/nrain' 
     
     #-- Single Run ---------
     #clat    = 30.00   # SE.US, oid=016166
@@ -122,9 +123,14 @@ if len(argvs)==1:
     #clat    = 14    # Africa. oid = 002421
     #clon    = 2     # 2014/8/2
     
-    oid     = 3556
-    clat    = 34    # SE.US case. oid = 003556
-    clon    = -86   # 2014/10/14  05:42:03 UTC
+    #oid     = 3556
+    #clat    = 34    # SE.US case. oid = 003556
+    #clon    = -86   # 2014/10/14  05:42:03 UTC
+
+    #oid     = 19015
+    #clat    = 33    # SW Japan case. oid = 019015
+    #clon    = 130   # 2017/07/03  22:12 UTC
+
     
     #oid     = 12149
     #clat    = 32    # QJRMS case. oid = 012149
@@ -142,9 +148,9 @@ if len(argvs)==1:
     dlatlon = 3  # used to search the domain center
     iscan   = -9999
     escan   = -9999
-    #dscan   = 90   # set clat and iscan =-9999 for entire orbit
+    dscan   = 90   # set clat and iscan =-9999 for entire orbit
     #dscan   = 55
-    dscan   = 5
+    #dscan   = 5
     
     NEM     = 12
     NTBREG  = 13
@@ -158,7 +164,8 @@ if len(argvs)==1:
         NLEV_DPR    = 50  # extract this number of layers
         NLEV_PRECIP = 50
     
-    thwtmin = 0.5
+    #thwtmin = 0.5 # test
+    thwtmin = 0.1
     miss    = -9999.
     
     
@@ -166,12 +173,13 @@ if len(argvs)==1:
     #DB_MAXREC   = 10000
     #DB_MAXREC   = 5000
     DB_MINREC    = 5000
-    DB_USE_MINREC= 500
+    DB_USE_MINREC= 200
     #NDB_EXPAND  = 10
     NDB_EXPAND  = 20
     #NDB_EXPAND = 0 # test
     DB_RAINFRAC = 0.01  # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
-    MAX_T2M_DIFF= 20
+    MAX_T2M_DIFF= 10  # K
+    MAX_TQV_DIFF= 10  # kg/m2
         
     #srcPath = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05/2017/01/05/1C.GPM.GMI.XCAL2016-C.20170105-S045326-E062600.016220.V05A.HDF5'
     #srcPath = '/home/utsumi/temp/1B.GPM.GMI.TB2016.20171130-S205705-E222939.021348.V05A.HDF5'
@@ -194,6 +202,7 @@ if len(argvs)==1:
     s2xPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2014/10/14/Xpy.1.003556.npy'
     s2yPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2014/10/14/Ypy.1.003556.npy'
     t2mPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.t2m/2014/10/14/t2m.003556.npy'
+    tqvPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.tqv/2014/10/14/tqv.003556.npy'
     elevPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.gtopo/2014/10/14/gtopo.003556.npy'
     
     
@@ -211,7 +220,7 @@ if len(argvs)==1:
 # Standard input
 #**************************************************************
 elif len(argvs)>2:
-    print 'Too many standart input'
+    print 'Too many standard input'
     print 'Python [prog] [parameter-string]'
     sys.exit()
 else:
@@ -243,15 +252,18 @@ else:
 
     DB_MAXREC = int(dargv['DB_MAXREC']) 
     DB_MINREC = int(dargv['DB_MINREC']) 
+    DB_USE_MINREC = int(dargv['DB_USE_MINREC']) 
     NDB_EXPAND= int(dargv['NDB_EXPAND'])
     DB_RAINFRAC = float(dargv['DB_RAINFRAC']) # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
     MAX_T2M_DIFF= int(dargv['MAX_T2M_DIFF'])
+    MAX_TQV_DIFF= int(dargv['MAX_TQV_DIFF'])
     
     srcPath   = dargv['srcPath'] 
     s2xPath   = dargv['s2xPath'] 
     s2yPath   = dargv['s2yPath'] 
     #tsPath    = dargv['tsPath']   
     t2mPath   = dargv['t2mPath']   
+    tqvPath   = dargv['tqvPath']   
     elevPath  = dargv['elevPath']
     outDir    = dargv['outDir']
 
@@ -312,8 +324,7 @@ a3tb = concatenate([a3tb1, a3tb2],axis=2)
 #-- Read MERRA2 data ---------
 #a2ts = np.load(tsPath)
 a2t2m = np.load(t2mPath)
-#nc = netCDF4.Dataset(tsPath)
-#a2ts = nc.variables['t2m'][:]
+a2tqv = np.load(tqvPath)
 #-- Read elevation data ---------
 a2elev = np.load(elevPath)
 
@@ -324,7 +335,7 @@ if (iscan<0)and( (clat<-180)or(180<clat)):
     pass
 else:
     if (iscan<0)and(-180<=clat)and(clat <=180):
-        idx_c = ret_domain_cy(a2lat, a2lon, clat, dlatlon)
+        idx_c = ret_domain_cy(a2lat, a2lon, clat, clon, dlatlon)
         iscan = idx_c-dscan
         escan = idx_c+dscan
 
@@ -333,6 +344,7 @@ else:
     a2lon = a2lon [iscan: escan+1]
     #a2ts  = a2ts  [iscan: escan+1]
     a2t2m  = a2t2m[iscan: escan+1]
+    a2tqv  = a2tqv[iscan: escan+1]
     a2elev= a2elev[iscan: escan+1]
 
 #****************************************************
@@ -391,10 +403,10 @@ a2top_idxdbNS   = ones([nyout,nxout],int32)*miss
 a2top_irecMS   = ones([nyout,nxout],int32)*miss
 a2top_irecNS   = ones([nyout,nxout],int32)*miss
 
-a2top_nsurfMS = ones([nyout,nxout],float32)*miss
-a2top_nsurfNS = ones([nyout,nxout],float32)*miss
-a2top_nsurfMScmb = ones([nyout,nxout],float32)*miss
-a2top_nsurfNScmb = ones([nyout,nxout],float32)*miss
+#a2top_nsurfMS = ones([nyout,nxout],float32)*miss
+#a2top_nsurfNS = ones([nyout,nxout],float32)*miss
+#a2top_nsurfMScmb = ones([nyout,nxout],float32)*miss
+#a2top_nsurfNScmb = ones([nyout,nxout],float32)*miss
 
 a3top_zmMS    = ones([nyout,nxout,NLEV_DPR],int32)*miss
 a3top_zmNS    = ones([nyout,nxout,NLEV_DPR],int32)*miss
@@ -503,6 +515,7 @@ for i,idx_db in enumerate(lidxset):
         a1nsurfMSTmp    = db.get_var('precip_nsfc_MS', nrec=DB_MAXREC)
         a1nsurfNSTmp    = db.get_var('precip_nsfc_NS', nrec=DB_MAXREC)
 
+
         #a2prprofNSTmp   = ma.masked_less(db.get_var('precip_prof_MS',     nrec=DB_MAXREC), 0).filled(0.0)[:,-NLEV_PRECIP:]
         #a2prprofNSTmp   = db.get_var('precip_prof_NS',     nrec=DB_MAXREC)[:,-NLEV_PRECIP:]  # test
         #a2prprofNScmbTmp= ma.masked_less(db.get_var('precip_prof_NS_cmb', nrec=DB_MAXREC), 0).filled(0.0)[:,-NLEV_PRECIP:]
@@ -510,8 +523,8 @@ for i,idx_db in enumerate(lidxset):
         a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS', nrec=DB_MAXREC)[:,-NLEV_PRECIP:]).filled(-9999.)
 
 
-        a1t2mdbTmp = db.get_var('t2m', nrec=DB_MAXREC) 
         #a1tsdbTmp  = db.get_var('ts',  nrec=DB_MAXREC) 
+        a1t2mdbTmp = db.get_var('t2m', nrec=DB_MAXREC) 
         a1tqvdbTmp = db.get_var('tqv', nrec=DB_MAXREC) 
         a1revdbTmp = db.get_var('rev', nrec=DB_MAXREC) 
         a1elevdbTmp= db.get_var('elev', nrec=DB_MAXREC) 
@@ -537,6 +550,7 @@ for i,idx_db in enumerate(lidxset):
 
             #a1tsdb  = a1tsdbTmp
             a1t2mdb = a1t2mdbTmp
+            a1tqvdb = a1tqvdbTmp
             a1revdb = a1revdbTmp
             a1elevdb= a1elevdbTmp
 
@@ -556,6 +570,7 @@ for i,idx_db in enumerate(lidxset):
 
             #a1tsdb  = concatenate([a1tsdb,   a1tsdbTmp], axis=0) 
             a1t2mdb  = concatenate([a1t2mdb,  a1t2mdbTmp], axis=0) 
+            a1tqvdb  = concatenate([a1tqvdb,  a1tqvdbTmp], axis=0) 
             a1revdb = concatenate([a1revdb,  a1revdbTmp], axis=0) 
             a1elevdb= concatenate([a1elevdb, a1elevdbTmp], axis=0) 
 
@@ -590,10 +605,16 @@ for i,idx_db in enumerate(lidxset):
         ### Make only 2 types(NS & MS) based on DPR  ###
         ### Share for DPR and combined               ###
 
-        #a1prflagNS = ma.masked_greater_equal(a1nsurfNS,0).mask
-        #a1prflagMS = ma.masked_greater_equal(a1nsurfMS,0).mask
-        a1prflagNS = ma.masked_greater_equal(a1nsurfNScmb,0).mask
-        a1prflagMS = ma.masked_greater_equal(a1nsurfMScmb,0).mask
+        a1prflagNS1 = ma.masked_greater_equal(a1nsurfNS,0).mask
+        a1prflagMS1 = ma.masked_greater_equal(a1nsurfMS,0).mask
+        a1prflagNS2 = ma.masked_greater_equal(a1nsurfNScmb,0).mask
+        a1prflagMS2 = ma.masked_greater_equal(a1nsurfMScmb,0).mask
+
+        a1prflagNS = a1prflagNS1 + a1prflagNS2
+        a1prflagMS = a1prflagMS1 + a1prflagMS2
+
+        #a1prflagNS = ma.masked_greater_equal(a1nsurfNScmb,0).mask
+        #a1prflagMS = ma.masked_greater_equal(a1nsurfMScmb,0).mask
 
         ##-- Ts --
         #ts    = a2ts[y,x]
@@ -602,41 +623,41 @@ for i,idx_db in enumerate(lidxset):
 
         ##-- T2m --
         t2m  = a2t2m[y,x]
-
         a1t2mflag = ma.masked_inside( a1t2mdb-t2m, -MAX_T2M_DIFF, MAX_T2M_DIFF).mask
+
+        ##-- tqv --
+        tqv  = a2tqv[y,x]
+        a1tqvflag = ma.masked_inside( a1tqvdb-tqv, -MAX_TQV_DIFF, MAX_TQV_DIFF).mask
 
 
         ##-- Elevation --
-        #elev = a2elev[y,x]
-        #if elev < 500:
-        #    a1elevflag = ma.masked_less(a1elevdb, 500).mask
-        #elif (500 <=elev)and(elev < 1000):
-        #    a1elevflag = ma.masked_inside(a1elevdb, 500, 1000).mask
-        #elif 1000 <=elev:
-        #    a1elevflag = ma.masked_greater_equal(a1elevdb, 1000).mask
+        elev = a2elev[y,x]
+        if elev < 500:
+            a1elevflag = ma.masked_less(a1elevdb, 500).mask
+        elif (500 <=elev)and(elev < 1000):
+            a1elevflag = ma.masked_inside(a1elevdb, 500, 1000).mask
+        elif 1000 <=elev:
+            a1elevflag = ma.masked_greater_equal(a1elevdb, 1000).mask
 
-        #else:
-        #    print 'check elev',elev
-        #    sys.exit()
+        else:
+            print 'check elev',elev
+            sys.exit()
         
         #-- Screen DB candidates --
-        a1flagNS   = a1prflagNS * a1t2mflag * a1revflag
-        a1flagMS   = a1prflagMS * a1t2mflag * a1revflag
+        a1flagNS   = a1prflagNS * a1t2mflag * a1tqvflag * a1elevflag * a1revflag
+        a1flagMS   = a1prflagMS * a1t2mflag * a1tqvflag * a1elevflag * a1revflag
 
-        #-------------------------------
-        #a1flagNS   = a1prflagNS  # test
-        #a1flagMS   = a1prflagMS  # test 
+        #a1flagNS   = a1prflagNS * a1t2mflag * a1tqvflag * a1revflag
+        #a1flagMS   = a1prflagMS * a1t2mflag * a1tqvflag * a1revflag
 
-        #if a2epcdb.shape[0]>100:  # test
-        #    sys.exit()
-        #-- test ---------------------
-        if (a1flagNS is np.bool_(False)):
-            continue
-        if (a1flagMS is np.bool_(False)):
-            a1flagMS=array([0])
+
 
         #if ((len(a1flagNS)<DB_USE_MINREC) or (len(a1flagMS)<DB_USE_MINREC)):
-        if (len(a1flagNS)<DB_USE_MINREC):
+        if (a1flagNS.sum()<DB_USE_MINREC):
+            print 'the Number of records are too small'
+            print 'Skip' 
+            continue
+        if (a1flagMS.sum()<DB_USE_MINREC):
             print 'the Number of records are too small'
             print 'Skip' 
             continue
@@ -644,6 +665,8 @@ for i,idx_db in enumerate(lidxset):
 
         a2epcdbMSSC = a2epcdb[a1flagMS]
         a2epcdbNSSC = a2epcdb[a1flagNS]
+
+
 
         a1nsurfMScmbSC = a1nsurfMScmb[a1flagMS]
         a1nsurfNScmbSC = a1nsurfNScmb[a1flagNS]
@@ -659,7 +682,6 @@ for i,idx_db in enumerate(lidxset):
 
         a1irecMSSC    = a1irec[a1flagMS]
         a1irecNSSC    = a1irec[a1flagNS]
-
 
         #-- RMSE --
         a1rmsdMS = np.sqrt(np.square((a2epcdbMSSC - a1epc)/a1pc_std).sum(axis=1)/NEM)
@@ -737,11 +759,11 @@ for i,idx_db in enumerate(lidxset):
         #a3top_prprofNScmb[y,x,:] = db.get_var('precip_prof_NS_cmb', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
         a3top_prwatprofNS[y,x,:] = db.get_var('precip_water_prof_NS', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
 
-        a2top_nsurfMS[y,x] = db.get_var('precip_nsfc_MS', nrec=1, origin=topirecNS)
-        a2top_nsurfNS[y,x] = db.get_var('precip_nsfc_NS', nrec=1, origin=topirecNS)
+        #a2top_nsurfMS[y,x] = db.get_var('precip_nsfc_MS', nrec=1, origin=topirecNS)
+        #a2top_nsurfNS[y,x] = db.get_var('precip_nsfc_NS', nrec=1, origin=topirecNS)
 
-        a2top_nsurfMScmb[y,x] = db.get_var('precip_MS_cmb', nrec=1, origin=topirecNS)
-        a2top_nsurfNScmb[y,x] = db.get_var('precip_NS_cmb', nrec=1, origin=topirecNS)
+        #a2top_nsurfMScmb[y,x] = db.get_var('precip_MS_cmb', nrec=1, origin=topirecNS)
+        #a2top_nsurfNScmb[y,x] = db.get_var('precip_NS_cmb', nrec=1, origin=topirecNS)
 
         #-- Weight --
         a1wtMS = np.exp(-0.5*np.square(a1rmsdMS/rmsd_minMS))
@@ -819,60 +841,12 @@ np.save(outDir + '/top-tbMS.%s.npy'%(stamp), a3top_tbMS)
 np.save(outDir + '/top-tbNS.%s.npy'%(stamp), a3top_tbNS)
 
 
-np.save(outDir + '/top-nsurfMS.%s.npy'%(stamp), a2top_nsurfMS)
-np.save(outDir + '/top-nsurfNS.%s.npy'%(stamp), a2top_nsurfNS)
+#np.save(outDir + '/top-nsurfMS.%s.npy'%(stamp), a2top_nsurfMS)
+#np.save(outDir + '/top-nsurfNS.%s.npy'%(stamp), a2top_nsurfNS)
+#
+#np.save(outDir + '/top-nsurfMScmb.%s.npy'%(stamp), a2top_nsurfMScmb)
+#np.save(outDir + '/top-nsurfNScmb.%s.npy'%(stamp), a2top_nsurfNScmb)
 
-np.save(outDir + '/top-nsurfMScmb.%s.npy'%(stamp), a2top_nsurfMScmb)
-np.save(outDir + '/top-nsurfNScmb.%s.npy'%(stamp), a2top_nsurfNScmb)
 
-
-
-#nsurfMSPath = outDir + '/nsurfMS.%s.npy'%(stamp)
-#nsurfNSPath = outDir + '/nsurfNS.%s.npy'%(stamp)
-#nsurfMScmbPath = outDir + '/nsurfMScmb.%s.npy'%(stamp)
-#nsurfNScmbPath = outDir + '/nsurfNScmb.%s.npy'%(stamp)
-#
-#prprofNSPath   = outDir + '/prprofNS.%s.npy'%(stamp)
-#prprofNScmbPath= outDir + '/prprofNScmb.%s.npy'%(stamp)
-#
-#latPath   = outDir + '/lat.%s.npy'%(stamp)
-#lonPath   = outDir + '/lon.%s.npy'%(stamp)
-#
-#
-#topidxdbNSPath = outDir + '/top-idxdbNS.%s.npy'%(stamp)
-#topidxdbMSPath = outDir + '/top-idxdbMS.%s.npy'%(stamp)
-#
-#topirecNSPath = outDir + '/top-irecNS.%s.npy'%(stamp)
-#topirecMSPath = outDir + '/top-irecMS.%s.npy'%(stamp)
-#
-#topzmNSPath = outDir + '/top-zmNS.%s.npy'%(stamp)
-#topzmMSPath = outDir + '/top-zmMS.%s.npy'%(stamp)
-#
-#topprprofNSPath = outDir + '/top-prprofNS.%s.npy'%(stamp)
-#topprprofNScmbPath = outDir + '/top-prprofNScmb.%s.npy'%(stamp)
-#
-#
-#
-#np.save(nsurfMSPath, a2nsurfMS)
-#np.save(nsurfNSPath, a2nsurfNS)
-#np.save(nsurfMScmbPath, a2nsurfMScmb)
-#np.save(nsurfNScmbPath, a2nsurfMScmb)
-#
-#np.save(prprofNSPath, a3prprofNS)
-#np.save(prprofNScmbPath, a3prprofNScmb)
-#np.save(latPath, a2lat)
-#np.save(lonPath, a2lon)
-#
-#np.save(topidxdbMSPath, a2top_idxdbMS)
-#np.save(topidxdbNSPath, a2top_idxdbNS)
-#
-#np.save(topirecMSPath, a2top_irecMS)
-#np.save(topirecNSPath, a2top_irecNS)
-#
-#np.save(topzmMSPath, a3top_zmMS)
-#np.save(topzmNSPath, a3top_zmNS)
-#
-#np.save(topprprofNSPath, a3top_prprofNS)
-#np.save(topprprofNScmbPath, a3top_prprofNScmb)
 
 print outDir

@@ -6,15 +6,18 @@ import numpy as np
 import calendar
 
 iYM = [2017,1]
-eYM = [2017,1]
+eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
 lat0   = -60
 lon0   = -180
 dlatlon= 1.0
 ny,nx  = 120,360
-#lvar   = ['precbias','precbrat','profS','profrmse']
-lvar   = ['profS']
-#lvar   = ['precbrat','profS','profrmse']
+#lvar   = ['profS','profrmse']
+#lvar   = ['profS','precrad','precpmw']
+#lvar   = ['precrad','precpmw','stoprad','stoppmw','peakhrad','peakhpmw']
+lvar   = ['profS','profrmse']+['precrad','precpmw','stoprad','stoppmw','peakhrad','peakhpmw']
+#lvar   = ['stoppmw']
+#lvar   = ['peakhrad','peakhpmw']
 
 def taylor_index(a2ref, a2dat, miss):
     a2mask1 = ma.masked_less_equal(a2ref, miss).mask
@@ -37,6 +40,21 @@ def taylor_index(a2ref, a2dat, miss):
     S = ma.masked_invalid(S).filled(miss)
     return S
 
+def ret_stormtop(a2prof, miss_out=-9999.):
+    thmin = 0.1 # g/m3
+    ny,nz = a2prof.shape
+    a1h = arange(nz).reshape(1,-1)*0.5 + 0.25
+    a2h = np.repeat(a1h, ny, axis=0)
+    a1stop = ma.masked_where(a2prof< thmin, a2h).max(axis=1).filled(miss_out)
+    return a1stop 
+
+def ret_peakheight(a2prof, miss_out=-9999.):
+    thmin = 0.1 # g/m3
+    a2prof = ma.masked_less(a2prof, thmin)
+    a1mask = a2prof.mask.all(axis=1)
+    a1h = a2prof.argmax(axis=1)*0.5 + 0.25
+    a1h = ma.masked_where(a1mask, a1h).filled(miss_out)
+    return a1h
 
 #**** Month loop ********************
 for Year,Mon in lYM:
@@ -63,7 +81,9 @@ for Year,Mon in lYM:
                 oid = int(latPath.split('.')[-2])
                 a1lat = np.load(srcDir + '/Latitude.%06d.npy'%(oid))
                 a1lon = np.load(srcDir + '/Longitude.%06d.npy'%(oid))
-        
+                a1qflag= np.load(srcDir + '/qualityFlag.%06d.npy'%(oid))        
+                a1surftype= np.load(srcDir + '/surfaceTypeIndex.%06d.npy'%(oid))        
+
                 if var in ['precbias','precbrat']:
                     a1precrad =np.load(srcDir + '/precrad.%06d.npy'%(oid))
                     a1precpmw=np.load(srcDir + '/precpmw.%06d.npy'%(oid))
@@ -71,6 +91,7 @@ for Year,Mon in lYM:
                 elif var in ['profrmse', 'profS']:
                     a2profrad=np.load(srcDir + '/profrad.%06d.npy'%(oid))
                     a2profpmw=np.load(srcDir + '/profpmw.%06d.npy'%(oid))
+                    a2profpmw=ma.masked_greater(a2profpmw,30).filled(-9999.) # screen extremely large values from gprof (cmb product ranges 0-18g/m3)
 
                 elif var in ['precrad']:
                     a1precrad =np.load(srcDir + '/precrad.%06d.npy'%(oid))
@@ -78,16 +99,20 @@ for Year,Mon in lYM:
                 elif var in ['precpmw']:
                     a1precpmw=np.load(srcDir + '/precpmw.%06d.npy'%(oid))
 
+                elif var in ['stoprad','peakhrad']:
+                    a2prof = np.load(srcDir + '/profrad.%06d.npy'%(oid))
+                elif var in ['stoppmw','peakhpmw']:
+                    a2prof = np.load(srcDir + '/profpmw.%06d.npy'%(oid))
+
                 #print a1precpmw.min(), a1precrad.min(), a1precpmw.max(), a1precrad.max()
                 #-- Error ----
-                if var == 'precbias':
-                    a1var = a1precpmw - a1precrad
-                elif var=='precbrat':
-                    a1var = (a1precpmw - a1precrad)/ a1precrad
-                elif var=='profrmse':
+                if var=='profrmse':
                     a2profpmw = ma.masked_less(a2profpmw,0)
                     a2profrad = ma.masked_less(a2profrad,0)
                     a1var = np.sqrt(np.square(a2profpmw - a2profrad).mean(axis=1)).filled(-9999.)
+
+                    print a1var.max(), a2profpmw.max(), a2profrad.max()
+
                 elif var=='profS':
                     a1var = taylor_index(a2profrad, a2profpmw, miss=-9999.)
 
@@ -96,6 +121,13 @@ for Year,Mon in lYM:
                 elif var=='precpmw':
                     a1var = ma.masked_less(a1precpmw,0).filled(-9999.)
 
+                elif var in ['stoprad','stoppmw']:
+                    a1var = ret_stormtop(a2prof, miss_out=-9999.)
+
+                elif var in ['peakhrad','peakhpmw']:
+                    a1var = ret_peakheight(a2prof, miss_out=-9999.)
+
+
                 else:
                     print 'check var',var
                     sys.exit()
@@ -103,18 +135,18 @@ for Year,Mon in lYM:
                 #-- Projection over grid map --
                 a1y = ((a1lat - lat0)/dlatlon).astype(int32)
                 a1x = ((a1lon - lon0)/dlatlon).astype(int32)
-        
+       
+                a1flagQ = ma.masked_equal(a1qflag,0).mask   # Good quality (flag=0)
+                a1flagS1 = ma.masked_equal(a1surftype,1).mask   # Ocean
+                a1flagS2 = ma.masked_inside(a1surftype,3,7).mask # Vegetation
+                a1flagS3 = ma.masked_inside(a1surftype,12,13).mask # Standing water and rivers & Water/Coast boundary 
+                a1flagS  = a1flagS1 + a1flagS2 + a1flagS3
+
                 a1flag1 = ma.masked_inside(a1y,0,119).mask
                 a1flag2 = ma.masked_inside(a1x,0,359).mask
                 a1flag3 = ma.masked_not_equal(a1var, -9999.).mask 
+                a1flag = a1flagQ * a1flagS *a1flag1 * a1flag2 * a1flag3
 
-                a1flag = a1flag1 * a1flag2 * a1flag3
-
-                if var in ['precbias','precbrat']:
-                    a1flag4 = ma.masked_greater(a1precrad, 0).mask
-                    a1flag5 = ma.masked_greater(a1precpmw, 0).mask
-                    a1flag = a1flag * a1flag4
-        
                 a1y = a1y[a1flag]
                 a1x = a1x[a1flag]
                 a1var= a1var[a1flag]

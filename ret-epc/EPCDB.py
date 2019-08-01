@@ -58,7 +58,7 @@ class EPCDB(object):
             ('sfc_class',        ['',   'h']),                 # Surface class from GPROF
             ('sfc_min',          ['',   'h']),                 # Max of landSurfaceType in a PMW footprint from DRP product
             ('sfc_max',          ['',   'h']),                 #
-            ('elev',             ['Ku_NS_elevation',  'h']),   # Elevation of the middle pixel (from DPR product)
+            ('elev',             ['gtopo',  'h']),             # Elevation of the middle pixel (from GTOPO30)
 
             ('ndpr_NS',          ['',   'h']),                 # Number of radar pixels in a PMW pixel (Ku)
             ('ndpr_MS',          ['',   'h']),                 # Number of radar pixels in a PMW pixel (Ka)
@@ -78,11 +78,11 @@ class EPCDB(object):
             ('pia_MS_cmb',       ['',  '2f']),                 #
 
 
-            ('precip_nsfc_NS',     ['', 'f']),                 # NS: Ku
+            ('precip_nsfc_NS',     ['Ku_NS_precipRateNearSurface', 'f']),   # NS: Ku
             ('precip_nsfc_max_NS', ['', 'f']),                 #
             ('precip_esfc_NS',     ['', 'f']),                 #
             ('precip_esfc_max_NS', ['', 'f']),                 #
-            ('precip_nsfc_MS',     ['', 'f']),                 # MS: Dural freq.(Ku & Ka)
+            ('precip_nsfc_MS',     ['Ka_MS_precipRateNearSurface', 'f']),   # MS: Ka
             ('precip_nsfc_max_MS', ['', 'f']),                 #
             ('precip_esfc_MS',     ['', 'f']),                 #
             ('precip_esfc_max_MS', ['', 'f']),                 #
@@ -101,11 +101,11 @@ class EPCDB(object):
             ('prob_precip_GPROF',  ['', 'f']),                 #
             ('frozen_precip_GPROF',['', 'f']),                 #
 
-            ('ts',                 ['', 'f']),                 # MERRA2 (Interpolated to space and time)
-            ('t2m',                ['t2m', 'f']),              #
+            ('ts',                 ['', 'f']),                 #
+            ('t2m',                ['t2m', 'f']),              # MERRA2
             ('t2m_dew',            ['', 'f']),                 #
             ('t2m_wet',            ['', 'f']),                 #
-            ('tqv',                ['', 'f']),                 #
+            ('tqv',                ['tqv', 'f']),              # MERRA2
             ('hs',                 ['', 'f']),                 #
             ('ps',                 ['', 'f']),                 #
             ('u850',               ['', 'f']),                 #

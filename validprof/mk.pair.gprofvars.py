@@ -6,12 +6,13 @@ import h5py
 import numpy as np
 from datetime import datetime, timedelta
 
-iDTime = datetime(2017,12,1)
+iDTime = datetime(2017,9,1)
 eDTime = datetime(2017,12,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 miss_out= -9999.
-lvar  = ['S1/Latitude', 'S1/Longitude'] 
+#lvar  = ['S1/Latitude', 'S1/Longitude'] 
+lvar  = ['S1/qualityFlag','S1/surfaceTypeIndex'] 
 #------------------------------------------------
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
