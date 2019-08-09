@@ -11,7 +11,6 @@ import EPCDB
 from bisect import bisect_left
 import epcfunc
 #from math import acos, cos, sin
-import netCDF4
 
 #-- functions -----
 def mk_dir(sdir):

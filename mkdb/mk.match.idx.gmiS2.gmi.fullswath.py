@@ -1,6 +1,3 @@
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 from numpy import *
 import myfunc.util as util
 import myfunc.IO.GPM.l1_gmi as l1_gmi
@@ -15,8 +12,11 @@ import h5py
 #eDTime = datetime(2017,12,31)
 #iDTime = datetime(2016,4,18)
 #eDTime = datetime(2016,4,18)
-iDTime = datetime(2014,5,1)
-eDTime = datetime(2015,5,31)
+iDTime = datetime(2014,11,3)
+eDTime = datetime(2014,11,30)
+#iDTime = datetime(2014,9,12)
+#eDTime = datetime(2015,11,30)
+
 
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
@@ -61,7 +61,7 @@ for DTime in lDTime:
     if len(lsrcPathGMI)==0:
         print 'No GMI file',Year,Mon,Day
         print ssearchGMI
-        sys.exit()
+        continue
 
     #for srcPathGMI in lsrcPathGMI[2:]:
     for srcPathGMI in lsrcPathGMI:
@@ -99,7 +99,7 @@ for DTime in lDTime:
         dny      = abs(nyorg-nytmp)
         if nytmp==nyorg:
             pass
-        elif dny >= 3:
+        elif dny >= 5:
             print 'too large dny',dny
             sys.exit()
 

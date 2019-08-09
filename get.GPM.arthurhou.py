@@ -27,14 +27,14 @@ iDTime  = datetime(2014,12,1)
 #iDTime  = datetime(2017,1,1)
 #iDTime  = datetime(2018,5,22)
 #eDTime  = datetime(2018,5,22)
-eDTime  = datetime(2015,5,31)
+eDTime  = datetime(2014,12,1)
 dDTime  = timedelta(days=1)
 lDTime  = util.ret_lDTime(iDTime, eDTime, dDTime)
 
 #spec      = ["TRMM","TMI","2A-CLIM","gprof","V05","A"]
-spec      = ["GPM","GMI","1C","1C","V05","A"]
+#spec      = ["GPM","GMI","1C","1C","V05","A"]
 #spec      = ["GPM","GMI","2A-CLIM","gprof","V05","A"] # input=ECMWF
-#spec      = ["GPM","GMI","2A","gprof","V05","A"] # input=GANAL
+spec      = ["GPM","GMI","2A","gprof","V05","A"] # input=GANAL
 #spec      = ["GPM","Ku","2A","radar","V06","A"]
 #spec      = ["GPM","Ka","2A","radar","V06","A"]
 #spec      = ["GPM","DPR","2A","radar","V06","A"]
@@ -65,6 +65,20 @@ ftp.login(myid, mypass)
 #----------------------------------
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
+    #--- Skip missing or problematic data -----
+    ldataoutage=[
+     [2014,12,9]  # 004425, 004426(missing some lat&lon)
+    ,[2014,12,10]  # 004447-004452
+    ,[2017,9,26]
+    ,[2017,9,27]
+    ,[2017,9,28]
+    ,[2017,9,29]
+    ]
+
+    if [Year,Mon,Day] in ldataoutage:
+        print 'Skip data outage day'
+        continue
+
     #--- path and directory: Remote -----------
     iDir = irootDir + "/%s/%04d/%02d/%02d/%s"%(ver,Year,Mon,Day,prj)
     #oDir = orootDir + "/%s.%s/%s/%s/%04d/%02d"%(sate,sensor,prdName,ver,Year,Mon) 

@@ -1,12 +1,12 @@
-import sys, os, shutil
+import sys, os, shutil, socket
 import myfunc.util as util
 import glob
 import subprocess
 from datetime import datetime, timedelta
 import numpy as np
 
-iDTime = datetime(2017,1,1)
-eDTime = datetime(2017,1,1)
+iDTime = datetime(2014,8,1)
+eDTime = datetime(2014,8,31)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 
@@ -20,16 +20,17 @@ sensor  = 'GMI'
 myhost = socket.gethostname()
 if myhost =="shui":
     gmibaseDir  = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05'
-    matchbaseDir= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A'
-    coefDir = '/work/hk01/utsumi/JPLDB/EPC_COEF/%s'%(sensor)
-    dbDir   = '/work/hk01/utsumi/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117.01-12'
+    matchbaseDir= '/tank/utsumi/PMM/MATCH.GMI.V05A'
+    coefDir = '/tank/utsumi/PMM/EPCDB/EPC_COEF/%s'%(sensor)
+    dbDir   = '/tank/utsumi/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117.01-12'
     outbaseDir = '/tank/utsumi/PMM/retepc/%s'%(expr) 
 elif myhost =="well":
-    gmibaseDir  = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05'
-    matchbaseDir= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A'
-    coefDir = '/work/hk01/utsumi/JPLDB/EPC_COEF/%s'%(sensor)
-    dbDir   = '/work/hk01/utsumi/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117.01-12'
-    outbaseDir = '/tank/utsumi/PMM/retepc/%s'%(expr) 
+    #gmibaseDir  = '/media/disk2/share/data/PMM/NASA/GPM.GMI/1C/V05'
+    gmibaseDir  = '/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.GMI/1C/V05'
+    matchbaseDir= '/media/disk2/share/PMM/MATCH.GMI.V05A'
+    coefDir = '/media/disk2/share/PMM/EPCDB/EPC_COEF/%s'%(sensor)
+    dbDir   = '/media/disk2/share/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117.01-12'
+    outbaseDir = '/media/disk2/share/PMM/retepc/%s'%(expr) 
 
 
 
@@ -39,7 +40,6 @@ icount = 0
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]    
 
-    #lgmiPath = sort(glob.glob('/work/hk01/PMM/NASA/GPM.GMI/1C/V05/%04d/%02d/%02d/1C.GPM.GMI.XCAL2016-C.*.??????.????.HDF5'%(Year,Mon,Day)))
     lgmiPath = np.sort(glob.glob(gmibaseDir + '/%04d/%02d/%02d/1C.GPM.GMI.XCAL2016-C.*.??????.????.HDF5'%(Year,Mon,Day)))
     if len(lgmiPath)==0:
         continue
@@ -47,8 +47,8 @@ for DTime in lDTime:
     for gmiPath in lgmiPath:
         icount = icount+1
         oid = int(gmiPath.split('.')[-3])
-
-        if oid !=16166: continue  # test
+        print 'oid=',oid
+        #if oid <=1695: continue  # test
 
         dargv = {}
         outDir  = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
@@ -70,8 +70,10 @@ for DTime in lDTime:
 
         iprog    = os.path.basename(prog)
         oprog    = progDir + '/%s.%s'%(iprog, stime)
-        shutil.copyfile(iprog, oprog)
-        print oprog  
+
+        if icount==1:
+            shutil.copyfile(iprog, oprog)
+            print oprog  
 
         #**********************
 
@@ -104,13 +106,21 @@ for DTime in lDTime:
         #dargv['dscan'] = 90
 
 
+        #dargv['oid'] = oid
+        #dargv['clat'] = 45
+        #dargv['clon'] = 143
+        #dargv['dlatlon'] = 10
+        #dargv['iscan'] = -9999
+        #dargv['escan'] = -9999
+        #dargv['dscan'] = 300
+
         dargv['oid'] = oid
-        dargv['clat'] = -10
-        dargv['clon'] = -75
-        dargv['dlatlon'] = 10
+        dargv['clat'] = -9999
+        dargv['clon'] = -9999
+        dargv['dlatlon'] = -9999
         dargv['iscan'] = -9999
         dargv['escan'] = -9999
-        dargv['dscan'] = 100
+        dargv['dscan'] = -9999
         #------------
         dargv['NEM'] = 12
         dargv['NTBREG'] = 13
@@ -130,6 +140,8 @@ for DTime in lDTime:
         dargv['MAX_TQV_DIFF'] = 10
         
         dargv['outDir'] = outDir
+
+        print matchbaseDir + '/S1.ABp000-220.gtopo/%04d/%02d/%02d/gtopo.%06d.npy'%(Year,Mon,Day,oid)   # test
         #------------
         oid = dargv['oid']
         dargv['srcPath'] = glob.glob(gmibaseDir + '/%04d/%02d/%02d/1C.GPM.GMI.XCAL2016-C.*.%06d.????.HDF5'%(Year,Mon,Day,oid))[0]

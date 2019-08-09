@@ -7,7 +7,26 @@ from numpy import *
 import h5py
 from bisect import bisect_left
 import epcfunc
-import sys, os, glob
+import sys, os, glob, socket
+import myfunc.util as util
+
+myhost = socket.gethostname()
+if myhost == 'shui':
+    #srcDir = '/home/utsumi/temp/out'
+    #srcDir = '/home/utsumi/temp/out/my'
+    srcbaseDir = '/tank/utsumi/PMM/retepc/glb.wprof'
+    gprofbaseDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05'
+    figDir   = '/home/utsumi/temp/out/my'
+
+elif myhost == 'well':
+    srcbaseDir = '/media/disk2/share/PMM/retepc/glb.wprof'
+    gprofbaseDir = '/media/disk2/share/data/PMM/NASA/GPM.GMI/2A/V05'
+    figDir   = '/home/utsumi/temp/out/my'
+
+else:
+    print 'check hostname',myhost
+    sys.exit()
+
 
 ## Africa case
 #oid = 2421
@@ -32,13 +51,29 @@ import sys, os, glob
 #clon    = 130   # 2014/10/14  05:42:03 UTC
 #DB_MAXREC = 20000
 
-# SW.Japan typhoon case, oid=019015, 2017/07/03
-oid = 16166
-Year,Mon,Day = 2017,1,1
-#iy, ey = -9999,-9999
-iy, ey = 2246, 2446
-clat    = -10    # SE.US case. oid = 003556
-clon    = -75   # 2014/10/14  05:42:03 UTC
+## SW.Japan typhoon case, oid=019015, 2017/07/03
+#oid = 16166
+#Year,Mon,Day = 2017,1,1
+##iy, ey = -9999,-9999
+#iy, ey = 2246, 2446
+#clat    = -10    # SE.US case. oid = 003556
+#clon    = -75   # 2014/10/14  05:42:03 UTC
+#DB_MAXREC = 20000
+
+## E of Hokkaido, Japan case oid=004305, 2014/12/1
+#oid = 4305
+#Year,Mon,Day = 2014,12,1
+#iy, ey = 1536,2136
+#clat    = 45    # SE.US case. oid = 003556
+#clon    = 143   # 2014/10/14  05:42:03 UTC
+#DB_MAXREC = 20000
+
+# Japan sea case oid=004300, 2014/12/1
+oid = 4300
+Year,Mon,Day = 2014,12,1
+iy, ey = -9999,-9999 
+clat    = 41   
+clon    = 137
 DB_MAXREC = 20000
 
 
@@ -62,12 +97,10 @@ else:
 miss = -9999.
 
 
-#srcDir = '/home/utsumi/temp/out'
-#srcDir = '/home/utsumi/temp/out/my'
-srcDir = '/tank/utsumi/PMM/retepc/glb.wprof/2017/01/01'
 #stamp = '%06d.y%04d-%04d.nrec%d'%(oid, idx_c-dscan, idx_c+dscan,DB_MAXREC)
 stamp = '%06d.y%04d-%04d.nrec%d'%(oid, iy, ey, DB_MAXREC)
 
+srcDir         = srcbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
 nsurfMSPath    = srcDir + '/nsurfMS.%s.npy'%(stamp)
 nsurfNSPath    = srcDir + '/nsurfNS.%s.npy'%(stamp)
 nsurfMScmbPath = srcDir + '/nsurfMScmb.%s.npy'%(stamp)
@@ -80,7 +113,7 @@ latPath   = srcDir + '/lat.%s.npy'%(stamp)
 lonPath   = srcDir + '/lon.%s.npy'%(stamp)
 #
 #-- GPROF --
-gprofDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05/%04d/%02d/%02d'%(Year,Mon,Day)
+gprofDir = gprofbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
 ssearch  = gprofDir + '/2A.GPM.GMI.GPROF*.%06d.????.HDF5'%(oid)
 gprofPath= glob.glob(ssearch)[0]
 
@@ -241,7 +274,7 @@ for i in range(5):
     
     plt.title(stype)
 ##------------
-figDir   = '/home/utsumi/temp/out/my'
+util.mk_dir(figDir)
 outPath  = figDir + '/prcp.map.%06d.y%d-%d.png'%(oid,iy,ey)
 plt.savefig(outPath)
 print outPath
