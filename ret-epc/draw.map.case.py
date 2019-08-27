@@ -16,11 +16,14 @@ if myhost == 'shui':
     #srcDir = '/home/utsumi/temp/out/my'
     srcbaseDir = '/tank/utsumi/PMM/retepc/glb.wprof'
     gprofbaseDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05'
+
+    mrmsDir  = '/work/hk01/PMM/MRMS/match-GMI-orbit'
     figDir   = '/home/utsumi/temp/out/my'
 
 elif myhost == 'well':
     srcbaseDir = '/media/disk2/share/PMM/retepc/glb.wprof'
-    gprofbaseDir = '/media/disk2/share/data/PMM/NASA/GPM.GMI/2A/V05'
+    gprofbaseDir = '/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.GMI/2A/V05'
+    mrmsDir  = '/home/utsumi/mnt/lab_work/hk01/PMM/MRMS/match-GMI-orbit'
     figDir   = '/home/utsumi/temp/out/my'
 
 else:
@@ -34,14 +37,14 @@ else:
 #clat    = 14 # Africa case
 #clon    = 2  # -180 - +180
 
-## SE.US case, oid=003556, 2014/10/14
-#oid = 3556
-#Year,Mon,Day = 2014,10,14
-#iy, ey = 927, 1107
-##iy, ey = 1012, 1022
-#clat    = 34    # SE.US case. oid = 003556
-#clon    = -86   # 2014/10/14  05:42:03 UTC
-#DB_MAXREC = 20000
+# SE.US case, oid=003556, 2014/10/14
+oid = 3556
+Year,Mon,Day = 2014,10,14
+iy, ey = 927, 1107
+#iy, ey = 1012, 1022
+clat    = 34    # SE.US case. oid = 003556
+clon    = -86   # 2014/10/14  05:42:03 UTC
+DB_MAXREC = 20000
 
 ## SW.Japan typhoon case, oid=019015, 2017/07/03
 #oid = 19015
@@ -68,13 +71,21 @@ else:
 #clon    = 143   # 2014/10/14  05:42:03 UTC
 #DB_MAXREC = 20000
 
-# Japan sea case oid=004300, 2014/12/1
-oid = 4300
-Year,Mon,Day = 2014,12,1
-iy, ey = -9999,-9999 
-clat    = 41   
-clon    = 137
-DB_MAXREC = 20000
+## Japan sea case oid=004300, 2014/12/1
+#oid = 4300
+#Year,Mon,Day = 2014,12,1
+#iy, ey = -9999,-9999 
+#clat    = 41   
+#clon    = 137
+#DB_MAXREC = 20000
+
+## Minnesota case oid=002081  2014/7/11
+#oid = 2081
+#Year,Mon,Day = 2014,7,11
+#iy, ey = -9999,-9999 
+#clat    = 46 
+#clon    = -92
+#DB_MAXREC = 20000
 
 
 
@@ -101,6 +112,8 @@ miss = -9999.
 stamp = '%06d.y%04d-%04d.nrec%d'%(oid, iy, ey, DB_MAXREC)
 
 srcDir         = srcbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
+
+#srcDir = '/home/utsumi/temp/out/my'   # test
 nsurfMSPath    = srcDir + '/nsurfMS.%s.npy'%(stamp)
 nsurfNSPath    = srcDir + '/nsurfNS.%s.npy'%(stamp)
 nsurfMScmbPath = srcDir + '/nsurfMScmb.%s.npy'%(stamp)
@@ -118,8 +131,8 @@ ssearch  = gprofDir + '/2A.GPM.GMI.GPROF*.%06d.????.HDF5'%(oid)
 gprofPath= glob.glob(ssearch)[0]
 
 #-- MRMS --
-mrmsDir  = '/work/hk01/PMM/MRMS/match-GMI-orbit'
 ssearch  = mrmsDir + '/GMI.MRMS.130W_55W_20N_55N.%04d%02d%02d.%06d.*.npy'%(Year,Mon,Day,oid)
+print ssearch
 try:
     mrmsPath = glob.glob(ssearch)[0]
 except:
@@ -139,6 +152,11 @@ a2NScmb = np.load(nsurfNScmbPath)
 a2latMy = np.load(latPath)
 a2lonMy = np.load(lonPath)
 
+#-- Screen <0.1mm/h
+a2MS= ma.masked_less(a2MS,0.1)
+a2NS= ma.masked_less(a2NS,0.1)
+a2MScmb= ma.masked_less(a2MScmb,0.1)
+a2NScmb= ma.masked_less(a2NScmb,0.1)
 
 #*****************
 #- Read GPROF data ----
@@ -215,47 +233,56 @@ if os.path.exists(mrmsPath):
 #********************************
 #-- Draw figure ---
 print 'Draw figure'
-fig   = plt.figure(figsize=(8,8))
+fig   = plt.figure(figsize=(10,7.5))
 ssize = 1
 
 #-- My retrieval --
-#for i in range(6):
-for i in range(5):
+for i in range(6):
     if i==0:
-        ax = fig.add_axes([0.1,0.66,0.35,0.3])
+        #ax = fig.add_axes([0.1,0.66,0.35,0.3])
+        ax = fig.add_axes([0.05,0.1,0.26,0.45])
         a2dat = ma.masked_less_equal(a2MS,0)
         a2lat = a2latMy
         a2lon = a2lonMy
-        stype = 'MS'
+        stype = 'MS' + ' (>0.1mm/h)'
 
     elif i==1:
-        ax = fig.add_axes([0.5,0.66,0.35,0.3])
+        #ax = fig.add_axes([0.5,0.66,0.35,0.3])
+        ax = fig.add_axes([0.35,0.1,0.26,0.45])
         a2dat = ma.masked_less_equal(a2NS,0)
         a2lat = a2latMy
         a2lon = a2lonMy
-        stype = 'NS'
+        stype = 'NS' + ' (>0.1mm/h)'
 
     elif i==2:
-        ax = fig.add_axes([0.1,0.33,0.35,0.3])
+        #ax = fig.add_axes([0.1,0.33,0.35,0.3])
+        ax = fig.add_axes([0.05,0.5,0.26,0.45])
+        a2dat = ma.masked_less_equal(a2NS,0)
         a2dat = ma.masked_less_equal(a2MScmb,0)
         a2lat = a2latMy
         a2lon = a2lonMy
-        stype = 'MScmb'
+        stype = 'MScmb' + ' (>0.1mm/h)'
 
     elif i==3:
-        ax = fig.add_axes([0.5,0.33,0.35,0.3])
+        #ax = fig.add_axes([0.5,0.33,0.35,0.3])
+        ax = fig.add_axes([0.35,0.5,0.26,0.45])
         a2dat = ma.masked_less_equal(a2NScmb,0)
         a2lat = a2latMy
         a2lon = a2lonMy
-        stype = 'NScmb'
+        stype = 'NScmb' + ' (>0.1mm/h)'
     elif i==4:
-        ax = fig.add_axes([0.1,0.0,0.35,0.3])
+        #ax = fig.add_axes([0.1,0.0,0.35,0.3])
+        ax = fig.add_axes([0.65,0.1,0.26,0.45])
         a2dat = ma.masked_less_equal(a2esurfgp,0)
         a2lat = a2latgp
         a2lon = a2longp
         stype = 'GPROF'
     elif i==5:
-        ax = fig.add_axes([0.5,0.0,0.35,0.3])
+
+        if not os.path.exists(mrmsPath):
+            continue
+        #ax = fig.add_axes([0.5,0.0,0.35,0.3])
+        ax = fig.add_axes([0.65,0.5,0.26,0.45])
         a2dat = ma.masked_less_equal(a2mrms,0)
         stype = 'MRMS'
         a2lat = a2latmr
@@ -270,9 +297,15 @@ for i in range(5):
     meridians  = arange(-180,180,dgrid)
     M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d')
     M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d')
-    plt.colorbar(im, orientation='horizontal')
-    
+
     plt.title(stype)
+#-- Colorbar (Shared) ----
+cax = fig.add_axes([0.93, 0.2, 0.02, 0.6])
+plt.colorbar(im, orientation='vertical', cax=cax)
+
+#-- Suptitle -------------
+ssuptitle = '%04d/%02d/%02d id=%06d'%(Year,Mon,Day,oid)
+plt.suptitle(ssuptitle, fontsize=12)
 ##------------
 util.mk_dir(figDir)
 outPath  = figDir + '/prcp.map.%06d.y%d-%d.png'%(oid,iy,ey)

@@ -5,6 +5,7 @@ import calendar
 import os, sys
 import socket
 from datetime import datetime, timedelta
+import numpy as np
 
 hostname  = "arthurhou.pps.eosdis.nasa.gov"
 irootDir = "/gpmallversions"
@@ -22,12 +23,12 @@ elif myhost =="well":
 #GPM/TRMM.TMI/L2A12/07/2014/
 
 
-iDTime  = datetime(2014,12,1)
+iDTime  = datetime(2014,6,1)
 #iDTime  = datetime(2014,5,1)
 #iDTime  = datetime(2017,1,1)
-#iDTime  = datetime(2018,5,22)
-#eDTime  = datetime(2018,5,22)
-eDTime  = datetime(2014,12,1)
+#iDTime  = datetime(2014,7,11)
+#eDTime  = datetime(2014,7,11)
+eDTime  = datetime(2015,5,31)
 dDTime  = timedelta(days=1)
 lDTime  = util.ret_lDTime(iDTime, eDTime, dDTime)
 
@@ -67,7 +68,11 @@ for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
     #--- Skip missing or problematic data -----
     ldataoutage=[
-     [2014,12,9]  # 004425, 004426(missing some lat&lon)
+     [2014,5,20]  # 1274-1277
+    ,[2014,10,22] # 3682-
+    ,[2014,10,23] # all
+    ,[2014,10,24] # -3718
+    ,[2014,12,9]  # 004425, 004426(missing some lat&lon)
     ,[2014,12,10]  # 004447-004452
     ,[2017,9,26]
     ,[2017,9,27]
@@ -75,9 +80,12 @@ for DTime in lDTime:
     ,[2017,9,29]
     ]
 
+
     if [Year,Mon,Day] in ldataoutage:
         print 'Skip data outage day'
         continue
+
+    #if Mon==7: continue  # test
 
     #--- path and directory: Remote -----------
     iDir = irootDir + "/%s/%04d/%02d/%02d/%s"%(ver,Year,Mon,Day,prj)
@@ -86,7 +94,7 @@ for DTime in lDTime:
     #GPM/TRMM.TMI/L2A12/07/2014/
     mk_dir(oDir)
     #--- list --------------
-    lPath = ftp.nlst(iDir)
+    lPath = np.sort(ftp.nlst(iDir))
     print iDir
     print lPath
     for sPath in lPath:

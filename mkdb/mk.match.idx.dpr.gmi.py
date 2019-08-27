@@ -10,8 +10,8 @@ import sys, os, glob
 from datetime import datetime, timedelta
 import numpy as np
 
-iDTime = datetime(2014,10,14)
-eDTime = datetime(2014,10,14)
+iDTime = datetime(2014,5,1)
+eDTime = datetime(2015,5,31)
 
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
@@ -33,7 +33,8 @@ fullverGMI = '%s%s'%(verGMI,subverGMI)
 fullverDPR = '%s%s'%(verDPR,subverDPR)
 
 baseDirGMI = '/work/hk01/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
-baseDirDPR = '/work/hk01/PMM/NASA/GPM.Ku/2A/V%s'%(verDPR)
+#baseDirDPR = '/work/hk01/PMM/NASA/GPM.Ku/2A/V%s'%(verDPR)
+baseDirDPR = '/work/hk01/PMM/NASA/GPM.DPRGMI/2B/V%s'%(verDPR)
 obaseDir   = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.IDX'%(fullverGMI, mwscan, ix0, ex0, radar, fullverDPR)
 
 
@@ -52,14 +53,28 @@ for DTime in lDTime:
         sys.exit()
 
     for srcPathGMI in lsrcPathGMI:
-        print srcPathGMI
         oid       = srcPathGMI.split('.')[-3] 
 
-        #if oid != '021412':continue   # test
+        # test --
+        loid = [3019,3296,3556,3609,3694,4186,4817,4832,5130]
+        if int(oid) not in loid: continue   # test
+
+        print srcPathGMI
+
 
         srcDirDPR = baseDirDPR + '/%04d/%02d/%02d'%(Year,Mon,Day)
-        ssearch   = srcDirDPR  + '/2A.GPM.Ku.V8-20180723.20170102-S072749-E090022.016175.V06A.HDF5'
-        ssearch   = srcDirDPR  + '/2A.GPM.Ku.*.%s.V06A.HDF5'%(oid)
+
+        ##-- Ku case ---
+        #ssearch   = srcDirDPR  + '/2A.GPM.Ku.V8-20180723.20170102-S072749-E090022.016175.V06A.HDF5'
+        #ssearch   = srcDirDPR  + '/2A.GPM.Ku.*.%s.V06A.HDF5'%(oid)
+
+        #-- CMB case ---
+        ssearch   = srcDirDPR  + '/2B.GPM.DPRGMI.CORRA2018.20140501-S060650-E073923.000974.V06A.HDF5'
+        ssearch   = srcDirDPR  + '/2B.GPM.DPRGMI.*.%s.V06A.HDF5'%(oid)
+
+        #--------------
+
+
         lsrcPathDPR = sort(glob.glob(ssearch))
         if len(lsrcPathDPR)==0:
             print 'No DPR file for',Year,Mon,Day

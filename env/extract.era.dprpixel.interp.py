@@ -11,19 +11,26 @@ import socket
 import metpy.calc as mpcalc
 from metpy.units import units
 
-noscreen = True
-
-iDTime = datetime(2017,7,3)
-eDTime = datetime(2017,7,3)
+#noscreen = True
+noscreen = False
+#preenv   = True
+preenv   = False
+iDTime = datetime(2017,7,1)
+eDTime = datetime(2017,7,31)
 lDTimeDay = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 dprver = 'V06'
 dprverfull='V06A'
 
-lvar =['rh']
-#lvar =['tv','ept']
+#lvar = ['w']
+#lvar =['w','vo']
+#lvar =['rh','tv','ept']
+lvar =['tv','ept','w','rh']
 lplev = [975,900,825,750,600,450,300,200]
 a1p   = array(lplev).reshape(-1,1,1) * units.hPa
 lzmeter = [1500,4500,7500]
+nyRA   = 721
+nxRA   = 1440
+
 
 myhost = socket.gethostname()
 if myhost =='shui':
@@ -166,28 +173,7 @@ for DTimeDay in lDTimeDay:
     lsrcPath = sort(glob.glob(ssearch))
     if len(lsrcPath)==0:
         continue
-    ##**** ERA5 Test *********************
-    #srcDir = '/home/utsumi/temp/env'
-    #a3zmeter = np.load(srcDir + '/zmeter.npy')[::-1,:,:] * units.m
-    #a3t = np.load(srcDir + '/t.npy')[::-1,:,:] * units.K
-    #a3q = np.load(srcDir + '/q.npy')[::-1,:,:] * units.g/units.g
-    #
-    #a2tsurf = np.load(srcDir + '/2t.npy') * units.K
-    #a2dsurf = np.load(srcDir + '/2d.npy') * units.K
-    #a2sp= np.load(srcDir + '/sp.npy') / 100. *units.hPa  # [hPa]
-    # 
     ##*******************************
-    #nplev,ny,nx = a3zmeter.shape
-    #a4zmeter = a3zmeter.reshape(1,nplev,ny,nx)
-    #a4t      = a3t.reshape(1,nplev,ny,nx)
-    #a4q      = a3q.reshape(1,nplev,ny,nx)
-    #
-    #a3tsurf  = a2tsurf.reshape(1,ny,nx)
-    #a3dsurf  = a2dsurf.reshape(1,ny,nx)
-    #a3sp     = a2sp.reshape(1,ny,nx)
-
-    #**********************
-
     for srcPath in lsrcPath:
         oid  = srcPath.split('.')[-3]
 
@@ -223,19 +209,27 @@ for DTimeDay in lDTimeDay:
             a2var = array([])
             a2zmeter = array([])
             for DTime in lDTimeHour:
-                Year,Mon,Day,Hour,Mnt = DTime.timetuple()[:5]
+
                 iy0 = bisect_left(lDTime,DTime-timedelta(minutes=30))
                 iy1 = bisect_left(lDTime,DTime+timedelta(minutes=30))
+
+                if preenv is True:
+                    Year,Mon,Day,Hour,Mnt = (DTime - timedelta(hours=1)).timetuple()[:5]
+                else:
+                    Year,Mon,Day,Hour,Mnt = DTime.timetuple()[:5]
+
+
                 if (iy1==0) or (iy0==ny):
                     continue
 
                 #--- Read ERA ******
                 a3zmeter = read_zmeter_hour(Year,Mon,Day,Hour)[::-1,:,:] * units.m
-                a3t = read_var_3d_hour('t', Year,Mon,Day,Hour)[::-1,:,:] * units.K
-                a3q = read_var_3d_hour('q', Year,Mon,Day,Hour)[::-1,:,:] * units.g/units.g  # specific humidity
-                a2tsurf = read_var_2d_hour('2t',Year,Mon,Day,Hour) * units.K
-                a2dsurf = read_var_2d_hour('2d',Year,Mon,Day,Hour) * units.K
-                a2sp    = read_var_2d_hour('sp',Year,Mon,Day,Hour) /100.* units.hPa
+                if var in ['ept','tv']:
+                    a3t = read_var_3d_hour('t', Year,Mon,Day,Hour)[::-1,:,:] * units.K
+                    a3q = read_var_3d_hour('q', Year,Mon,Day,Hour)[::-1,:,:] * units.g/units.g  # specific humidity
+                    a2tsurf = read_var_2d_hour('2t',Year,Mon,Day,Hour) * units.K
+                    a2dsurf = read_var_2d_hour('2d',Year,Mon,Day,Hour) * units.K
+                    a2sp    = read_var_2d_hour('sp',Year,Mon,Day,Hour) /100.* units.hPa
 
                 #--- ERA5 ----
                 if var =='ept':  # Equivalent potential temperature
@@ -257,6 +251,9 @@ for DTimeDay in lDTimeDay:
                     a3var = mpcalc.relative_humidity_from_specific_humidity(a3q, a3t, a1p)
                     a2surfvar = mpcalc.relative_humidity_from_dewpoint(a2tsurf, a2dsurf)
 
+                elif var=='w':
+                    a3var = read_var_3d_hour('w', Year,Mon,Day,Hour)[::-1,:,:]
+                    a2surfvar = np.zeros([nyRA,nxRA], float32)
 
                 else:
                     print 'check var',var
@@ -265,11 +262,9 @@ for DTimeDay in lDTimeDay:
                 
                 #--- corresponding pixels --
                 latRA0= 90   # from North to South
-                lonRA0= -180
+                lonRA0= 0
                 dlatRA = 0.25
                 dlonRA = 0.25
-                nyRA   = 721
-                nxRA   = 1440
         
                 #a2y    = floor((a2lat[iy0:iy1] - latRA0 +dlatRA*0.5)/dlatRA).astype(int32)
                 a2y    = floor((latRA0 + dlatRA*0.5 - a2lat[iy0:iy1])/dlatRA).astype(int32)
@@ -322,10 +317,14 @@ for DTimeDay in lDTimeDay:
                 np.save(outPath, a1intp.astype(float32))
             print outPath
             #**** Save surface variable ****
+            shead = ''
             if noscreen is True:
-                outPath = outDir + '/full.%s.00.0km.%s.npy'%(var, oid)
-            else:
-                outPath = outDir + '/%s.00.0km.%s.npy'%(var, oid)
+                shead = shead+'full'
+
+            if preenv is True:
+                shead = shead+'.pre' 
+
+            outPath = outDir + '/%s.%s.00.0km.%s.npy'%(shead, var, oid)
             np.save(outPath, a1surfvar.astype(float32))
             print outPath 
     

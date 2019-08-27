@@ -11,15 +11,19 @@ import socket
 import metpy.calc as mpcalc
 from metpy.units import units
 
-noscreen = True
+#noscreen = True
+noscreen = False
 
-iDTime = datetime(2017,7,3)
-eDTime = datetime(2017,7,3)
+iDTime = datetime(2017,7,1)
+eDTime = datetime(2017,7,31)
 lDTimeDay = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 dprver = 'V06'
 dprverfull='V06A'
 
-lvar =['cape','cin']
+#lvar =['tp','cape','tcwv','mvimd']
+#lvar =['cape','tcwv','mvimd']
+#lvar =['tp','cape']
+lvar =['tp']
 
 myhost = socket.gethostname()
 if myhost =='shui':
@@ -40,7 +44,9 @@ def read_var_2d_hour(var,Year,Mon,Day,Hour):
     srcDir = erabaseDir + '/%s/%04d%02d'%(var,Year,Mon)
     srcPath= srcDir + '/%s.%04d.%02d.%02d.nc'%(var,Year,Mon,Day)
     ncvar = {'2t':'t2m', '2d':'d2m', 'sp':'sp'
-            ,'cape':'cape','cin':'cin'}[var]
+            ,'cape':'cape','cin':'cin'
+            ,'tp':'tp','ptype':'ptype'
+            ,'tcwv':'tcwv','mvimd':'mvimd'}[var]
 
     with Dataset(srcPath) as np:
         a2var = np.variables[ncvar][Hour]
@@ -99,11 +105,14 @@ for DTimeDay in lDTimeDay:
 
                 #--- Read ERA ******
                 a2var = read_var_2d_hour(var,Year,Mon,Day,Hour).data
-                
-                
+               
+
+                ##-- test ---
+                #a2lonera,a2latera=np.meshgrid(arange(0,359.75+0.001,0.25), arange(90,-90-0.001,-0.25))
+                #a2var = a2latera
                 #--- corresponding pixels --
                 latRA0= 90   # from North to South
-                lonRA0= -180
+                lonRA0= 0
                 dlatRA = 0.25
                 dlonRA = 0.25
                 nyRA   = 721

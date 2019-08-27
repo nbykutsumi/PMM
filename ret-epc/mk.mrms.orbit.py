@@ -7,8 +7,8 @@ import gzip
 from collections import deque
 
 
-iYM = [2014,10]
-eYM = [2014,10]
+iYM = [2014,7]
+eYM = [2015,5]
 lYM = util.ret_lYM(iYM,eYM)
 
 #*****************
@@ -28,8 +28,8 @@ for (Year,Mon) in lYM:
 #*****************
 # Start oid loop
 #*****************
-#loid = dorbit.keys()
-loid = [3556]
+loid = dorbit.keys()
+#loid = []
 for oid in loid:
     Year,Mon,Day,iy,ey = dorbit[oid]
 
