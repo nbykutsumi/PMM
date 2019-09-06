@@ -86,7 +86,6 @@ print 'Define functions'
 # Main loop start
 #******************************************
 lorbit = [[2017,1,20,16452]]
-#lorbit = [[2017,1,18,16427]] 
 restriction = 10
 coef_b  = 5
 ldy   = [-1,0,1]
@@ -106,84 +105,51 @@ act = 'L'  # 'H', 'L', 'LT'
 
 latmin,latmax = -90, 90
 #BBox = [[28,-105],[46,-76]]
-BBox = [[30,-90],[43,-76]]  # 16452 for US
-#BBox = [[26,129],[35,139]]
+BBox = [[30,-90],[43,-76]]
 [[lllat,lllon],[urlat,urlon]] = BBox
 
 for (yyyy,mm,dd,oid) in lorbit:
     print oid,yyyy,mm,dd
-    #** Read S2 index ******
-    idxxPath = pmmbaseDir + '/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/%04d/%02d/%02d/Xpy.1.%06d.npy'%(yyyy,mm,dd,oid)
-    idxyPath = pmmbaseDir + '/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/%04d/%02d/%02d/Ypy.1.%06d.npy'%(yyyy,mm,dd,oid)
-
-    a2x = np.load(idxxPath)
-    a2y = np.load(idxyPath)
-
-    #** Read HDF GMI Tb ****
-    gmiDir = hdfbaseDir + '/GPM.GMI/1C/V05/%04d/%02d/%02d'%(yyyy,mm,dd)
-    gmiPath= glob.glob(gmiDir + '/1C.GPM.GMI.*.%06d.????.HDF5'%(oid))[0]
-
-    with h5py.File(gmiPath,'r') as h:
-        a2latgmi = h['/S1/Latitude'][:]
-        a2longmi = h['/S1/Longitude'][:]
-        atc1     = h['/S1/Tc'][:]
-        atc2tmp  = h['/S2/Tc'][:]
-
-    if 'H' in act:       
-        a2maskx = ma.masked_less(a2x,0).mask
-        a2masky = ma.masked_less(a2y,0).mask
-        a2maskidx  = a2maskx + a2masky
-        a2x = ma.masked_where(a2maskidx, a2x).filled(0)
-        a2y = ma.masked_where(a2maskidx, a2y).filled(0)
+    tcPath1 = pmmbaseDir + '/MATCH.GMI.V05A/S1.ABp103-117.GMI.Tc/%04d/%02d/%02d/Tc.%06d.npy'%(yyyy,mm,dd,oid)
+    tcPath2 = pmmbaseDir + '/MATCH.GMI.V05A/S1.ABp103-117.GMI.TcS2/%04d/%02d/%02d/TcS2.1.%06d.npy'%(yyyy,mm,dd,oid)
     
-        atc2 = atc2tmp[a2y,a2x,:]
-        for i in range(4):
-            atc2[i] = ma.masked_where(a2maskidx, atc2[i]).filled(-9999.)
-
-    #** Read HDF GPROF surface type ****
-    gprofDir = hdfbaseDir + '/GPM.GMI/2A/V05/%04d/%02d/%02d'%(yyyy,mm,dd)
-    gprofPath= glob.glob(gprofDir + '/2A.GPM.GMI.GPROF*.%06d.????.HDF5'%(oid))[0]
-
-    with h5py.File(gprofPath,'r') as h:
-        a2surf = h['/S1/surfaceTypeIndex'][:]
-        a2prec = h['/S1/surfacePrecipitation'][:]    
-   
-    #** Read DPR Storm top **
-    dprDir = hdfbaseDir + '/GPM.Ku/2A/V06/%04d/%02d/%02d'%(yyyy,mm,dd)
-    dprPath= glob.glob(dprDir + '/2A.GPM.Ku.*.%06d.????.HDF5'%(oid))[0]
-
-    with h5py.File(dprPath,'r') as h:
-        a2latdpr = h['/NS/Latitude'][:]
-        a2londpr = h['/NS/Longitude'][:]
-        a2stop   = h['/NS/PRE/heightStormTop'][:]
-
-
-    #** Read temperature 2m **
-    if 'T' in act:
-        t2mPath = pmmbaseDir + '/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.t2m/%04d/%02d/%02d/t2m.%06d.npy'%(yyyy,mm,dd,oid)
-        at2mOrg = np.load(t2mPath)[:,103:117+1]
-
-
-    #** Tc vector ************
+    stopPath= pmmbaseDir + '/MATCH.GMI.V05A/S1.ABp103-117.Ku.V06A.heightStormTop/%04d/%02d/%02d/heightStormTop.1.%06d.npy'%(yyyy,mm,dd,oid)
+    surfPath= pmmbaseDir + '/MATCH.GMI.V05A/S1.ABp103-117.GMI.surfaceTypeIndex/%04d/%02d/%02d/surfaceTypeIndex.%06d.npy'%(yyyy,mm,dd,oid)
+    latPath = pmmbaseDir + '/MATCH.GMI.V05A/S1.ABp103-117.GMI.Latitude/%04d/%02d/%02d/Latitude.%06d.npy'%(yyyy,mm,dd,oid)
+    lonPath = pmmbaseDir + '/MATCH.GMI.V05A/S1.ABp103-117.GMI.Longitude/%04d/%02d/%02d/Longitude.%06d.npy'%(yyyy,mm,dd,oid)
+    t2mPath = pmmbaseDir + '/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.t2m/%04d/%02d/%02d/t2m.%06d.npy'%(yyyy,mm,dd,oid)
+    
+    
     if 'H' in act:
+        atc1 = np.load(tcPath1)
+        atc2 = np.load(tcPath2)
         atc  = np.concatenate([atc1,atc2],axis=2)
     elif 'L' in act:
-        atc  = atc1
+        atc  = np.load(tcPath1)
+    
+    if 'T' in act:
+        at2mOrg = np.load(t2mPath)[:,103:117+1]
+    
+    a2stop   = np.load(stopPath)
+    a2surf   = np.load(surfPath)
+    a2lat    = np.load(latPath)
+    a2lon    = np.load(lonPath)
+    
     
     aTcOrg  = np.concatenate([ shift_array(atc, dy, dx) for dy in ldy for dx in ldx], axis=2)
+    
 
-    if 'T' in act:
-        aTcOrg =   np.concatenate([aTcOrg, at2mOrg.reshape(-1,1)], axis=1)
-
-
-    #******************************************
-    # Prep prediction
-    #******************************************
     print 'predTc.shape',aTcOrg.shape
     nz = aTcOrg.shape[2]
     aTcOrg     = aTcOrg.reshape(-1, nz)
     asurfOrg   = a2surf.flatten()
+    astopOrg   = a2stop.flatten()
+    alatOrg    = a2lat.flatten()
+    alonOrg    = a2lon.flatten()
 
+    if 'T' in act:
+        aTcOrg =   np.concatenate([aTcOrg, at2mOrg.reshape(-1,1)], axis=1)
+    print aTcOrg.shape, alatOrg.shape, asurfOrg.shape,astopOrg.shape
     #******************************************
     ny,nx = atc.shape[:2]
     predStop = np.ones(ny*nx)*(-9999.)  # 1-D
@@ -200,23 +166,15 @@ for (yyyy,mm,dd,oid) in lorbit:
         a1flagtc  = ma.masked_inside(aTcOrg, 50, 350).all(axis=1).mask
 
         #******************************************
-        # Screen BBox
-        #******************************************
-        a1flaglat = ma.masked_inside(a2latgmi.flatten(), lllat,urlat).mask
-        a1flaglon = ma.masked_inside(a2longmi.flatten(), lllon,urlon).mask
-
-        #******************************************
         # Extract
         #******************************************
-        a1flag = a1flagsurf * a1flagtc * a1flaglat * a1flaglon
-        
+        a1flag = a1flagsurf * a1flagtc
         a1idx = np.arange(aTcOrg.shape[0]).astype('int32')
         a1idx = a1idx[a1flag]
-        print 'bef',aTcOrg.shape, a1idx.shape
+
          
         aTc   = aTcOrg[a1idx]
-        print 'aft',aTcOrg.shape, a1idx.shape
-        print aTc.shape
+        astop = astopOrg[a1idx]
         
         #******************************************
         # Preprocess parameters 
@@ -256,6 +214,7 @@ for (yyyy,mm,dd,oid) in lorbit:
         MaxStop = 32000
         
         aX = my_unit(reduction,MinPC,MaxPC)
+        aY = my_unit(astop,MinStop,MaxStop)
 
         #******************************************
         # Checkpoint
@@ -282,7 +241,7 @@ for (yyyy,mm,dd,oid) in lorbit:
         prediction = (MaxStop - MinStop)*out + MinStop
 
         print a1idx.shape, prediction.shape
-        #print 'prediction.min(),max()',prediction.min(),prediction.max()
+        print 'prediction.min(),max()',prediction.min(),prediction.max()
         
          
         predStop[a1idx] = prediction
@@ -296,7 +255,7 @@ for (yyyy,mm,dd,oid) in lorbit:
     #******************************************
     # Mask radar stop <=0
     #******************************************
-    #predStop = ma.masked_where(a2stop<=0, predStop)
+    predStop = ma.masked_where(a2stop<=0, predStop)
 
     #******************************************
     # Mask predicted stop <=0
@@ -305,16 +264,6 @@ for (yyyy,mm,dd,oid) in lorbit:
     predStop = predStop / 1000. 
 
     a2stop   = ma.masked_less_equal(a2stop,0)/1000.
-
-    #******************************************
-    # DPR boundary lines
-    #******************************************
-    a1latdpr0 = a2latdpr[:,0]
-    a1londpr0 = a2londpr[:,0]
-    a1latdpr1 = a2latdpr[:,-1]
-    a1londpr1 = a2londpr[:,-1]
-
-
     #******************************************
     # Figure
     #******************************************
@@ -329,21 +278,14 @@ for (yyyy,mm,dd,oid) in lorbit:
     #******************************************
     # Prediction
     #******************************************
-    # mask where prec<=0
-    predStop = ma.masked_where(a2prec<=0, predStop)
-
     ax  = fig.add_axes([0.05,0.15,0.4,0.75])
     M   = Basemap(resolution='l', llcrnrlat=lllat, llcrnrlon=lllon, urcrnrlat=urlat, urcrnrlon=urlon, ax=ax)
 
-    im  = M.pcolormesh(a2longmi, a2latgmi, predStop, vmin=vmin, vmax=vmax, cmap=mycm)
+    im  = M.pcolormesh(a2lon, a2lat, predStop, vmin=vmin, vmax=vmax, cmap=mycm)
     M.drawcoastlines()
 
     M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d')
     M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d')
-
-    #-- DPR boundary lines --
-    M.plot(a1londpr0, a1latdpr0,color='k')
-    M.plot(a1londpr1, a1latdpr1,color='k')
 
     #******************************************
     # Radar
@@ -352,16 +294,28 @@ for (yyyy,mm,dd,oid) in lorbit:
   
     M   = Basemap(resolution='l', llcrnrlat=lllat, llcrnrlon=lllon, urcrnrlat=urlat, urcrnrlon=urlon, ax=ax)
 
-    im  = M.pcolormesh(a2londpr, a2latdpr, a2stop, vmin=vmin, vmax=vmax, cmap=mycm)
+    im  = M.pcolormesh(a2lon, a2lat, a2stop, vmin=vmin, vmax=vmax, cmap=mycm)
     M.drawcoastlines()
 
     M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d')
     M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d')
 
-    #-- DPR boundary lines --
-    M.plot(a1londpr0, a1latdpr0,color='k')
-    M.plot(a1londpr1, a1latdpr1,color='k')
+    ##******************************************
+    ## Boundary lines for radar
+    ##******************************************
+    #hdfDir = hdfbaseDir + '/GPM.Ku/2A/V06/%04d/%02d/%02d'%(yyyy,mm,dd)
+    #hdfPath= glob.glob(hdfDir + '/2A.GPM.Ku.*.%06d.????.HDF5'%(oid))[0]
 
+    #with h5py.File(hdfPath,'r') as h:
+    #    a2lathdf = h['/NS/Latitude'][:]
+    #    a2lonhdf = h['/NS/Longitude'][:]
+
+    #a1lathdf0 = a2lathdf[:,0]
+    #a1lonhdf0 = a2lonhdf[:,0]
+    #a1lathdf1 = a2lathdf[:,1]
+    #a1lonhdf1 = a2lonhdf[:,1]
+    #M.plot(a1lonhdf0, a1lathdf0,color='k')
+    #M.plot(a1lonhdf1, a1lathdf1,color='k')
 
     #******************************************
     # Colorbar
@@ -371,7 +325,8 @@ for (yyyy,mm,dd,oid) in lorbit:
     #******************************************
     # Save
     #******************************************
-    figPath = figDir + '/fig.stop.map.%04d.%02d.%02d.%s.png'%(yyyy,mm,dd,oid)
+    figPath = figDir + '/mnt/c/ubuntu/fig/fig.stop.map.png'
+    figPath = figDir + '/fig.stop.map.png'
     pl.savefig(figPath)
     print figPath 
     

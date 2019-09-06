@@ -16,8 +16,9 @@ import socket
 
 hostname = socket.gethostname()
 if hostname == 'shui':
-    stopbaseDir= '/work/hk01/utsumi/PMM/stop'
-    figDir = '/home.rainbow/utsumi/public_html/tempfig'
+    #stopbaseDir= '/work/hk01/utsumi/PMM/stop'
+    stopbaseDir= '/tank/utsumi/PMM/stop'
+    figDir = '/home.rainbow/utsumi/public_html/tempfig/stop'
 else:
     stopbaseDir= '/mnt/j/PMM/stop'
     figDir = '/mnt/c/ubuntu/fig'
@@ -356,15 +357,15 @@ print 'Define functions'
 #***********************************************************
 Year  = 2017
 lMon   = [1]
-lisurf = [4]
-#lisurf = range(1,14+1)
+#lisurf = [4]
+lisurf = range(1,14+1)
 coef_b = 5
 saveprep = 1
 savemodel= 1
 restmodel = 0
 #lact = ['H','L','LT']
 #lact = ['L','LT']
-lact = ['H']
+lact = ['L']
 llatminmax = [[-90,90]]
 
 for act in lact:

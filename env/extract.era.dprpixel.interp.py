@@ -15,19 +15,21 @@ from metpy.units import units
 noscreen = False
 #preenv   = True
 preenv   = False
-iDTime = datetime(2017,7,1)
+iDTime = datetime(2017,7,20)
 eDTime = datetime(2017,7,31)
 lDTimeDay = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 dprver = 'V06'
 dprverfull='V06A'
 
-#lvar = ['w']
+lvar = ['tv']
 #lvar =['w','vo']
-#lvar =['rh','tv','ept']
-lvar =['tv','ept','w','rh']
+#lvar =['r','tv','ept']
+#lvar =['tv','ept','w','r']
+#lvar =['tv','ept','r']
 lplev = [975,900,825,750,600,450,300,200]
 a1p   = array(lplev).reshape(-1,1,1) * units.hPa
 lzmeter = [1500,4500,7500]
+#lzmeter = [1500]
 nyRA   = 721
 nxRA   = 1440
 
@@ -39,6 +41,7 @@ if myhost =='shui':
     outbaseDir = '/tank/utsumi/env/pair'
 elif myhost == 'well':
     dprbaseDir = '/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.Ku/2A/%s'%(dprver)
+    #erabaseDir = '/home/utsumi/mnt/lab_tank/utsumi/era5'
     erabaseDir = '/media/disk2/share/data/era5'
     outbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/env/pair'
 else:
@@ -177,7 +180,7 @@ for DTimeDay in lDTimeDay:
     for srcPath in lsrcPath:
         oid  = srcPath.split('.')[-3]
 
-        #if oid != '019015': continue   # test
+        #if oid < '019277': continue   # test
 
         with h5py.File(srcPath,'r') as h5:
             a2prec= h5['NS/SLV/precipRateNearSurface'][:]
@@ -212,15 +215,14 @@ for DTimeDay in lDTimeDay:
 
                 iy0 = bisect_left(lDTime,DTime-timedelta(minutes=30))
                 iy1 = bisect_left(lDTime,DTime+timedelta(minutes=30))
+                if (iy1==0) or (iy0==ny):
+                    continue
 
                 if preenv is True:
                     Year,Mon,Day,Hour,Mnt = (DTime - timedelta(hours=1)).timetuple()[:5]
                 else:
                     Year,Mon,Day,Hour,Mnt = DTime.timetuple()[:5]
 
-
-                if (iy1==0) or (iy0==ny):
-                    continue
 
                 #--- Read ERA ******
                 a3zmeter = read_zmeter_hour(Year,Mon,Day,Hour)[::-1,:,:] * units.m
@@ -230,6 +232,10 @@ for DTimeDay in lDTimeDay:
                     a2tsurf = read_var_2d_hour('2t',Year,Mon,Day,Hour) * units.K
                     a2dsurf = read_var_2d_hour('2d',Year,Mon,Day,Hour) * units.K
                     a2sp    = read_var_2d_hour('sp',Year,Mon,Day,Hour) /100.* units.hPa
+
+                elif var in ['r']:
+                    a2tsurf = read_var_2d_hour('2t',Year,Mon,Day,Hour) * units.K
+                    a2dsurf = read_var_2d_hour('2d',Year,Mon,Day,Hour) * units.K
 
                 #--- ERA5 ----
                 if var =='ept':  # Equivalent potential temperature
@@ -247,10 +253,26 @@ for DTimeDay in lDTimeDay:
                     #--- Surface -
                     a2surfvar = mpcalc.equivalent_potential_temperature(a2sp, a2tsurf, a2dsurf)
 
-                elif var=='rh':
-                    a3var = mpcalc.relative_humidity_from_specific_humidity(a3q, a3t, a1p)
+                elif var=='r':
+                    #a3var = mpcalc.relative_humidity_from_specific_humidity(a3q, a3t, a1p)
+                    a3var = read_var_3d_hour(var, Year,Mon,Day,Hour)[::-1,:,:] * units.g/units.g  # specific humidity
+                    
                     a2surfvar = mpcalc.relative_humidity_from_dewpoint(a2tsurf, a2dsurf)
 
+                    ##-- test ---
+                    #nall = 1038240.
+                    #nmore= ma.masked_less_equal(a3var[2],1).count()
+                    #nless= ma.masked_greater_equal(a3var[2],0).count()
+                    #print a3var[2].min(),a3var[2].max(),'frac=',nless/nall, nmore/nall
+
+                    #_,ny,nx = a3var.shape
+                    #for y in range(ny):
+                    #    for x in range(nx):
+                    #        if a3var[2,y,x] > 1.2:
+                    #            print y,x,a3var[2,y,x],a3q[2,y,x],a3t[2,y,x]
+                    #sys.exit()
+                    #-----------
+                     
                 elif var=='w':
                     a3var = read_var_3d_hour('w', Year,Mon,Day,Hour)[::-1,:,:]
                     a2surfvar = np.zeros([nyRA,nxRA], float32)
@@ -304,27 +326,28 @@ for DTimeDay in lDTimeDay:
                 nydpr,nxdpr = a2prec.shape
                 a2intp = a2intp.reshape(len(lzmeter),nydpr,nxdpr)
                 a1surfvar=a1surfvar.reshape(nydpr,nxdpr)
+
+
+            #**** Head for file name ***
+            shead = ''
+            if noscreen is True:
+                shead = shead+'full.'
+
+            if preenv is True:
+                shead = shead+'pre.' 
+
             #**** Save interpolated variables ****
-            outDir     = outbaseDir + '/%04d/%02d/%02d'%(YearDir,MonDir,DayDir)
+            outDir     = outbaseDir + '/%s/%04d/%02d/%02d'%(var,YearDir,MonDir,DayDir)
             util.mk_dir(outDir)
             for izmeter, zmeter in enumerate(lzmeter):
                 a1intp   = a2intp[izmeter]
 
-                if noscreen is True:
-                    outPath = outDir + '/full.%s.%04.1fkm.%s.npy'%(var, zmeter*0.001, oid)
-                else:
-                    outPath = outDir + '/%s.%04.1fkm.%s.npy'%(var, zmeter*0.001, oid)
+                outPath = outDir + '/%s%s.%04.1fkm.%s.npy'%(shead, var, zmeter*0.001, oid)
                 np.save(outPath, a1intp.astype(float32))
             print outPath
             #**** Save surface variable ****
-            shead = ''
-            if noscreen is True:
-                shead = shead+'full'
 
-            if preenv is True:
-                shead = shead+'.pre' 
-
-            outPath = outDir + '/%s.%s.00.0km.%s.npy'%(shead, var, oid)
+            outPath = outDir + '/%s%s.00.0km.%s.npy'%(shead, var, oid)
             np.save(outPath, a1surfvar.astype(float32))
             print outPath 
     

@@ -13,6 +13,8 @@ from metpy.units import units
 
 #noscreen = True
 noscreen = False
+#preenv = True
+preenv = False
 
 iDTime = datetime(2017,7,1)
 eDTime = datetime(2017,7,31)
@@ -23,7 +25,7 @@ dprverfull='V06A'
 #lvar =['tp','cape','tcwv','mvimd']
 #lvar =['cape','tcwv','mvimd']
 #lvar =['tp','cape']
-lvar =['tp']
+lvar =['skt']
 
 myhost = socket.gethostname()
 if myhost =='shui':
@@ -46,7 +48,9 @@ def read_var_2d_hour(var,Year,Mon,Day,Hour):
     ncvar = {'2t':'t2m', '2d':'d2m', 'sp':'sp'
             ,'cape':'cape','cin':'cin'
             ,'tp':'tp','ptype':'ptype'
-            ,'tcwv':'tcwv','mvimd':'mvimd'}[var]
+            ,'tcwv':'tcwv','mvimd':'mvimd'
+            ,'skt':'skt'
+            }[var]
 
     with Dataset(srcPath) as np:
         a2var = np.variables[ncvar][Hour]
@@ -97,19 +101,19 @@ for DTimeDay in lDTimeDay:
 
             a1var = array([])
             for DTime in lDTimeHour:
-                Year,Mon,Day,Hour,Mnt = DTime.timetuple()[:5]
                 iy0 = bisect_left(lDTime,DTime-timedelta(minutes=30))
                 iy1 = bisect_left(lDTime,DTime+timedelta(minutes=30))
                 if (iy1==0) or (iy0==ny):
                     continue
 
+                if preenv is True:
+                    Year,Mon,Day,Hour,Mnt = (DTime - timedelta(hours=1)).timetuple()[:5]
+                else:
+                    Year,Mon,Day,Hour,Mnt = DTime.timetuple()[:5]
+
                 #--- Read ERA ******
                 a2var = read_var_2d_hour(var,Year,Mon,Day,Hour).data
-               
 
-                ##-- test ---
-                #a2lonera,a2latera=np.meshgrid(arange(0,359.75+0.001,0.25), arange(90,-90-0.001,-0.25))
-                #a2var = a2latera
                 #--- corresponding pixels --
                 latRA0= 90   # from North to South
                 lonRA0= 0
@@ -141,13 +145,17 @@ for DTimeDay in lDTimeDay:
                 a1var = a1var.reshape(nydpr,nxdpr)
 
             #**** Save interpolated variables ****
-            outDir     = outbaseDir + '/%04d/%02d/%02d'%(YearDir,MonDir,DayDir)
+            outDir     = outbaseDir + '/%s/%04d/%02d/%02d'%(var,YearDir,MonDir,DayDir)
             util.mk_dir(outDir)
             #**** Save variable ****
+            shead = ''
             if noscreen is True:
-                outPath = outDir + '/full.%s.00.0km.%s.npy'%(var, oid)
-            else:
-                outPath = outDir + '/%s.00.0km.%s.npy'%(var, oid)
+                shead = shead + 'full.'
+
+            if preenv is True:
+                shead = shead + 'pre.'
+
+            outPath = outDir + '/%s%s.00.0km.%s.npy'%(shead, var, oid)
             np.save(outPath, a1var.astype(float32))
             print outPath 
  

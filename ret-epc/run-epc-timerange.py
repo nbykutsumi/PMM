@@ -5,8 +5,8 @@ import subprocess
 from datetime import datetime, timedelta
 import numpy as np
 
-iDTime = datetime(2014,8,24)
-eDTime = datetime(2014,8,31)
+iDTime = datetime(2015,2,1)
+eDTime = datetime(2015,2,28)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 
@@ -48,7 +48,7 @@ for DTime in lDTime:
         icount = icount+1
         oid = int(gmiPath.split('.')[-3])
         print 'oid=',oid
-        if oid <=2771: continue  # test
+        #if oid <=2304: continue  # test
 
         dargv = {}
         outDir  = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
