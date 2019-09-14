@@ -10,7 +10,7 @@ import sys, os, glob
 from datetime import datetime, timedelta
 import numpy as np
 
-iDTime = datetime(2014,5,1)
+iDTime = datetime(2014,10,22)
 eDTime = datetime(2015,5,31)
 
 dDTime = timedelta(days=1)
@@ -50,16 +50,16 @@ for DTime in lDTime:
     if len(lsrcPathGMI)==0:
         print 'No GMI file',Year,Mon,Day
         print ssearchGMI
-        sys.exit()
+        continue
 
     for srcPathGMI in lsrcPathGMI:
         oid       = srcPathGMI.split('.')[-3] 
 
         # test --
-        loid = [3019,3296,3556,3609,3694,4186,4817,4832,5130]
-        if int(oid) not in loid: continue   # test
+        #loid = [3019,3296,3556,3609,3694,4186,4817,4832,5130]
+        #if int(oid) not in loid: continue   # test
 
-        print srcPathGMI
+        #print srcPathGMI
 
 
         srcDirDPR = baseDirDPR + '/%04d/%02d/%02d'%(Year,Mon,Day)
@@ -103,8 +103,12 @@ for DTime in lDTime:
         LonSub0 = Lon0[:,ix0:ex0+1]
         LatSub0 = Lat0[:,ix0:ex0+1]
         ny,nx   = LonSub0.shape
-        
+        print ny,nx
+
+        if Lat1.shape[0]==0: continue
+
         X1,X2,X3,X4,Y1,Y2,Y3,Y4 = f_match_fov.match_gmi_dpr(LonSub0.T, LatSub0.T, Lon1.T, Lat1.T)
+        #sys.exit()        
         
         print 'calc done'
         X1 = X1.T

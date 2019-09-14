@@ -109,21 +109,21 @@ for case in lcase:
         #dargv['dscan'] = 90
 
 
-        #dargv['oid'] = oid
-        #dargv['clat'] = 45
-        #dargv['clon'] = 143
+        #dargv['oid'] = 1574
+        #dargv['clat'] = 39
+        #dargv['clon'] = 
         #dargv['dlatlon'] = 10
         #dargv['iscan'] = -9999
         #dargv['escan'] = -9999
         #dargv['dscan'] = 300
 
-        dargv['oid'] = oid
-        dargv['clat'] = -9999
-        dargv['clon'] = -9999
-        dargv['dlatlon'] = -9999
-        dargv['iscan'] = -9999
-        dargv['escan'] = -9999
-        dargv['dscan'] = -9999
+        #dargv['oid'] = oid
+        #dargv['clat'] = -9999
+        #dargv['clon'] = -9999
+        #dargv['dlatlon'] = -9999
+        #dargv['iscan'] = -9999
+        #dargv['escan'] = -9999
+        #dargv['dscan'] = -9999
         #------------
         dargv['NEM'] = 12
         dargv['NTBREG'] = 13
@@ -136,9 +136,9 @@ for case in lcase:
         #------------
         dargv['DB_MAXREC'] = 20000
         dargv['DB_MINREC'] = 5000
-        dargv['DB_USE_MINREC'] = 200
+        dargv['DB_USE_MINREC'] = 2
         dargv['NDB_EXPAND'] = 20
-        dargv['DB_RAINFRAC'] = 0.01 # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
+        dargv['DB_RAINFRAC'] = 0.0001 # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
         dargv['MAX_T2M_DIFF'] = 10
         dargv['MAX_TQV_DIFF'] = 10
         

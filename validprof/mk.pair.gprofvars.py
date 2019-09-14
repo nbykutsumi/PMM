@@ -5,19 +5,33 @@ import glob
 import h5py
 import numpy as np
 from datetime import datetime, timedelta
+import socket
 
-iDTime = datetime(2017,9,1)
-eDTime = datetime(2017,12,31)
+#*******************************
+myhost = socket.gethostname()
+if myhost =='shui':
+    tankbaseDir = '/tank'
+    workbaseDir = '/work'
+elif myhost == 'well':
+    tankbaseDir = '/home/utsumi/mnt/lab_tank'
+    workbaseDir = '/home/utsumi/mnt/lab_work'
+else:
+    print 'check myhost'
+    sys.exit()
+#*******************************
+
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 miss_out= -9999.
 #lvar  = ['S1/Latitude', 'S1/Longitude'] 
-lvar  = ['S1/qualityFlag','S1/surfaceTypeIndex'] 
+lvar  = ['S1/Latitude', 'S1/Longitude']+ ['S1/qualityFlag','S1/surfaceTypeIndex'] 
 #------------------------------------------------
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
     
-    gprofbaseDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05'
+    gprofbaseDir = workbaseDir + '/hk01/PMM/NASA/GPM.GMI/2A/V05'
     gprofDir = gprofbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
     ssearch  = gprofDir + '/2A.GPM.GMI.GPROF2017v1.*.??????.V05A.HDF5'
     lgprofPath = sort(glob.glob(ssearch))
@@ -40,7 +54,7 @@ for DTime in lDTime:
             '''
     
         #-- Read DPR -----------------------------------------------
-        dprbaseDir = '/work/hk01/PMM/NASA/GPM.DPRGMI/2B/V06'
+        dprbaseDir = workbaseDir + '/hk01/PMM/NASA/GPM.DPRGMI/2B/V06'
         dprDir     = dprbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
         ssearch = dprDir + '/2B.GPM.DPRGMI.*.%06d.V???.HDF5'%(oid)
         try:
@@ -53,7 +67,7 @@ for DTime in lDTime:
             a2sfcprecd = h['NS/surfPrecipTotRate'][:]
     
         #-- Read GMI-DPR matching index file ----------------------
-        xyDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.IDX/%04d/%02d/%02d'%(Year,Mon,Day)
+        xyDir = tankbaseDir + '/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.IDX/%04d/%02d/%02d'%(Year,Mon,Day)
         xPath = xyDir + '/Xpy.1.%06d.npy'%(oid)
         yPath = xyDir + '/Ypy.1.%06d.npy'%(oid)
 
@@ -101,7 +115,7 @@ for DTime in lDTime:
             a1var = a2var.flatten() 
             a1var = a1var[a1flag] 
    
-            outbaseDir = '/tank/utsumi/validprof/pair.gprof'
+            outbaseDir = tankbaseDir + '/utsumi/validprof/pair.gprof'
             outDir     = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
             util.mk_dir(outDir)
             np.save(outDir + '/%s.%06d.npy'%(varName, oid), a1var)

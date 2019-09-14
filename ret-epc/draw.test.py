@@ -10,47 +10,38 @@ import epcfunc
 import sys, os, glob, socket
 import myfunc.util as util
 
-
 myhost = socket.gethostname()
 if myhost == 'shui':
     #srcDir = '/home/utsumi/temp/out'
     #srcDir = '/home/utsumi/temp/out/my'
     srcbaseDir = '/tank/utsumi/PMM/retepc'
     gprofbaseDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05'
-    workbaseDir = '/work'
+    workbaseDir  = '/work'
     mrmsDir  = '/work/hk01/PMM/MRMS/match-GMI-orbit'
     figDir   = '/home/utsumi/temp/ret'
 
 elif myhost == 'well':
+    #srcbaseDir = '/media/disk2/share/PMM/retepc/glb.wprof'
+    #srcbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/glb.wprof'
     srcbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc'
     gprofbaseDir = '/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.GMI/2A/V05'
-    workbaseDir = '/home/utsumi/mnt/lab_work'
+    workbaseDir  = '/home/utsumi/mnt/lab_work'
     mrmsDir  = '/home/utsumi/mnt/lab_work/hk01/PMM/MRMS/match-GMI-orbit'
-    figDir   = '/home/utsumi/temp/ret'
+    #figDir   = '/home/utsumi/temp/ret'
+    figDir   = '/home/utsumi/mnt/lab_home_rainbow/public_html/tempfig/ret'
 
 else:
     print 'check hostname',myhost
     sys.exit()
 
-
-#expr = 'glb.wprof.org'
-expr = 'test'
-reftype = 'dpr'
 #reftype = 'mrms'
+reftype = 'dpr'
 
 ## Africa case
 #oid = 2421
 #iy, ey = 2029, 2089
 #clat    = 14 # Africa case
 #clon    = 2  # -180 - +180
-
-# Europe just to check batch-version
-oid = 1927
-Year,Mon,Day = 2014,7,1
-iy, ey = 1764,1784
-clat    = 50.8
-clon    = 28.1
-DB_MAXREC = 20000
 
 
 ## West of Great Lakes (good)
@@ -61,13 +52,17 @@ DB_MAXREC = 20000
 #clon    = -92
 #DB_MAXREC = 20000
 
-## West of Great Lakes (Under est.)
-#oid = 1574
-#Year,Mon,Day = 2014,6,8
-#iy, ey = 1074, 1094
-#clat    = 41
-#clon    = -(360-254)
-#DB_MAXREC = 20000
+# West of Great Lakes (Under est.)
+oid = 1927
+Year,Mon,Day = 2014,7,1
+iy, ey = 1764,1784
+clat    = 49
+clon    = 28
+DB_MAXREC = 20000
+expr    = 'test'
+#expr    = 'glb.wprof.org'
+#expr    = 'glb.wprof.tqv'
+#expr    = 'glb.wprof.tqv-elev'
 
 ## Southeast of Grate lakes (Fair)
 #oid = 1573
@@ -76,7 +71,6 @@ DB_MAXREC = 20000
 #clat    = 41
 #clon    = -(360-283)
 #DB_MAXREC = 20000
-
 
 
 ## Great Lake Snow oid=003556, 2014/11/20
@@ -183,8 +177,7 @@ nsurfNScmbPath = srcDir + '/nsurfNScmb.%s.npy'%(stamp)
 #topnsurfMScmbPath = srcDir + '/top-nsurfMScmb.%s.npy'%(stamp)
 #topnsurfNScmbPath = srcDir + '/top-nsurfNScmb.%s.npy'%(stamp)
 
-print nsurfMSPath
-
+print nsurfNScmbPath
 latPath   = srcDir + '/lat.%s.npy'%(stamp)
 lonPath   = srcDir + '/lon.%s.npy'%(stamp)
 #
@@ -240,7 +233,7 @@ a2esurfgp = ma.masked_less_equal(a2esurfgp,0)
 
 #*****************
 #- Read MRMS-on-orbit data ----
-if (reftype=='mrms')and(os.path.exists(mrmsPath)):
+if os.path.exists(mrmsPath):
     print 'Read MRMS'
     iymr,eymr = map(int, mrmsPath.split('.')[-2].split('-'))
     a2mrms  = np.load(mrmsPath)
@@ -259,20 +252,17 @@ if (reftype=='dpr')and(os.path.exists(mrmsPath)):
         a2londpr = h['NS/Longitude'][:]
 
 
+
 #********************************
 #-- Draw figure ---
 print 'Draw figure'
 fig   = plt.figure(figsize=(12,9))
+ssize = 1
 vmin,vmax = 1,20
 #vmin,vmax = 0,3
 
 #-- My retrieval --
 for i in range(6):
-    if (i==5)and(reftype=='dpr'):
-        ssize=0.2
-    else:
-        ssize=1
-
     if i==0:
         #ax = fig.add_axes([0.1,0.66,0.35,0.3])
         ax = fig.add_axes([0.05,0.1,0.26,0.45])
@@ -332,11 +322,28 @@ for i in range(6):
         elif reftype=='dpr':
             stype = 'CMB'
 
-        
+
+
     M     = Basemap(resolution='l', llcrnrlat=lllat, llcrnrlon=lllon, urcrnrlat=urlat, urcrnrlon=urlon, ax=ax)
     im    = M.scatter(a2lon, a2lat, c=a2dat, cmap='jet', s=ssize, vmin=vmin, vmax=vmax)
     M.drawcoastlines()
-    
+
+    #--test --------------
+    #print a2dat.shape
+    y=18
+    x=89
+    lat, lon = a2latMy[y,x], a2lonMy[y,x]
+    #M.plot(lon, lat, 'x', color='r')
+    if stype in ['GPROF']:
+        yy = iy+y-iygp
+    elif stype in ['MRMS']:
+        yy = iy+y-iymr
+    else:
+        yy = y
+
+    if i !=5:
+        print stype, a2lat[yy,x], a2lon[yy,x], a2dat[yy,x]
+    #--------------------- 
     dgrid      = 5
     parallels  = arange(-90,90, dgrid)
     meridians  = arange(-180,180,dgrid)
@@ -349,7 +356,7 @@ cax = fig.add_axes([0.93, 0.2, 0.02, 0.6])
 plt.colorbar(im, orientation='vertical', cax=cax)
 
 #-- Suptitle -------------
-ssuptitle = '%04d/%02d/%02d #%06d (%s)'%(Year,Mon,Day,oid,expr)
+ssuptitle = '%04d/%02d/%02d id=%06d (%s)'%(Year,Mon,Day,oid, expr)
 plt.suptitle(ssuptitle, fontsize=12)
 ##------------
 util.mk_dir(figDir)

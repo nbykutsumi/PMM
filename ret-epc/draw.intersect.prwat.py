@@ -14,19 +14,22 @@ if myhost == 'shui':
     workbaseDir= '/work'
     tankbaseDur= '/tank'
     listDir    = '/work/hk01/utsumi/PMM/US/obtlist'
-    srcbaseDir = '/tank/utsumi/PMM/retepc/glb.wprof'
+    srcbaseDir = '/tank/utsumi/PMM/retepc'
     figDir   = '/home/utsumi/temp/ret'
 
 elif myhost == 'well':
     workbaseDir= '/home/utsumi/mnt/lab_work'
     tankbaseDir= '/home/utsumi/mnt/lab_tank'
     listDir    = '/home/utsumi/mnt/lab_tank/utsumi/PMM/US/obtlist'
-    srcbaseDir = '/media/disk2/share/PMM/retepc/glb.wprof'
+    srcbaseDir = '/media/disk2/share/PMM/retepc'
     figDir   = '/home/utsumi/temp/ret'
 
 else:
     print 'check hostname',myhost
     sys.exit()
+
+
+expr = 'glb.wprof.org'
 
 argv = sys.argv
 if len(argv)==2:
@@ -288,7 +291,7 @@ def load_gprof_prwat(gprofPath,miss_out=-9999.):
 #- Read My data ----
 #srcDir = '/home/utsumi/temp/out/my'
 #outDir = '/home/utsumi/temp/out/my'
-srcDir = srcbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
+srcDir = srcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
 stamp = '%06d.y%04d-%04d.nrec%d'%(oid, iy, ey, DB_MAXREC)
 
 a2topprwatNS = np.load(srcDir + '/top-prwatprofNS.%s.npy'%(stamp))[:, xpos, :]

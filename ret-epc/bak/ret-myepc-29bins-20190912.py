@@ -323,11 +323,9 @@ a3tb = concatenate([a3tb1, a3tb2],axis=2)
 #-- Read MERRA2 data ---------
 #a2ts = np.load(tsPath)
 a2t2m = np.load(t2mPath)
-if tqvPath !='':
-    a2tqv = np.load(tqvPath)
+a2tqv = np.load(tqvPath)
 #-- Read elevation data ---------
-if elevPath !='':
-    a2elev = np.load(elevPath)
+a2elev = np.load(elevPath)
 
 #****************************************************
 # Extract target domain
@@ -345,12 +343,8 @@ else:
     a2lon = a2lon [iscan: escan+1]
     #a2ts  = a2ts  [iscan: escan+1]
     a2t2m  = a2t2m[iscan: escan+1]
-
-    if tqvPath !='':
-        a2tqv  = a2tqv[iscan: escan+1]
-   
-    if elevPath !='': 
-        a2elev= a2elev[iscan: escan+1]
+    a2tqv  = a2tqv[iscan: escan+1]
+    a2elev= a2elev[iscan: escan+1]
 
 #****************************************************
 # Make mask data
@@ -530,11 +524,9 @@ for i,idx_db in enumerate(lidxset):
 
         #a1tsdbTmp  = db.get_var('ts',  nrec=DB_MAXREC) 
         a1t2mdbTmp = db.get_var('t2m', nrec=DB_MAXREC) 
+        a1tqvdbTmp = db.get_var('tqv', nrec=DB_MAXREC) 
         a1revdbTmp = db.get_var('rev', nrec=DB_MAXREC) 
-        if tqvPath !='':
-            a1tqvdbTmp = db.get_var('tqv', nrec=DB_MAXREC) 
-        if elevPath !='':
-            a1elevdbTmp= db.get_var('elev', nrec=DB_MAXREC) 
+        a1elevdbTmp= db.get_var('elev', nrec=DB_MAXREC) 
 
         a1idxdbTmp = np.ones(a2epcdbTmp.shape[0]).astype(int32)*idx_db_expand
         a1irecTmp  = np.arange(a2epcdbTmp.shape[0]).astype(int32)
@@ -557,11 +549,9 @@ for i,idx_db in enumerate(lidxset):
 
             #a1tsdb  = a1tsdbTmp
             a1t2mdb = a1t2mdbTmp
+            a1tqvdb = a1tqvdbTmp
             a1revdb = a1revdbTmp
-            if tqvPath !='':
-                a1tqvdb = a1tqvdbTmp
-            if elevPath !='':
-                a1elevdb= a1elevdbTmp
+            a1elevdb= a1elevdbTmp
 
             a1idxdb = a1idxdbTmp
             a1irec  = a1irecTmp
@@ -579,12 +569,9 @@ for i,idx_db in enumerate(lidxset):
 
             #a1tsdb  = concatenate([a1tsdb,   a1tsdbTmp], axis=0) 
             a1t2mdb  = concatenate([a1t2mdb,  a1t2mdbTmp], axis=0) 
+            a1tqvdb  = concatenate([a1tqvdb,  a1tqvdbTmp], axis=0) 
             a1revdb = concatenate([a1revdb,  a1revdbTmp], axis=0) 
-
-            if tqvPath !='':
-                a1tqvdb  = concatenate([a1tqvdb,  a1tqvdbTmp], axis=0) 
-            if elevPath !='':
-                a1elevdb= concatenate([a1elevdb, a1elevdbTmp], axis=0) 
+            a1elevdb= concatenate([a1elevdb, a1elevdbTmp], axis=0) 
 
             a1idxdb = concatenate([a1idxdb,  a1idxdbTmp], axis=0)
             a1irec  = concatenate([a1irec,   a1irecTmp], axis=0)
@@ -638,27 +625,22 @@ for i,idx_db in enumerate(lidxset):
         a1t2mflag = ma.masked_inside( a1t2mdb-t2m, -MAX_T2M_DIFF, MAX_T2M_DIFF).mask
 
         ##-- tqv --
-        if tqvPath !='':
-            tqv  = a2tqv[y,x]
-            a1tqvflag = ma.masked_inside( a1tqvdb-tqv, -MAX_TQV_DIFF, MAX_TQV_DIFF).mask
-        else:
-            a1tqvflag = True
+        tqv  = a2tqv[y,x]
+        a1tqvflag = ma.masked_inside( a1tqvdb-tqv, -MAX_TQV_DIFF, MAX_TQV_DIFF).mask
+
 
         ##-- Elevation --
-        if elevPath !='':
-            elev = a2elev[y,x]
-            if elev < 500:
-                a1elevflag = ma.masked_less(a1elevdb, 500).mask
-            elif (500 <=elev)and(elev < 1000):
-                a1elevflag = ma.masked_inside(a1elevdb, 500, 1000).mask
-            elif 1000 <=elev:
-                a1elevflag = ma.masked_greater_equal(a1elevdb, 1000).mask
-    
-            else:
-                print 'check elev',elev
-                sys.exit()
+        elev = a2elev[y,x]
+        if elev < 500:
+            a1elevflag = ma.masked_less(a1elevdb, 500).mask
+        elif (500 <=elev)and(elev < 1000):
+            a1elevflag = ma.masked_inside(a1elevdb, 500, 1000).mask
+        elif 1000 <=elev:
+            a1elevflag = ma.masked_greater_equal(a1elevdb, 1000).mask
+
         else:
-            a1elevflag = True
+            print 'check elev',elev
+            sys.exit()
         
         #-- Screen DB candidates --
         a1flagNS   = a1prflagNS * a1t2mflag * a1tqvflag * a1elevflag * a1revflag
@@ -867,4 +849,3 @@ np.save(outDir + '/top-tbNS.%s.npy'%(stamp), a3top_tbNS)
 
 
 print outDir
-print stamp

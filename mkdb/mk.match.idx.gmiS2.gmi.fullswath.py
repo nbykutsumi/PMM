@@ -12,8 +12,8 @@ import h5py
 #eDTime = datetime(2017,12,31)
 #iDTime = datetime(2016,4,18)
 #eDTime = datetime(2016,4,18)
-iDTime = datetime(2014,11,3)
-eDTime = datetime(2014,11,30)
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2015,5,31)
 #iDTime = datetime(2014,9,12)
 #eDTime = datetime(2015,11,30)
 
@@ -68,7 +68,7 @@ for DTime in lDTime:
         print srcPathGMI
         oid       = srcPathGMI.split('.')[-3] 
 
-        #if oid != '021412':continue   # test
+        #if oid != '001573':continue   # test
 
 
         Lat0 = gmi.load_var_granule(srcPathGMI, '%s/Latitude'%('S1'))
@@ -156,7 +156,6 @@ for DTime in lDTime:
         #Y2 = (ma.masked_less(Y2,0)-1).data
         #Y3 = (ma.masked_less(Y3,0)-1).data
         #Y4 = (ma.masked_less(Y4,0)-1).data
-
         
         outDir = obaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
         #outDir = obaseDir + '/temp/%04d/%02d/%02d'%(Year,Mon,Day)

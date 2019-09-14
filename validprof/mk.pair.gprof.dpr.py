@@ -5,9 +5,22 @@ import glob
 import h5py
 import numpy as np
 from datetime import datetime, timedelta
+import socket
 
-iDTime = datetime(2017,1,1)
-eDTime = datetime(2017,12,31)
+#*******************************
+myhost = socket.gethostname()
+if myhost =='shui':
+    tankbaseDir = '/tank'
+    workbaseDir = '/work'
+elif myhost == 'well':
+    tankbaseDir = '/home/utsumi/mnt/lab_tank'
+    workbaseDir = '/home/utsumi/mnt/lab_work'
+else:
+    print 'check myhost'
+    sys.exit()
+#*******************************
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 miss_out= -9999.
@@ -37,6 +50,8 @@ def prof250mTo500m(a3prof, miss_out):
     ny,nx,nz = a3prof.shape
     #a3out = array([ma.masked_less(a3prof[:,:,i:i+2],0).mean(2) for i in range(0,nz,2)])
     a3out = ((ma.masked_less(a3prof[:,:,0::2],0) + ma.masked_less(a3prof[:,:,1::2],0) )*0.5).filled(miss_out)
+    #a3out = ma.masked_less( concatenate([a3prof[:,:,0::2].reshape(ny,nx,-1,1), a3prof[:,:,1::2].reshape(ny,nx,-1,1)], axis=3), 0).mean(axis=3).filled(miss_out)
+
     return a3out
 
 
@@ -50,7 +65,7 @@ def gprofLayerconversion(a3prof):
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
     
-    gprofbaseDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05'
+    gprofbaseDir = workbaseDir + '/hk01/PMM/NASA/GPM.GMI/2A/V05'
     gprofDir = gprofbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
     ssearch  = gprofDir + '/2A.GPM.GMI.GPROF2017v1.*.??????.V05A.HDF5'
     lgprofPath = sort(glob.glob(ssearch))
@@ -102,7 +117,7 @@ for DTime in lDTime:
         a2profg = a3profg.reshape(-1,36)
     
         #-- Read DPR -----------------------------------------------
-        dprbaseDir = '/work/hk01/PMM/NASA/GPM.DPRGMI/2B/V06'
+        dprbaseDir = workbaseDir + '/hk01/PMM/NASA/GPM.DPRGMI/2B/V06'
         dprDir     = dprbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
         ssearch = dprDir + '/2B.GPM.DPRGMI.*.%06d.V???.HDF5'%(oid)
         try:
@@ -120,9 +135,10 @@ for DTime in lDTime:
     
     
         #-- Read GMI-DPR matching index file ----------------------
-        xyDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.IDX/%04d/%02d/%02d'%(Year,Mon,Day)
+        xyDir = tankbaseDir + '/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.IDX/%04d/%02d/%02d'%(Year,Mon,Day)
         xPath = xyDir + '/Xpy.1.%06d.npy'%(oid)
         yPath = xyDir + '/Ypy.1.%06d.npy'%(oid)
+
 
         if not os.path.exists(xPath):
             continue    
@@ -157,8 +173,7 @@ for DTime in lDTime:
         a2profd    = a2profd[a1flag]   # Bottom to top
         a2profg    = a2profg[a1flag]   # Bottom to top
    
-        outbaseDir = '/tank/utsumi/validprof/pair.gprof'
-        outDir     = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
+        outDir     = tankbaseDir + '/utsumi/validprof/pair.gprof/%04d/%02d/%02d'%(Year,Mon,Day)
         util.mk_dir(outDir)
         np.save(outDir + '/profpmw.%06d.npy'%(oid), a2profg)
         np.save(outDir + '/profrad.%06d.npy'%(oid), a2profd)

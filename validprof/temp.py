@@ -1,23 +1,25 @@
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from numpy import *
 import numpy as np
+from numpy import *
+
+rettype='gprof'
+srcPath ='/home/utsumi/mnt/lab_tank/utsumi/validprof/map-uncond/%s/prec.sum.201406.sp.one.npy'%(rettype)
+a = ma.masked_less_equal(np.load(srcPath), 0)
+plt.imshow(a,origin='lower')
+plt.colorbar()
+figPath = '/home/utsumi/temp/validprof/temp1.%s.png'%(rettype)
+plt.savefig(figPath)
+plt.clf()
+print figPath
 
 
-srcDir = '/tank/utsumi/validprof/pr.vs.metrics'
-lprec = arange(0.25, 20+0.01, 0.5)
-
-fig = plt.figure()
-ax  = fig.add_axes([0.1,0.1,0.8,0.8])
-for biaslev in [0,1,2,3]:
-    for sgn in [-1,1]:
-        s = np.load(srcDir + '/taylor.sum.bias=%dx%d.2017.01.npy'%(sgn,biaslev))
-        n = np.load(srcDir + '/taylor.num.bias=%dx%d.2017.01.npy'%(sgn,biaslev))
-        m = ma.masked_invalid(s/n)
-    
-        ax.plot(lprec,m, label=biaslev)
-
-plt.legend()
-plt.savefig('/home/utsumi/temp/validprof/temp.png')
-
+srcPath ='/home/utsumi/mnt/lab_tank/utsumi/validprof/map-uncond/%s/prec.num.201406.sp.one.npy'%(rettype)
+a = ma.masked_less_equal(np.load(srcPath), 0)
+plt.imshow(a,origin='lower')
+plt.colorbar()
+figPath = '/home/utsumi/temp/validprof/temp2.%s.png'%(rettype)
+plt.savefig(figPath)
+plt.clf()
+print figPath

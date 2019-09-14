@@ -16,10 +16,18 @@ lDTimeDay = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 gmibaseDir = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05'
 
 #-- Read GTOPO ----
-lullat = [90,40,-10,-60]
-lullon = [-180,-140,-100,-60,-20,20,60,100,140]
-llatlon = [(ullat,ullon) for ullat in lullat for ullon in lullon]
+#lullat = [90,40,-10,-60]
+#lullon = [-180,-140,-100,-60,-20,20,60,100,140]
+#llatlon = [(ullat,ullon) for ullat in lullat for ullon in lullon]
 
+lullat = [90,40,-10]
+lullon = [-180,-140,-100,-60,-20,20,60,100,140]
+llatlon0 = [(ullat,ullon) for ullat in lullat for ullon in lullon]
+
+lullon = [-180,-120,-60,0,60,120]
+llatlon1 = [(-60,ullon) for ullon in lullon]
+
+llatlon = llatlon0 + llatlon1
 
 ddem    = {}
 for (ullat,ullon) in llatlon:
@@ -43,7 +51,7 @@ for (ullat,ullon) in llatlon:
 
     if ullon >180:
         WE = "W"
-    elif (-180<=ullon)&(ullon<0):
+    elif (-180<=ullon)&(ullon<=0):
         WE = "W"
     else:
         WE = "E"
@@ -75,7 +83,10 @@ for (ullat,ullon) in llatlon:
     """
 
     #ny = 6000
-    nx = 4800
+    if ullat ==-60:
+        ny,nx = 3600,7200
+    else:
+        ny,nx = 6000,4800
     #ddem[(ullat,ullon)] = flipud(fromfile(orogPath, "int16").byteswap().reshape(-1,nx))
     ddem[(ullat,ullon)] = ma.masked_equal(flipud(fromfile(orogPath, "int16").byteswap().reshape(-1,nx)),-9999).filled(0)
 
@@ -140,7 +151,7 @@ for DTimeDay in lDTimeDay:
 
             if lat1==-60:
                 lat0 = -90
-                lon1 = lon0+40
+                lon1 = lon0+60
             else:
                 lat0 = lat1-50
                 lon1 = lon0+40 

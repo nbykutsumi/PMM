@@ -28,15 +28,15 @@ iDTime  = datetime(2014,7,1)
 #iDTime  = datetime(2017,1,1)
 #iDTime  = datetime(2014,7,11)
 #eDTime  = datetime(2014,7,11)
-eDTime  = datetime(2015,4,30)
+eDTime  = datetime(2014,7,1)
 dDTime  = timedelta(days=1)
 lDTime  = util.ret_lDTime(iDTime, eDTime, dDTime)
 
 #spec      = ["TRMM","TMI","2A-CLIM","gprof","V05","A"]
-#spec      = ["GPM","GMI","1C","1C","V05","A"]
+spec      = ["GPM","GMI","1C","1C","V05","A"]
 #spec      = ["GPM","GMI","2A-CLIM","gprof","V05","A"] # input=ECMWF
 #spec      = ["GPM","GMI","2A","gprof","V05","A"] # input=GANAL
-spec      = ["GPM","Ku","2A","radar","V06","A"]
+#spec      = ["GPM","Ku","2A","radar","V06","A"]
 #spec      = ["GPM","Ka","2A","radar","V06","A"]
 #spec      = ["GPM","DPR","2A","radar","V06","A"]
 #spec      = ["GPM","DPRGMI","2B","radar","V06","A"]
@@ -98,6 +98,10 @@ for DTime in lDTime:
     print iDir
     print lPath
     for sPath in lPath:
+        oid = int(sPath.split('.')[-3])
+
+        #if oid > 1923: continue # test
+
         fName = os.path.basename(sPath)
         prdNameTmp, sateTmp, sensorTmp, algFullTmp, dtime, gNum, verFullTmp, sfx = fName.split('.')
         ymd = dtime.split('-')[0]

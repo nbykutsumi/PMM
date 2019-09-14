@@ -1,6 +1,5 @@
 import matplotlib
 matplotlib.use('Agg')
-#a2ts = nc.variables['t2m'][:]
 import matplotlib.pyplot as plt
 from numpy import *
 import h5py
@@ -348,8 +347,7 @@ else:
 
     if tqvPath !='':
         a2tqv  = a2tqv[iscan: escan+1]
-   
-    if elevPath !='': 
+    elif elevPath !='':
         a2elev= a2elev[iscan: escan+1]
 
 #****************************************************
@@ -424,13 +422,17 @@ a3top_tbMS      = ones([nyout,nxout,NTBREG],float32)*miss
 a3top_tbNS      = ones([nyout,nxout,NTBREG],float32)*miss
 
 
+#print '***************************************************************'
+#print 'idx_db=',a2idx_db[1068-1067,117]   # test
+#print '***************************************************************'
+
 #-- Start retrieve --
 X,Y = meshgrid(range(nxout),range(nyout))
 for i,idx_db in enumerate(lidxset):
-    print ''
-    print '************************************'
-    print 'idx_db for primary loop =',idx_db
-    if idx_db==-9999: continue
+    #print ''
+    #print '************************************'
+    #print 'idx_db for primary loop =',idx_db
+    #if idx_db==-9999: continue  # test
 
 
     ##***** test **************
@@ -441,8 +443,21 @@ for i,idx_db in enumerate(lidxset):
     a2bool = ma.masked_equal(a2idx_db, idx_db).mask
     a1x    = X[a2bool]
     a1y    = Y[a2bool]
-    print i,'/',len(lidxset), 'idx_db=%d pixels=%d'%(idx_db, len(a1x))
-
+    #print i,'/',len(lidxset), 'idx_db=%d pixels=%d'%(idx_db, len(a1x))  # test
+    ytmp = 19+1763-iscan   # test
+    xtmp = 89
+    #print '1---------------------'
+    #print ytmp,xtmp,iscan, a1y.max(), a1x.max()
+    if not ((ytmp,xtmp) in zip(a1y,a1x)):  # test
+        continue
+    print '*************************************************************'
+    print '*************************************************************'
+    print ''
+    print 'a2idx_db(ytmp,xtmp)=',a2idx_db[ytmp,xtmp]
+    print 'Found! ytmp,xtmp,idx_db=',ytmp,xtmp,idx_db
+    print ''
+    print '*************************************************************'
+    print '*************************************************************'
     #******************************
     #- check Num of DB entries (expand to neighborhood, if necessary)
     #------------------------------
@@ -456,6 +471,8 @@ for i,idx_db in enumerate(lidxset):
     nevent_warm1 = 0
 
     for idx_db_expand in lidx_db_expand_tmp:
+
+        #continue  # test
 
         #-- If idx_db == -9999 --
         if ((idx_db_expand <0)or(pow(NPCHIST, NEM_USE)-1<idx_db_expand)):
@@ -489,6 +506,9 @@ for i,idx_db in enumerate(lidxset):
     else:
         frac1 = nevent_warm1/float(nevent_warm)
 
+    print '1----------------------------------'
+    print nevent_all,nevent_cold,nevent_cold1,nevent_warm1,nevent_warm
+    print DB_RAINFRAC
     #******************************
     #- Check rain ratio in DB
     #------------------------------
@@ -497,6 +517,7 @@ for i,idx_db in enumerate(lidxset):
         print '%.3f %.3f DB_RAINFRAC=%.3f'%(frac0,frac1, DB_RAINFRAC)
         continue
 
+    print '2----------------------------------'
     #******************************
     #- Read DB (expand to neighborhood, if necessary)
     #------------------------------
@@ -521,6 +542,7 @@ for i,idx_db in enumerate(lidxset):
         a1nsurfNSTmp    = db.get_var('precip_nsfc_NS', nrec=DB_MAXREC)
 
 
+
         #a2prprofNSTmp   = ma.masked_less(db.get_var('precip_prof_MS',     nrec=DB_MAXREC), 0).filled(0.0)[:,-NLEV_PRECIP:]
         #a2prprofNSTmp   = db.get_var('precip_prof_NS',     nrec=DB_MAXREC)[:,-NLEV_PRECIP:]  # test
         #a2prprofNScmbTmp= ma.masked_less(db.get_var('precip_prof_NS_cmb', nrec=DB_MAXREC), 0).filled(0.0)[:,-NLEV_PRECIP:]
@@ -530,11 +552,9 @@ for i,idx_db in enumerate(lidxset):
 
         #a1tsdbTmp  = db.get_var('ts',  nrec=DB_MAXREC) 
         a1t2mdbTmp = db.get_var('t2m', nrec=DB_MAXREC) 
+        a1tqvdbTmp = db.get_var('tqv', nrec=DB_MAXREC) 
         a1revdbTmp = db.get_var('rev', nrec=DB_MAXREC) 
-        if tqvPath !='':
-            a1tqvdbTmp = db.get_var('tqv', nrec=DB_MAXREC) 
-        if elevPath !='':
-            a1elevdbTmp= db.get_var('elev', nrec=DB_MAXREC) 
+        a1elevdbTmp= db.get_var('elev', nrec=DB_MAXREC) 
 
         a1idxdbTmp = np.ones(a2epcdbTmp.shape[0]).astype(int32)*idx_db_expand
         a1irecTmp  = np.arange(a2epcdbTmp.shape[0]).astype(int32)
@@ -557,11 +577,9 @@ for i,idx_db in enumerate(lidxset):
 
             #a1tsdb  = a1tsdbTmp
             a1t2mdb = a1t2mdbTmp
+            a1tqvdb = a1tqvdbTmp
             a1revdb = a1revdbTmp
-            if tqvPath !='':
-                a1tqvdb = a1tqvdbTmp
-            if elevPath !='':
-                a1elevdb= a1elevdbTmp
+            a1elevdb= a1elevdbTmp
 
             a1idxdb = a1idxdbTmp
             a1irec  = a1irecTmp
@@ -579,17 +597,15 @@ for i,idx_db in enumerate(lidxset):
 
             #a1tsdb  = concatenate([a1tsdb,   a1tsdbTmp], axis=0) 
             a1t2mdb  = concatenate([a1t2mdb,  a1t2mdbTmp], axis=0) 
+            a1tqvdb  = concatenate([a1tqvdb,  a1tqvdbTmp], axis=0) 
             a1revdb = concatenate([a1revdb,  a1revdbTmp], axis=0) 
-
-            if tqvPath !='':
-                a1tqvdb  = concatenate([a1tqvdb,  a1tqvdbTmp], axis=0) 
-            if elevPath !='':
-                a1elevdb= concatenate([a1elevdb, a1elevdbTmp], axis=0) 
+            a1elevdb= concatenate([a1elevdb, a1elevdbTmp], axis=0) 
 
             a1idxdb = concatenate([a1idxdb,  a1idxdbTmp], axis=0)
             a1irec  = concatenate([a1irec,   a1irecTmp], axis=0)
              
 
+    print '3----------------------------------'
     #******************************
     #-- Start loop over y,x with the same idx_db --
     #******************************
@@ -600,7 +616,13 @@ for i,idx_db in enumerate(lidxset):
 
     for (y,x) in zip(a1y,a1x):  # in idx_db loop
         ####***** test **************
-        #if x !=98: continue
+        #if y !=1068: continue
+        #elif x !=117: continue
+        #print '------------------------------------------------'
+        #print ''
+        #print 'y,x =',y,x
+        #print ''
+        #print '------------------------------------------------'
         ####***** test **************
 
         #-- Obs EPC --
@@ -638,14 +660,14 @@ for i,idx_db in enumerate(lidxset):
         a1t2mflag = ma.masked_inside( a1t2mdb-t2m, -MAX_T2M_DIFF, MAX_T2M_DIFF).mask
 
         ##-- tqv --
-        if tqvPath !='':
+        if tqvPath != '':
             tqv  = a2tqv[y,x]
             a1tqvflag = ma.masked_inside( a1tqvdb-tqv, -MAX_TQV_DIFF, MAX_TQV_DIFF).mask
         else:
             a1tqvflag = True
 
         ##-- Elevation --
-        if elevPath !='':
+        if elevPath != '':
             elev = a2elev[y,x]
             if elev < 500:
                 a1elevflag = ma.masked_less(a1elevdb, 500).mask
@@ -664,17 +686,34 @@ for i,idx_db in enumerate(lidxset):
         a1flagNS   = a1prflagNS * a1t2mflag * a1tqvflag * a1elevflag * a1revflag
         a1flagMS   = a1prflagMS * a1t2mflag * a1tqvflag * a1elevflag * a1revflag
 
+        #--- test ------------
+        #a1flagNS   = a1prflagNS * a1t2mflag * a1revflag
+        #a1flagMS   = a1prflagMS * a1t2mflag * a1revflag
+
         #a1flagNS   = a1prflagNS * a1t2mflag * a1tqvflag * a1revflag
         #a1flagMS   = a1prflagMS * a1t2mflag * a1tqvflag * a1revflag
 
+        #a1flagNS   = a1prflagNS * a1t2mflag * a1elevflag * a1revflag
+        #a1flagMS   = a1prflagMS * a1t2mflag * a1elevflag * a1revflag
 
 
+        #a1flagNS   = a1prflagNS * a1t2mflag * a1tqvflag * a1elevflag * a1revflag
+        #a1flagMS   = a1prflagMS * a1t2mflag * a1tqvflag * a1elevflag * a1revflag
+
+        #---------------------
+        #print '# of rec=',len(a1flagNS),a1prflagNS.sum(), a1t2mflag.sum(), a1tqvflag.sum(), a1elevflag.sum(), a1revflag.sum(), a1flagNS.sum()
+        #print 'tqv, elev=', tqv, elev
         #if ((len(a1flagNS)<DB_USE_MINREC) or (len(a1flagMS)<DB_USE_MINREC)):
         if (a1flagNS.sum()<DB_USE_MINREC):
+            print 'len(a1flagNS)=',len(a1flagNS)
+            print 'a1prflagNS.sum=',a1prflagNS.sum()
+            print 'a1t2mflag.sum =',a1t2mflag.sum()
+            print 'a1flagNS.sum=',a1flagNS.sum()
             print 'the Number of records are too small'
             print 'Skip' 
             continue
         if (a1flagMS.sum()<DB_USE_MINREC):
+            print 'a1flagMS.sum=',a1flagMS.sum()
             print 'the Number of records are too small'
             print 'Skip' 
             continue
@@ -741,6 +780,7 @@ for i,idx_db in enumerate(lidxset):
         topirecNS  = a1irecNSSC[idxtopNS]
 
 
+        print '4----------------------------------'
         # Read top-db file (for MS) --
         if dbtype=='JPL':
             dbtopPath = dbDir + '/db_%05d.bin'%(topidxdbMS)
@@ -805,6 +845,7 @@ for i,idx_db in enumerate(lidxset):
         nsurfMScmb = (a1nsurfMScmbSC[a1boolwtMS] * a1wtMS).sum() / wtsumMS
 
 
+        print '5-----------------------'  # test
         a2nsurfMS[y,x] = nsurfMS
         a2nsurfNS[y,x] = nsurfNS
         a2nsurfMScmb[y,x] = nsurfMScmb
@@ -819,11 +860,14 @@ for i,idx_db in enumerate(lidxset):
         a3prwatprofNS[y,x,:]    = prwatprofNS.filled(-9999.)
 
 
-        #if ((y==3)&(x==100)):
-        #    print a1wtNS
-        #    sys.exit()
+        print 'nsurfNS, nsurfNScmb=',nsurfNS, nsurfNScmb  # test
+        print y,x
+        print a2nsurfNS[y,x]
+        print ''        
 
-
+print 'out of loop'
+print y,x
+print a2nsurfNS[y,x]
 #--- save (temporary)--
 mk_dir(outDir)
 
@@ -834,6 +878,7 @@ np.save(outDir + '/nsurfNS.%s.npy'%(stamp), a2nsurfNS)
 np.save(outDir + '/nsurfMScmb.%s.npy'%(stamp), a2nsurfMScmb)
 np.save(outDir + '/nsurfNScmb.%s.npy'%(stamp), a2nsurfNScmb)
 
+print outDir + '/nsurfNS.%s.npy'%(stamp), a2nsurfNS
 #np.save(outDir + '/prprofNS.%s.npy'%(stamp), a3prprofNS)
 #np.save(outDir + '/prprofNScmb.%s.npy'%(stamp), a3prprofNScmb)
 np.save(outDir + '/prwatprofNS.%s.npy'%(stamp), a3prwatprofNS)

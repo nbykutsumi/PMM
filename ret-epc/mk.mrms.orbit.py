@@ -5,10 +5,10 @@ import myfunc.util as util
 import glob
 import gzip
 from collections import deque
+from datetime import datetime, timedelta
 
-
-iYM = [2014,7]
-eYM = [2015,5]
+iYM = [2015,1]
+eYM = [2015,1]
 lYM = util.ret_lYM(iYM,eYM)
 
 #*****************
@@ -32,14 +32,20 @@ loid = dorbit.keys()
 #loid = []
 for oid in loid:
     Year,Mon,Day,iy,ey = dorbit[oid]
-
+    DTime = datetime(Year,Mon,Day)
+    #if DTime != datetime(2015,1,9): continue  # test
+    
     #*****************
     # Read GMI L1C
     #*****************
     gmiDir = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05/%04d/%02d/%02d'%(Year,Mon,Day)
     #gmiPath= gmiDir + '/1C.GPM.GMI.XCAL2016-C.20140505-S193910-E211142.001045.V05A.HDF5'
     ssearch = gmiDir + '/1C.GPM.GMI.XCAL2016-C.%04d%02d%02d-S??????-E??????.%06d.V???.HDF5'%(Year,Mon,Day,oid)
-    gmiPath = glob.glob(ssearch)[0]
+    try:
+        gmiPath = glob.glob(ssearch)[0]
+    except IndexError:
+        continue
+
     with h5py.File(gmiPath,'r') as h:
         a2latgmi = h['S1/Latitude'][:]
         a2longmi = h['S1/Longitude'][:]
@@ -55,8 +61,9 @@ for oid in loid:
     #*****************
     # Initialize output    
     #*****************
-    a1out = ones(len(a1latgmi),float32)*(-9999.)
-
+    #a1out = ones(len(a1latgmi),float32)*(-9999.)
+    a1sum = zeros(len(a1latgmi),float32)
+    a1num = zeros(len(a1latgmi),int32)
     #*****************
     # Make MRMS list
     #*****************
@@ -66,6 +73,7 @@ for oid in loid:
     lmrmsPath = glob.glob(ssearch)
     if len(lmrmsPath)==0:
         print 'No MRMS',Year,Mon,Day,oid
+
 
     #*****************
     # Read MRMS
@@ -96,8 +104,11 @@ for oid in loid:
             adist = RADEARTH*np.arccos(np.cos(DTR*a1longmi-DTR*lon)*np.cos(DTR*a1latgmi)*np.cos(DTR*lat) + np.sin(DTR*a1latgmi)*np.sin(DTR*lat))
 
             j = adist.argmin()
-            a1out[j] = dat
-        
+            #a1out[j] = dat
+            a1sum[j] = a1sum[j] + dat
+            a1num[j] = a1num[j] + 1
+
+    a1out = (ma.masked_where(a1num==0, a1sum)/a1num).filled(-9999.)
     #*****************
     # Save
     #*****************

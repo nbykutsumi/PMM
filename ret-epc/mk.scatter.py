@@ -16,7 +16,7 @@ import calendar
 myhost = socket.gethostname()
 if myhost == 'shui':
     listDir    = '/work/hk01/utsumi/PMM/US/obtlist'
-    srcbaseDir = '/tank/utsumi/PMM/retepc/glb.wprof'
+    srcbaseDir = '/tank/utsumi/PMM/retepc'
     gprofbaseDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05'
 
     mrmsDir  = '/work/hk01/PMM/MRMS/match-GMI-orbit'
@@ -24,7 +24,7 @@ if myhost == 'shui':
 
 elif myhost == 'well':
     listDir    = '/home/utsumi/mnt/lab_tank/utsumi/PMM/US/obtlist'
-    srcbaseDir = '/media/disk2/share/PMM/retepc/glb.wprof'
+    srcbaseDir = '/media/disk2/share/PMM/retepc'
     gprofbaseDir = '/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.GMI/2A/V05'
     mrmsDir  = '/home/utsumi/mnt/lab_work/hk01/PMM/MRMS/match-GMI-orbit'
     figDir   = '/home/utsumi/temp/ret'
@@ -53,6 +53,7 @@ lrettype = ['NS','MS','NScmb','MScmb','GPROF']
 #lrettype = ['NS']
 #prmin = 0.1
 prmin = 0.01
+expr  = 'glb.wprof.org'
 
 def read_orbitlist(Year,Mon):
     listPath = listDir + '/overpass.GPM.%04d.%02d.csv'%(Year,Mon)
@@ -99,7 +100,7 @@ for season in lseason:
                             a2ret = h['S1/surfacePrecipitation'][iy:ey+1]
 
                     else:
-                        retDir = srcbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
+                        retDir = srcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
                         a2ret  = np.load(retDir + '/nsurf%s.%06d.y-9999--9999.nrec%d.npy'%(rettype, oid, nrec))[iy:ey+1]
                         a2ret = ma.masked_less(a2ret, prmin).filled(0.0) 
 

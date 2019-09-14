@@ -14,7 +14,7 @@ if myhost == 'shui':
     workbaseDir= '/work'
     tankbaseDur= '/tank'
     listDir    = '/work/hk01/utsumi/PMM/US/obtlist'
-    srcbaseDir = '/tank/utsumi/PMM/retepc/glb.wprof'
+    srcbaseDir = '/tank/utsumi/PMM/retepc'
     gprofbaseDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05'
     figDir   = '/home/utsumi/temp/ret'
 
@@ -22,7 +22,7 @@ elif myhost == 'well':
     workbaseDir= '/home/utsumi/mnt/lab_work'
     tankbaseDir= '/home/utsumi/mnt/lab_tank'
     listDir    = '/home/utsumi/mnt/lab_tank/utsumi/PMM/US/obtlist'
-    srcbaseDir = '/media/disk2/share/PMM/retepc/glb.wprof'
+    srcbaseDir = '/media/disk2/share/PMM/retepc'
     gprofbaseDir = '/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.GMI/2A/V05'
     figDir   = '/home/utsumi/temp/ret'
 
@@ -30,6 +30,8 @@ else:
     print 'check hostname',myhost
     sys.exit()
 
+
+expr = 'glb.wprof.org'
 
 argv = sys.argv
 if len(argv)==2:
@@ -217,7 +219,7 @@ def load_GMI_Tb13(Year,Mon,Day,oid):
 #- Read My data ----
 #srcDir = '/home/utsumi/temp/out/my'
 #stamp = '%06d.y%04d-%04d.nrec%d'%(oid, idx_c-dscan, idx_c+dscan,DB_MAXREC)
-srcDir = srcbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
+srcDir = srcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
 stamp = '%06d.y%04d-%04d.nrec%d'%(oid, iy, ey, DB_MAXREC)
 a2topzmMS  = np.load(srcDir + '/top-zmMS.%s.npy'%(stamp))[:, xpos, :]
 a2topzmNS  = np.load(srcDir + '/top-zmNS.%s.npy'%(stamp))[:, xpos, :]
