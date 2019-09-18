@@ -34,7 +34,9 @@ else:
 
 
 #expr = 'glb.wprof.org'
-expr = 'test'
+#expr = 'glb.wprof.batch'
+#expr = 'test'
+expr = 'rnr'
 reftype = 'dpr'
 #reftype = 'mrms'
 
@@ -47,7 +49,7 @@ reftype = 'dpr'
 # Europe just to check batch-version
 oid = 1927
 Year,Mon,Day = 2014,7,1
-iy, ey = 1764,1784
+iy, ey = 1764, 1784
 clat    = 50.8
 clon    = 28.1
 DB_MAXREC = 20000
@@ -353,6 +355,6 @@ ssuptitle = '%04d/%02d/%02d #%06d (%s)'%(Year,Mon,Day,oid,expr)
 plt.suptitle(ssuptitle, fontsize=12)
 ##------------
 util.mk_dir(figDir)
-outPath  = figDir + '/prcp.map.%06d.y%d-%d.png'%(oid,iy,ey)
+outPath  = figDir + '/prcp.map.%s.%06d.y%d-%d.png'%(expr,oid,iy,ey)
 plt.savefig(outPath)
 print outPath

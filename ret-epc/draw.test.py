@@ -56,10 +56,11 @@ reftype = 'dpr'
 oid = 1927
 Year,Mon,Day = 2014,7,1
 iy, ey = 1764,1784
-clat    = 49
-clon    = 28
+clat    = 50.8
+clon    = 28.1
 DB_MAXREC = 20000
-expr    = 'test'
+expr    = 'rnr'
+#expr    = 'test'
 #expr    = 'glb.wprof.org'
 #expr    = 'glb.wprof.tqv'
 #expr    = 'glb.wprof.tqv-elev'
@@ -330,10 +331,10 @@ for i in range(6):
 
     #--test --------------
     #print a2dat.shape
-    y=18
-    x=89
+    y=13
+    x=87
     lat, lon = a2latMy[y,x], a2lonMy[y,x]
-    #M.plot(lon, lat, 'x', color='r')
+    M.plot(lon, lat, 'x', color='r')
     if stype in ['GPROF']:
         yy = iy+y-iygp
     elif stype in ['MRMS']:
@@ -360,6 +361,6 @@ ssuptitle = '%04d/%02d/%02d id=%06d (%s)'%(Year,Mon,Day,oid, expr)
 plt.suptitle(ssuptitle, fontsize=12)
 ##------------
 util.mk_dir(figDir)
-outPath  = figDir + '/prcp.map.%06d.y%d-%d.png'%(oid,iy,ey)
+outPath  = figDir + '/prcp.map.%s.%06d.y%d-%d.png'%(expr,oid,iy,ey)
 plt.savefig(outPath)
 print outPath

@@ -43,6 +43,38 @@ def read_nrain(idx_db):
     a1nrain_warm = a1nrain[6:]
     return a1nrain_warm, a1nrain_cold 
 
+
+def read_rnr_table(idx_db):
+    '''
+    Rain/No Rain screening
+    --- Contents of files ----
+    calc 0:Skip all pixels  1:Screening  2:Calc all pixels
+    D :  Linear discriminator threshold.
+         If discriminator for the pixelsi smaller than this threshold, assign 'no-rain' to the pixel.
+    SR:  Skip Ratio (expected fraction of skipped pixels)
+    RMA: Ratio of Missing Amount  (>=0, 0.1, 1, 5, 10mm/h)
+    m_org-s_no: First 12: For 12 EPCs. 13th: T2m
+    '''
+
+    rnrDir  = dbDir + '/rnr'
+    srcPath = rnrDir + '/rnr.%05d.txt'%(idx_db)
+    f=open(srcPath,'r'); lines=f.readlines(); f.close()
+
+    rnrflag = int(lines[0].split('\t')[1])
+    thD     = float(lines[1].split('\t')[1])
+    SR      = float(lines[2].split('\t')[1])
+    lRMA    = map(float, lines[3].split('\t')[1:])
+    ave_org   = np.array(map(float, lines[4].split('\t')[1:]))  # for normalization
+    ave_rain  = np.array(map(float, lines[5].split('\t')[1:]))  # Averages of normalized variables
+    ave_no    = np.array(map(float, lines[6].split('\t')[1:]))  # Averages of normalized variables
+    std_org   = np.array(map(float, lines[7].split('\t')[1:]))  # for normalization
+    std_rain  = np.array(map(float, lines[8].split('\t')[1:]))  # Averages of normalized variables
+    std_no    = np.array(map(float, lines[9].split('\t')[1:]))  # Averages of normalized variables
+
+
+    return rnrflag, thD, SR, lRMA, ave_org, ave_rain, ave_no, std_org, std_rain, std_no
+
+
 def ret_domain_cy(a2lat, a2lon, clat, clon, dlatlon):
     nyTmp, nxTmp = a2lat.shape
     a1lat = a2lat[:,nxTmp/2]
@@ -254,8 +286,11 @@ else:
     DB_USE_MINREC = int(dargv['DB_USE_MINREC']) 
     NDB_EXPAND= int(dargv['NDB_EXPAND'])
     DB_RAINFRAC = float(dargv['DB_RAINFRAC']) # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
-    MAX_T2M_DIFF= int(dargv['MAX_T2M_DIFF'])
-    MAX_TQV_DIFF= int(dargv['MAX_TQV_DIFF'])
+    MAX_T2M_DIFF= float(dargv['MAX_T2M_DIFF'])
+    MAX_TQV_DIFF= float(dargv['MAX_TQV_DIFF'])
+    MAX_RMA_0   = float(dargv['MAX_RMA_0'])
+    MAX_RMA_5   = float(dargv['MAX_RMA_5'])
+
     
     srcPath   = dargv['srcPath'] 
     s2xPath   = dargv['s2xPath'] 
@@ -323,9 +358,11 @@ a3tb = concatenate([a3tb1, a3tb2],axis=2)
 #-- Read MERRA2 data ---------
 #a2ts = np.load(tsPath)
 a2t2m = np.load(t2mPath)
-a2tqv = np.load(tqvPath)
+if tqvPath !='':
+    a2tqv = np.load(tqvPath)
 #-- Read elevation data ---------
-a2elev = np.load(elevPath)
+if elevPath !='':
+    a2elev = np.load(elevPath)
 
 #****************************************************
 # Extract target domain
@@ -343,8 +380,12 @@ else:
     a2lon = a2lon [iscan: escan+1]
     #a2ts  = a2ts  [iscan: escan+1]
     a2t2m  = a2t2m[iscan: escan+1]
-    a2tqv  = a2tqv[iscan: escan+1]
-    a2elev= a2elev[iscan: escan+1]
+
+    if tqvPath !='':
+        a2tqv  = a2tqv[iscan: escan+1]
+   
+    if elevPath !='': 
+        a2elev= a2elev[iscan: escan+1]
 
 #****************************************************
 # Make mask data
@@ -367,22 +408,20 @@ print 'calc idx'
 a2idx_db = epcfunc.mk_epc_id_nbins(a3epc, a2pc_edge, NPCHIST)
 print 'calc idx done'
 
-##-- test: replace idx_db with JPL's ---
-#print '*'*40
-#print 'CAUTION!!'
-#print 'IDX is replaced for test'
-#print '*'*40
-#a2idx_db = np.load('/home/utsumi/temp/out/idx-jpl-full-002421.npy')
-#a2idx_db = a2idx_db[idx_c-dscan: idx_c+dscan+1]
 ##--------------------------------------
 
 a2idx_db = ma.masked_where(a2mask, a2idx_db).filled(miss)
 
-#-----------------
+#--- test ------------
+ytmp = 13
+xtmp = 87
+print iscan, escan, a2idx_db.shape
+print 'id_db at the point=',a2idx_db[ytmp,xtmp]
+#****************************************************
 lidxset  = list(set(a2idx_db.flatten()))
 lidxset  = sort(lidxset)
 #****************************************************
-# DBidx-y-x mapping
+# Initialize output variables
 #----------------------------------------------------
 nyout,nxout = a2idx_db.shape
 
@@ -418,24 +457,25 @@ a3top_tbMS      = ones([nyout,nxout,NTBREG],float32)*miss
 a3top_tbNS      = ones([nyout,nxout,NTBREG],float32)*miss
 
 
-#-- Start retrieve --
+#-- Start retrieval --
 X,Y = meshgrid(range(nxout),range(nyout))
 for i,idx_db in enumerate(lidxset):
+
+    #***** test **************
+    if idx_db !=4120: continue
+    #***** test **************
+
     print ''
     print '************************************'
     print 'idx_db for primary loop =',idx_db
     if idx_db==-9999: continue
 
-
-    ##***** test **************
-    #if idx_db !=3077: continue
-    ##***** test **************
-
-
+    #****************************************************
     a2bool = ma.masked_equal(a2idx_db, idx_db).mask
     a1x    = X[a2bool]
     a1y    = Y[a2bool]
     print i,'/',len(lidxset), 'idx_db=%d pixels=%d'%(idx_db, len(a1x))
+
 
     #******************************
     #- check Num of DB entries (expand to neighborhood, if necessary)
@@ -491,6 +531,73 @@ for i,idx_db in enumerate(lidxset):
         print '%.3f %.3f DB_RAINFRAC=%.3f'%(frac0,frac1, DB_RAINFRAC)
         continue
 
+
+    #****************************************************
+    # Rain/No Rain (RNR) Screening : Conservative
+    #----------------------------------------------------
+    '''
+    Based on the first (closest) DB in lidx_db_expand
+    '''
+    if MAX_RMA_0 !=-9999.:
+        idx_db_tmp = lidx_db_expand[0]
+ 
+        rnrcalc, thD, SR, lRMA, ave_org, ave_rain, ave_no, std_org, std_rain, std_no = read_rnr_table(idx_db_tmp)
+
+    print 'rnrcalc',rnrcalc
+    print 'lRMA=',lRMA
+    print MAX_RMA_0, MAX_RMA_5
+    if MAX_RMA_0 ==-9999.:
+        ''' No screening. Calc all pixels. '''
+        pass
+
+    elif rnrcalc == 0:
+        print 'RNR screening: SKIP all pixels for idx_db = ',idx_db
+        print 'Determined based on neigborhood idx_db=',idx_db_tmp
+        continue
+
+    elif rnrcalc==2:
+        print 'RNR screening: CALC all pixels for idx_db=',idx_db
+        print 'Determined based on neigborhood idx_db=',idx_db_tmp
+        pass
+
+    elif (rnrcalc==1) and (lRMA[0] > MAX_RMA_0):
+        print 'RNR screening: CALC all pixels for idx_db=',idx_db
+        print 'Determined based on neigborhood idx_db=',idx_db_tmp
+        print 'RMA(>=0mm/h) is too large for screening: RMA(>=0mm/h)=',lRMA[0]
+        pass 
+
+    elif (rnrcalc==1) and (lRMA[3] > MAX_RMA_5):
+        print 'RNR screening: CALC all pixels for idx_db=',idx_db
+        print 'Determined based on neigborhood idx_db=',idx_db_tmp
+        print 'RMA(>=0mm/h) is too large for screening: RMA(>=5mm/h)=',lRMA[3]
+        pass
+
+    elif rnrcalc==1:  # Do screening
+        a2epcTmp = a3epc[a1y,a1x,:]
+        a1t2mTmp = a2t2m[a1y,a1x]
+        a2epcTmp = np.concatenate([a2epcTmp, a1t2mTmp.reshape(-1,1)],axis=1)
+        a2epcTmp = (a2epcTmp - ave_org)/std_org
+
+        a1d      = ( (ave_no - ave_rain)/(std_no + std_rain)*(ave_no - a2epcTmp) ).sum(axis=1)
+        a1flag_rain = ma.masked_greater_equal(a1d, thD).mask
+
+        print a1d
+        print thD
+        #-- If all pixels are no-rain --
+        if a1flag_rain is np.bool_(False):
+            print 'RNR screening: SKIP all pixels for idx_db = ',idx_db
+            print 'Determined based on neigborhood idx_db=',idx_db_tmp
+            print 'Based on screening'
+            continue
+
+        #-- Keep only raining pixels --
+        print 'Screen: keep', len(a1flag_rain),'/',len(a1y)
+        #if len(a1flag_rain) != len(a1y):
+        #    sys.exit()
+        a1y = a1y[a1flag_rain]
+        a1x = a1x[a1flag_rain]
+
+
     #******************************
     #- Read DB (expand to neighborhood, if necessary)
     #------------------------------
@@ -524,9 +631,11 @@ for i,idx_db in enumerate(lidxset):
 
         #a1tsdbTmp  = db.get_var('ts',  nrec=DB_MAXREC) 
         a1t2mdbTmp = db.get_var('t2m', nrec=DB_MAXREC) 
-        a1tqvdbTmp = db.get_var('tqv', nrec=DB_MAXREC) 
         a1revdbTmp = db.get_var('rev', nrec=DB_MAXREC) 
-        a1elevdbTmp= db.get_var('elev', nrec=DB_MAXREC) 
+        if tqvPath !='':
+            a1tqvdbTmp = db.get_var('tqv', nrec=DB_MAXREC) 
+        if elevPath !='':
+            a1elevdbTmp= db.get_var('elev', nrec=DB_MAXREC) 
 
         a1idxdbTmp = np.ones(a2epcdbTmp.shape[0]).astype(int32)*idx_db_expand
         a1irecTmp  = np.arange(a2epcdbTmp.shape[0]).astype(int32)
@@ -549,9 +658,11 @@ for i,idx_db in enumerate(lidxset):
 
             #a1tsdb  = a1tsdbTmp
             a1t2mdb = a1t2mdbTmp
-            a1tqvdb = a1tqvdbTmp
             a1revdb = a1revdbTmp
-            a1elevdb= a1elevdbTmp
+            if tqvPath !='':
+                a1tqvdb = a1tqvdbTmp
+            if elevPath !='':
+                a1elevdb= a1elevdbTmp
 
             a1idxdb = a1idxdbTmp
             a1irec  = a1irecTmp
@@ -569,9 +680,12 @@ for i,idx_db in enumerate(lidxset):
 
             #a1tsdb  = concatenate([a1tsdb,   a1tsdbTmp], axis=0) 
             a1t2mdb  = concatenate([a1t2mdb,  a1t2mdbTmp], axis=0) 
-            a1tqvdb  = concatenate([a1tqvdb,  a1tqvdbTmp], axis=0) 
             a1revdb = concatenate([a1revdb,  a1revdbTmp], axis=0) 
-            a1elevdb= concatenate([a1elevdb, a1elevdbTmp], axis=0) 
+
+            if tqvPath !='':
+                a1tqvdb  = concatenate([a1tqvdb,  a1tqvdbTmp], axis=0) 
+            if elevPath !='':
+                a1elevdb= concatenate([a1elevdb, a1elevdbTmp], axis=0) 
 
             a1idxdb = concatenate([a1idxdb,  a1idxdbTmp], axis=0)
             a1irec  = concatenate([a1irec,   a1irecTmp], axis=0)
@@ -625,22 +739,27 @@ for i,idx_db in enumerate(lidxset):
         a1t2mflag = ma.masked_inside( a1t2mdb-t2m, -MAX_T2M_DIFF, MAX_T2M_DIFF).mask
 
         ##-- tqv --
-        tqv  = a2tqv[y,x]
-        a1tqvflag = ma.masked_inside( a1tqvdb-tqv, -MAX_TQV_DIFF, MAX_TQV_DIFF).mask
-
+        if tqvPath !='':
+            tqv  = a2tqv[y,x]
+            a1tqvflag = ma.masked_inside( a1tqvdb-tqv, -MAX_TQV_DIFF, MAX_TQV_DIFF).mask
+        else:
+            a1tqvflag = True
 
         ##-- Elevation --
-        elev = a2elev[y,x]
-        if elev < 500:
-            a1elevflag = ma.masked_less(a1elevdb, 500).mask
-        elif (500 <=elev)and(elev < 1000):
-            a1elevflag = ma.masked_inside(a1elevdb, 500, 1000).mask
-        elif 1000 <=elev:
-            a1elevflag = ma.masked_greater_equal(a1elevdb, 1000).mask
-
+        if elevPath !='':
+            elev = a2elev[y,x]
+            if elev < 500:
+                a1elevflag = ma.masked_less(a1elevdb, 500).mask
+            elif (500 <=elev)and(elev < 1000):
+                a1elevflag = ma.masked_inside(a1elevdb, 500, 1000).mask
+            elif 1000 <=elev:
+                a1elevflag = ma.masked_greater_equal(a1elevdb, 1000).mask
+    
+            else:
+                print 'check elev',elev
+                sys.exit()
         else:
-            print 'check elev',elev
-            sys.exit()
+            a1elevflag = True
         
         #-- Screen DB candidates --
         a1flagNS   = a1prflagNS * a1t2mflag * a1tqvflag * a1elevflag * a1revflag
@@ -801,6 +920,7 @@ for i,idx_db in enumerate(lidxset):
         a3prwatprofNS[y,x,:]    = prwatprofNS.filled(-9999.)
 
 
+        #print 'y,x=',y,x,'NS, NScmb=',a2nsurfNS[y,x], a2nsurfNScmb[y,x]
         #if ((y==3)&(x==100)):
         #    print a1wtNS
         #    sys.exit()
@@ -849,3 +969,4 @@ np.save(outDir + '/top-tbNS.%s.npy'%(stamp), a3top_tbNS)
 
 
 print outDir
+print stamp

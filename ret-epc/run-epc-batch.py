@@ -6,15 +6,17 @@ from datetime import datetime, timedelta
 import numpy as np
 import h5py
 
-iDTime = datetime(2014,6,1)
-eDTime = datetime(2014,6,1)
+iDTime = datetime(2014,6,15)
+eDTime = datetime(2014,6,30)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 
 batchsize = 4
+#batchsize = 1
 #** Constants ******
 #expr = 'glb.wprof.org'
-expr = 'glb.wprof.batch'
+#expr = 'glb.wprof.batch'
+expr = 'glb.wprof.rnr'
 prog = 'ret-myepc-29bins.py'
 #prog = 'ret-test.py'
 sensor  = 'GMI'
@@ -49,6 +51,9 @@ for DTime in lDTime:
     #** Make batch list ***   
     llgmiPath = [lgmiPathAll[i*batchsize:(i+1)*batchsize] for i in range(int(len(lgmiPathAll)/batchsize) +1)]
 
+    ##-- test --
+    #llgmiPath = [['/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.GMI/1C/V05/2014/07/01/1C.GPM.GMI.XCAL2016-C.20140701-S121951-E135224.001927.V05A.HDF5']]
+    ##----------
     for lgmiPath in llgmiPath:
         icount = icount+1
 
@@ -67,7 +72,8 @@ for DTime in lDTime:
         for gmiPath in lgmiPath:
             oid = int(gmiPath.split('.')[-3])
             print 'oid=',oid
-            #if oid != 1574: continue  # test
+            #if oid != 1927: continue  # test
+
             loid.append(oid)
             #------------
             srcPath = glob.glob(gmibaseDir + '/%04d/%02d/%02d/1C.GPM.GMI.XCAL2016-C.*.%06d.????.HDF5'%(Year,Mon,Day,oid))[0]
@@ -201,7 +207,7 @@ for DTime in lDTime:
         dargv['DB_RAINFRAC'] = 0.0001 # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
         dargv['MAX_T2M_DIFF'] = 10
         dargv['MAX_TQV_DIFF'] = 10
-        
+        dargv['MAX_RMA_0'] = 0.05 # Maximum Ratio of missing amount (0>=mm/h) acceptable for rain / no-rain classification # -9999. --> No screening
         dargv['outDir'] = outDirTmp
     
         #------------
