@@ -4,39 +4,56 @@ import glob
 import subprocess
 from datetime import datetime, timedelta
 import numpy as np
+import shutil
 
-iDTime = datetime(2014,6,1)
-eDTime = datetime(2014,6,15)
+iDTime = datetime(2014,6,16)
+eDTime = datetime(2014,6,16)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 
 
 #** Constants ******
-#expr = 'test'
+DB_MAXREC = 10000
+#DB_MAXREC = 20000
+DB_MINREC = 1000
+#expr = 'test.minrec5000'
+#expr = 'test.minrec5000.maxrec20000'
+#expr = 'test.minrec5000.maxrec%d'%(DB_MAXREC)
+#expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 #expr = 'rnr'
-expr = 'glb.wprof.rnr'
+#expr = 'glb.wprof.rnr'
+#expr = 'glb.nprof'
+expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 prog = 'ret-myepc-29bins.py'
 #prog = 'ret-testrnr.py'
 #prog = 'ret-test.py'
 sensor  = 'GMI'
-
 myhost = socket.gethostname()
 if myhost =="shui":
     gmibaseDir  = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05'
     matchbaseDir= '/tank/utsumi/PMM/MATCH.GMI.V05A'
     coefDir = '/tank/utsumi/PMM/EPCDB/EPC_COEF/%s'%(sensor)
-    dbDir   = '/tank/utsumi/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117.01-12'
+    dbDir   = '/tank/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
     outbaseDir = '/tank/utsumi/PMM/retepc/%s'%(expr) 
 elif myhost =="well":
     #gmibaseDir  = '/media/disk2/share/data/PMM/NASA/GPM.GMI/1C/V05'
     gmibaseDir  = '/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.GMI/1C/V05'
     matchbaseDir= '/media/disk2/share/PMM/MATCH.GMI.V05A'
     coefDir = '/media/disk2/share/PMM/EPCDB/EPC_COEF/%s'%(sensor)
-    dbDir   = '/media/disk2/share/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117.01-12'
+    dbDir   = '/media/disk2/share/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
     #outbaseDir = '/media/disk2/share/PMM/retepc/%s'%(expr)
     outbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/%s'%(expr)
 
 
+#*******************
+# Copy program
+#*******************
+copyDir = './progtemp'
+util.mk_dir(copyDir)
+progtime = datetime.now().strftime('%Y-%m-%d-%H:%M-%S-%f')
+progcopy = copyDir + '/%s.%s'%(prog,progtime)
+shutil.copy(prog, progcopy)
+print progcopy
 #*******************
 
 icount = 0
@@ -52,7 +69,7 @@ for DTime in lDTime:
         oid = int(gmiPath.split('.')[-3])
         print 'oid=',oid
 
-        #if oid != 1927: continue  # test
+        #if oid <=1487: continue  # test
 
         dargv = {}
         outDir  = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
@@ -93,12 +110,21 @@ for DTime in lDTime:
        
         ##-- test ---- 
         #dargv['oid'] = oid
-        #dargv['clat'] = 50.8
-        #dargv['clon'] = 28.1
+        #dargv['clat'] = 52.5
+        #dargv['clon'] = 270-360
         #dargv['dlatlon'] = 20
         #dargv['iscan'] = -9999
         #dargv['escan'] = -9999
         #dargv['dscan'] = 10
+
+        #dargv['oid'] = oid
+        #dargv['clat'] = 39.6
+        #dargv['clon'] = -104.1
+        #dargv['dlatlon'] = 15
+        #dargv['iscan'] = -9999
+        #dargv['escan'] = -9999
+        #dargv['dscan'] = 20
+
 
         dargv['oid'] = oid
         dargv['clat'] = -9999
@@ -116,15 +142,19 @@ for DTime in lDTime:
         dargv['NLEV_PRECIP'] = 50
         dargv['thwtmin'] = 0.1
         dargv['miss'] = -9999.
+        dargv['miss_int32'] = np.int32(-9999)
         #------------
-        dargv['DB_MAXREC'] = 20000
-        dargv['DB_MINREC'] = 5000
+        dargv['DB_MAXREC'] = DB_MAXREC
+        dargv['DB_MINREC'] = DB_MINREC
         dargv['DB_USE_MINREC'] = 2
         dargv['NDB_EXPAND'] = 20
         dargv['DB_RAINFRAC'] = 0.0001 # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
         dargv['MAX_T2M_DIFF'] = 10
         dargv['MAX_TQV_DIFF'] = 10
         dargv['MAX_RMA_0'] = 0.05   # Maximum Ratio of missing amount (0>=mm/h) acceptable for rain / no-rain classification # -9999. --> No screening
+
+        dargv['flag_top_var'] = 0  # 0: No top-ranked vars. 1: Retrieve top-ranked vars.
+        #dargv['flag_top_var'] = 1  # 0: No top-ranked vars. 1: Retrieve top-ranked vars.
 
         dargv['outDir'] = outDir
 
@@ -154,6 +184,11 @@ for DTime in lDTime:
         sargv = ' '.join(sargv)
         
         
-        lcmd = ['python', prog, sargv]
+        lcmd = ['python', progcopy, sargv]
         print lcmd
         subprocess.call(lcmd)
+
+
+
+os.remove(progcopy)
+print 'remove progcopy',progcopy

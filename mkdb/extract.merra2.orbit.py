@@ -9,7 +9,7 @@ import myfunc.util as util
 import glob
 
 
-iDTime = datetime(2017,1,1)
+iDTime = datetime(2017,2,17)
 eDTime = datetime(2017,12,31)
 lDTimeDay = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
@@ -17,8 +17,10 @@ gmibaseDir = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05'
 
 #raProd    = 'M2T1NXSLV'
 raProd    = 'M2I1NXASM'
-lvarName  = ['tqv','t2m']
-#varName   = 't2m'
+#lvarName  = ['tqv','t2m']
+#lvarName  = ['tqv','t2m']
+lvarName  = ['t2m']
+#lvarName  = ['tqv']
 rabaseDir = '/work/hk01/utsumi/MERRA2'
 draVar    = {'t2m':'T2M','tqv':'TQV'}
 

@@ -100,7 +100,7 @@ for DTime in lDTime:
     for sPath in lPath:
         oid = int(sPath.split('.')[-3])
 
-        #if oid > 1923: continue # test
+        #if oid != 1924: continue # test
 
         fName = os.path.basename(sPath)
         prdNameTmp, sateTmp, sensorTmp, algFullTmp, dtime, gNum, verFullTmp, sfx = fName.split('.')

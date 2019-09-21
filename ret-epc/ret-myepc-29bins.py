@@ -1,6 +1,5 @@
 import matplotlib
 matplotlib.use('Agg')
-#a2ts = nc.variables['t2m'][:]
 import matplotlib.pyplot as plt
 from numpy import *
 import h5py
@@ -10,7 +9,6 @@ import JPLDB
 import EPCDB
 from bisect import bisect_left
 import epcfunc
-#from math import acos, cos, sin
 
 #-- functions -----
 def mk_dir(sdir):
@@ -57,10 +55,10 @@ def read_rnr_table(idx_db):
     m_org-s_no: First 12: For 12 EPCs. 13th: T2m
     '''
 
-    rnrDir  = dbDir + '/rnr'
+    rnrDir  = dbDir + '/rnr.minrec%d'%(DB_MINREC)
     srcPath = rnrDir + '/rnr.%05d.txt'%(idx_db)
     f=open(srcPath,'r'); lines=f.readlines(); f.close()
-
+    #print srcPath
     rnrflag = int(lines[0].split('\t')[1])
     thD     = float(lines[1].split('\t')[1])
     SR      = float(lines[2].split('\t')[1])
@@ -281,7 +279,7 @@ else:
     NLEV_PRECIP =int(dargv['NLEV_PRECIP'])
     thwtmin = float(dargv['thwtmin'])
     miss    = float(dargv['miss'])
-    
+    miss_int32= float(dargv['miss_int32'])
 
     DB_MAXREC = int(dargv['DB_MAXREC']) 
     DB_MINREC = int(dargv['DB_MINREC']) 
@@ -292,6 +290,7 @@ else:
     MAX_TQV_DIFF= float(dargv['MAX_TQV_DIFF'])
     MAX_RMA_0   = float(dargv['MAX_RMA_0'])
 
+    flag_top_var= int(dargv['flag_top_var'])
     
     srcPath   = dargv['srcPath'] 
     s2xPath   = dargv['s2xPath'] 
@@ -301,6 +300,7 @@ else:
     tqvPath   = dargv['tqvPath']   
     elevPath  = dargv['elevPath']
     outDir    = dargv['outDir']
+
 
 #**************************************************************
 # Read parameters
@@ -431,27 +431,33 @@ a3prprofNS   = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
 a3prprofNScmb= ones([nyout,nxout,NLEV_PRECIP],float32)*miss
 a3prwatprofNS= ones([nyout,nxout,NLEV_PRECIP],float32)*miss
 
-a2top_idxdbMS   = ones([nyout,nxout],int32)*miss
-a2top_idxdbNS   = ones([nyout,nxout],int32)*miss
+a2top_idxdbMS   = ones([nyout,nxout],int32)*miss_int32
+a2top_idxdbNS   = ones([nyout,nxout],int32)*miss_int32
 
-a2top_irecMS   = ones([nyout,nxout],int32)*miss
-a2top_irecNS   = ones([nyout,nxout],int32)*miss
+a2top_irecMS   = ones([nyout,nxout],int32)*miss_int32
+a2top_irecNS   = ones([nyout,nxout],int32)*miss_int32
 
-#a2top_nsurfMS = ones([nyout,nxout],float32)*miss
-#a2top_nsurfNS = ones([nyout,nxout],float32)*miss
-#a2top_nsurfMScmb = ones([nyout,nxout],float32)*miss
-#a2top_nsurfNScmb = ones([nyout,nxout],float32)*miss
+if flag_top_var == 1:
+    #a2top_nsurfMS = ones([nyout,nxout],float32)*miss
+    #a2top_nsurfNS = ones([nyout,nxout],float32)*miss
+    #a2top_nsurfMScmb = ones([nyout,nxout],float32)*miss
+    #a2top_nsurfNScmb = ones([nyout,nxout],float32)*miss
 
-a3top_zmMS    = ones([nyout,nxout,NLEV_DPR],int32)*miss
-a3top_zmNS    = ones([nyout,nxout,NLEV_DPR],int32)*miss
+    a3top_zmMS    = ones([nyout,nxout,NLEV_DPR],int32)*miss
+    a3top_zmNS    = ones([nyout,nxout,NLEV_DPR],int32)*miss
+    
+    #a3top_prprofNS    = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+    #a3top_prprofNScmb = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+    a3top_prwatprofNS = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+    
+    a3top_tbMS      = ones([nyout,nxout,NTBREG],float32)*miss
+    a3top_tbNS      = ones([nyout,nxout,NTBREG],float32)*miss
 
-#a3top_prprofNS    = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
-#a3top_prprofNScmb = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
-a3top_prwatprofNS = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
-
-a3top_tbMS      = ones([nyout,nxout,NTBREG],float32)*miss
-a3top_tbNS      = ones([nyout,nxout,NTBREG],float32)*miss
-
+elif flag_top_var ==0:
+    print 'Top-ranked variables will not be retrieved'
+else:
+    print 'check flag_top_var',flag_top_var
+    sys.exit()
 
 #-- Start retrieval --
 X,Y = meshgrid(range(nxout),range(nyout))
@@ -567,8 +573,8 @@ for i,idx_db in enumerate(lidxset):
         a2epcTmp = np.concatenate([a2epcTmp, a1t2mTmp.reshape(-1,1)],axis=1)
         a2epcTmp = (a2epcTmp - ave_org)/std_org
 
-        a1d      = ( (ave_no - ave_rain)/(std_no + std_rain)*(ave_no - a2epcTmp) ).sum(axis=1)
-        a1flag_rain = ma.masked_greater_equal(a1d, thD).mask
+        a1discriminant = ( (ave_no - ave_rain)/(std_no + std_rain)*(ave_no - a2epcTmp) ).sum(axis=1)
+        a1flag_rain = ma.masked_greater_equal(a1discriminant, thD).mask
 
         #-- If all pixels are no-rain --
         if a1flag_rain is np.bool_(False):
@@ -602,27 +608,27 @@ for i,idx_db in enumerate(lidxset):
 
         #print 'set file done' 
         #print 'read DB'
-        a2epcdbTmp = db.get_var('pc_emis', nrec=DB_MAXREC)[:,:NEM]  # (nrec, 12)
-        a1nsurfMScmbTmp = db.get_var('precip_MS_cmb', nrec=DB_MAXREC)
-        a1nsurfNScmbTmp = db.get_var('precip_NS_cmb', nrec=DB_MAXREC)
-        a1nsurfMSTmp    = db.get_var('precip_nsfc_MS', nrec=DB_MAXREC)
-        a1nsurfNSTmp    = db.get_var('precip_nsfc_NS', nrec=DB_MAXREC)
+        a2epcdbTmp = db.get_var('pc_emis')[:,:NEM]  # (nrec, 12)
+        a1nsurfMScmbTmp = db.get_var('precip_MS_cmb')
+        a1nsurfNScmbTmp = db.get_var('precip_NS_cmb')
+        a1nsurfMSTmp    = db.get_var('precip_nsfc_MS')
+        a1nsurfNSTmp    = db.get_var('precip_nsfc_NS')
 
 
-        #a2prprofNSTmp   = ma.masked_less(db.get_var('precip_prof_MS',     nrec=DB_MAXREC), 0).filled(0.0)[:,-NLEV_PRECIP:]
-        #a2prprofNSTmp   = db.get_var('precip_prof_NS',     nrec=DB_MAXREC)[:,-NLEV_PRECIP:]  # test
-        #a2prprofNScmbTmp= ma.masked_less(db.get_var('precip_prof_NS_cmb', nrec=DB_MAXREC), 0).filled(0.0)[:,-NLEV_PRECIP:]
+        #a2prprofNSTmp   = ma.masked_less(db.get_var('precip_prof_MS'), 0).filled(0.0)[:,-NLEV_PRECIP:]
+        #a2prprofNSTmp   = db.get_var('precip_prof_NS')[:,-NLEV_PRECIP:]  # test
+        #a2prprofNScmbTmp= ma.masked_less(db.get_var('precip_prof_NS_cmb'), 0).filled(0.0)[:,-NLEV_PRECIP:]
 
-        a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS', nrec=DB_MAXREC)[:,-NLEV_PRECIP:]).filled(-9999.)
+        a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.)
 
 
-        #a1tsdbTmp  = db.get_var('ts',  nrec=DB_MAXREC) 
-        a1t2mdbTmp = db.get_var('t2m', nrec=DB_MAXREC) 
-        a1revdbTmp = db.get_var('rev', nrec=DB_MAXREC) 
+        #a1tsdbTmp  = db.get_var('ts') 
+        a1t2mdbTmp = db.get_var('t2m') 
+        a1revdbTmp = db.get_var('rev') 
         if tqvPath !='':
-            a1tqvdbTmp = db.get_var('tqv', nrec=DB_MAXREC) 
+            a1tqvdbTmp = db.get_var('tqv') 
         if elevPath !='':
-            a1elevdbTmp= db.get_var('elev', nrec=DB_MAXREC) 
+            a1elevdbTmp= db.get_var('elev') 
 
         a1idxdbTmp = np.ones(a2epcdbTmp.shape[0]).astype(int32)*idx_db_expand
         a1irecTmp  = np.arange(a2epcdbTmp.shape[0]).astype(int32)
@@ -841,34 +847,35 @@ for i,idx_db in enumerate(lidxset):
 
         topirec = topirecMS
 
-
-        a3top_zmMS[y,x,:] = db.get_var('z_ka', nrec=1, origin=topirec).flatten()[-NLEV_DPR:] 
-        a3top_tbMS[y,x,:] = db.get_var('tb', nrec=1, origin=topirec).flatten() 
-
-        # Read top-db file (for NS) --
-        if dbtype=='JPL':
-            dbtopPath = dbDir + '/db_%05d.bin'%(topidxdbNS)
-            db.set_file(dbtopPath)
-        elif dbtype=='my':
-            db.set_idx_db(dbDir, topidxdbNS)
-        else:
-            print 'check dbtype', dbtype
-            sys.exit()
-
-        topirec = topirecNS
-
-        a3top_zmNS[y,x,:] = db.get_var('z_ku', nrec=1, origin=topirec).flatten()[-NLEV_DPR:] 
-        a3top_tbNS[y,x,:] = db.get_var('tb', nrec=1, origin=topirec).flatten()
-
-        #a3top_prprofNS[y,x,:] = db.get_var('precip_prof_NS', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
-        #a3top_prprofNScmb[y,x,:] = db.get_var('precip_prof_NS_cmb', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
-        a3top_prwatprofNS[y,x,:] = db.get_var('precip_water_prof_NS', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
-
-        #a2top_nsurfMS[y,x] = db.get_var('precip_nsfc_MS', nrec=1, origin=topirecNS)
-        #a2top_nsurfNS[y,x] = db.get_var('precip_nsfc_NS', nrec=1, origin=topirecNS)
-
-        #a2top_nsurfMScmb[y,x] = db.get_var('precip_MS_cmb', nrec=1, origin=topirecNS)
-        #a2top_nsurfNScmb[y,x] = db.get_var('precip_NS_cmb', nrec=1, origin=topirecNS)
+        # Top ranked db entries -------------------
+        if flag_top_var ==1:
+            a3top_zmMS[y,x,:] = db.get_var('z_ka', nrec=1, origin=topirec).flatten()[-NLEV_DPR:] 
+            a3top_tbMS[y,x,:] = db.get_var('tb', nrec=1, origin=topirec).flatten() 
+    
+            # Read top-db file (for NS) --
+            if dbtype=='JPL':
+                dbtopPath = dbDir + '/db_%05d.bin'%(topidxdbNS)
+                db.set_file(dbtopPath)
+            elif dbtype=='my':
+                db.set_idx_db(dbDir, topidxdbNS)
+            else:
+                print 'check dbtype', dbtype
+                sys.exit()
+    
+            topirec = topirecNS
+    
+            a3top_zmNS[y,x,:] = db.get_var('z_ku', nrec=1, origin=topirec).flatten()[-NLEV_DPR:] 
+            a3top_tbNS[y,x,:] = db.get_var('tb', nrec=1, origin=topirec).flatten()
+    
+            #a3top_prprofNS[y,x,:] = db.get_var('precip_prof_NS', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
+            #a3top_prprofNScmb[y,x,:] = db.get_var('precip_prof_NS_cmb', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
+            a3top_prwatprofNS[y,x,:] = db.get_var('precip_water_prof_NS', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
+    
+            #a2top_nsurfMS[y,x] = db.get_var('precip_nsfc_MS', nrec=1, origin=topirecNS)
+            #a2top_nsurfNS[y,x] = db.get_var('precip_nsfc_NS', nrec=1, origin=topirecNS)
+    
+            #a2top_nsurfMScmb[y,x] = db.get_var('precip_MS_cmb', nrec=1, origin=topirecNS)
+            #a2top_nsurfNScmb[y,x] = db.get_var('precip_NS_cmb', nrec=1, origin=topirecNS)
 
         #-- Weight --
         a1wtMS = np.exp(-0.5*np.square(a1rmsdMS/rmsd_minMS))
@@ -934,23 +941,24 @@ np.save(outDir + '/top-idxdbNS.%s.npy'%(stamp), a2top_idxdbNS)
 
 np.save(outDir + '/top-irecMS.%s.npy'%(stamp), a2top_irecMS)
 np.save(outDir + '/top-irecNS.%s.npy'%(stamp), a2top_irecNS)
-
-np.save(outDir + '/top-zmMS.%s.npy'%(stamp), a3top_zmMS)
-np.save(outDir + '/top-zmNS.%s.npy'%(stamp), a3top_zmNS)
-
-#np.save(outDir + '/top-prprofNS.%s.npy'%(stamp), a3top_prprofNS)
-#np.save(outDir + '/top-prprofNScmb.%s.npy'%(stamp), a3top_prprofNScmb)
-np.save(outDir + '/top-prwatprofNS.%s.npy'%(stamp), a3top_prwatprofNS)
-
-np.save(outDir + '/top-tbMS.%s.npy'%(stamp), a3top_tbMS)
-np.save(outDir + '/top-tbNS.%s.npy'%(stamp), a3top_tbNS)
-
-
-#np.save(outDir + '/top-nsurfMS.%s.npy'%(stamp), a2top_nsurfMS)
-#np.save(outDir + '/top-nsurfNS.%s.npy'%(stamp), a2top_nsurfNS)
-#
-#np.save(outDir + '/top-nsurfMScmb.%s.npy'%(stamp), a2top_nsurfMScmb)
-#np.save(outDir + '/top-nsurfNScmb.%s.npy'%(stamp), a2top_nsurfNScmb)
+    
+if flag_top_var ==1:
+    np.save(outDir + '/top-zmMS.%s.npy'%(stamp), a3top_zmMS)
+    np.save(outDir + '/top-zmNS.%s.npy'%(stamp), a3top_zmNS)
+    
+    #np.save(outDir + '/top-prprofNS.%s.npy'%(stamp), a3top_prprofNS)
+    #np.save(outDir + '/top-prprofNScmb.%s.npy'%(stamp), a3top_prprofNScmb)
+    np.save(outDir + '/top-prwatprofNS.%s.npy'%(stamp), a3top_prwatprofNS)
+    
+    np.save(outDir + '/top-tbMS.%s.npy'%(stamp), a3top_tbMS)
+    np.save(outDir + '/top-tbNS.%s.npy'%(stamp), a3top_tbNS)
+    
+    
+    #np.save(outDir + '/top-nsurfMS.%s.npy'%(stamp), a2top_nsurfMS)
+    #np.save(outDir + '/top-nsurfNS.%s.npy'%(stamp), a2top_nsurfNS)
+    #
+    #np.save(outDir + '/top-nsurfMScmb.%s.npy'%(stamp), a2top_nsurfMScmb)
+    #np.save(outDir + '/top-nsurfNScmb.%s.npy'%(stamp), a2top_nsurfNScmb)
 
 
 

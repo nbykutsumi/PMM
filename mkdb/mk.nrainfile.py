@@ -2,12 +2,21 @@ from numpy import *
 import myfunc.util as util
 import numpy as np
 import os,sys
+import socket
 
 iMon = 1
 eMon = 12
-NREC = 20000
+NREC = 10000
 varName = 'DPRGMI_NS_surfPrecipTotRate'  # surface precipitation
-baseDir = '/work/hk01/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.%02d-%02d'%(NREC,iMon,eMon)
+
+sensor = 'GMI'
+myhost = socket.gethostname()
+if myhost =="shui":
+    baseDir = '/work/hk01/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.%02d-%02d'%(NREC,iMon,eMon)
+elif myhost =="well":
+    baseDir = '/media/disk2/share/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.%02d-%02d'%(NREC,iMon,eMon)
+
+
 
 #lepcid  = range(0,25*25*25) # 25*25*25=15625
 lepcid  = range(0,29*29*29) # 29*29*29 = 24389

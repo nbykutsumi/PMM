@@ -13,7 +13,7 @@ subverGMI= 'A'
 fullverGMI='%s%s'%(verGMI, subverGMI)
 
 iYM = [2017,1]
-eYM = [2017,12]
+eYM = [2017,4]
 lYM = util.ret_lYM(iYM,eYM)
 #lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
 lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15000],[15000,17500],[17500,20000],[20000,22500],[22500,25000]]  # 29*29*29 = 24389
@@ -24,9 +24,9 @@ cw  = 15    # extract this width around center
 w   = int(cw/2)
 worg= 221  # GMI total angle bins
 
-#lvar = ['t2m']
+lvar = ['t2m']
 #lvar = ['tqv']
-lvar = ['gtopo']
+#lvar = ['gtopo']
 
 '''
 int8 : -128 ~ +127

@@ -44,12 +44,11 @@ else:
 #DB_MAXREC = 20000
 
 # West of Great Lakes (Under est.)
-oid = 1574
-Year,Mon,Day = 2014,6,8
-iy, ey = -9999, -9999
-clat    = 41
-clon    = -(360-254)
-DB_MAXREC = 20000
+oid = 1686
+Year,Mon,Day = 2014,6,16
+iy, ey = 1746,1766
+clat    = 52
+clon    = 270-360
 
 ## Southeast of Grate lakes (Fair)
 #oid = 1573

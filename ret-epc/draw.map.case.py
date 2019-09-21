@@ -33,10 +33,6 @@ else:
     sys.exit()
 
 
-#expr = 'glb.wprof.org'
-#expr = 'glb.wprof.batch'
-#expr = 'test'
-expr = 'rnr'
 reftype = 'dpr'
 #reftype = 'mrms'
 
@@ -46,13 +42,67 @@ reftype = 'dpr'
 #clat    = 14 # Africa case
 #clon    = 2  # -180 - +180
 
-# Europe just to check batch-version
-oid = 1927
-Year,Mon,Day = 2014,7,1
-iy, ey = 1764, 1784
-clat    = 50.8
-clon    = 28.1
-DB_MAXREC = 20000
+## Alaska to check (Heavy rain missing)
+#oid = 1700
+#Year,Mon,Day = 2014,6,16
+##iy, ey = -9999,-9999
+#iy,ey = 1311, 1351
+#clat    = 57
+#clon    = 211 -360.
+#DB_MAXREC = 10000
+##DB_MAXREC = 20000
+#DB_MINREC = 1000
+##expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+##expr = 'glb.nprof'
+
+## New York to check (good)
+#oid = 1496
+#Year,Mon,Day = 2014,6,3
+##iy, ey = -9999,-9999
+#iy, ey = 1054, 1134
+#clat    = 42
+#clon    = 286 -360.
+#DB_MAXREC = 10000
+##DB_MAXREC = 20000
+#DB_MINREC = 1000
+#expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+
+## Canada to check batch-version (Under est)
+#oid = 1686
+#Year,Mon,Day = 2014,6,16
+##iy, ey = -9999,-9999
+#iy, ey = 1746, 1766
+#clat    = 52.0
+#clon    = 270.0 -360.
+#DB_MAXREC = 10000
+##DB_MAXREC = 20000
+#DB_MINREC = 1000
+#expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+
+## Yellow sea to check batch-version
+#oid = 1693
+#Year,Mon,Day = 2014,6,16
+#iy, ey = -9999,-9999
+#clat    = 32.0
+#clon    = 123.0
+#DB_MAXREC = 10000
+
+## Myanmar to check batch-version
+#oid = 1688
+#Year,Mon,Day = 2014,6,16
+#iy, ey = -9999,-9999
+#clat    = 26.7
+#clon    = 98.2
+#DB_MAXREC = 10000
+
+## Europe just to check batch-version
+#oid = 1927
+#Year,Mon,Day = 2014,7,1
+#iy, ey = 1764, 1784
+#clat    = 50.8
+#clon    = 28.1
+#DB_MAXREC = 10000
+##DB_MAXREC = 20000
 
 
 ## West of Great Lakes (good)
@@ -66,10 +116,12 @@ DB_MAXREC = 20000
 ## West of Great Lakes (Under est.)
 #oid = 1574
 #Year,Mon,Day = 2014,6,8
-#iy, ey = 1074, 1094
+#iy, ey = 1051, 1091
 #clat    = 41
 #clon    = -(360-254)
-#DB_MAXREC = 20000
+#DB_MAXREC = 10000
+##DB_MAXREC = 20000
+#expr = 'test.minrec1000.maxrec%d'%(DB_MAXREC)
 
 ## Southeast of Grate lakes (Fair)
 #oid = 1573
@@ -81,13 +133,15 @@ DB_MAXREC = 20000
 
 
 
-## Great Lake Snow oid=003556, 2014/11/20
-#oid = 4140
-#Year,Mon,Day = 2014,11,20
-#iy, ey = -9999, -9999
-#clat    = 43
-#clon    = -79.5
-#DB_MAXREC = 20000
+## Great Lake Snow
+oid = 4140
+Year,Mon,Day = 2014,11,20
+iy, ey = 1145,1205
+clat    = 43
+clon    = -79.5
+DB_MAXREC = 10000
+DB_MINREC = 1000
+expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 ## Great Lake Snow oid=003556, 2015/1/9
 #oid = 4914
@@ -217,11 +271,11 @@ a2NScmb = np.load(nsurfNScmbPath)
 a2latMy = np.load(latPath)
 a2lonMy = np.load(lonPath)
 
-#-- Screen <0.1mm/h
-a2MS= ma.masked_less(a2MS,0.1)
-a2NS= ma.masked_less(a2NS,0.1)
-a2MScmb= ma.masked_less(a2MScmb,0.1)
-a2NScmb= ma.masked_less(a2NScmb,0.1)
+#-- Screen <thpr mm/h
+a2MS= ma.masked_less(a2MS,thpr)
+a2NS= ma.masked_less(a2NS,thpr)
+a2MScmb= ma.masked_less(a2MScmb,thpr)
+a2NScmb= ma.masked_less(a2NScmb,thpr)
 
 #*****************
 #- Read GPROF data ----
@@ -251,7 +305,8 @@ if (reftype=='mrms')and(os.path.exists(mrmsPath)):
 
 #*****************
 #- Read DPR/CMB data ----
-if (reftype=='dpr')and(os.path.exists(mrmsPath)):
+#if (reftype=='dpr')and(os.path.exists(mrmsPath)):
+if (reftype=='dpr'):
     dprDir = workbaseDir + '/hk01/PMM/NASA/GPM.DPRGMI/2B/V06/%04d/%02d/%02d'%(Year,Mon,Day)
     ssearch= dprDir + '/2B.GPM.DPRGMI.CORRA*.%06d.V06A.HDF5'%(oid)
     dprPath= glob.glob(ssearch)[0]

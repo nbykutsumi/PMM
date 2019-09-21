@@ -168,10 +168,12 @@ class EPCDB(object):
         filevname, fmt = self.dictvars[vname]
         srcPath = self.baseDir + '/%s/%05d.npy'%(filevname, self.idx_db)
         if os.path.exists(srcPath):
-        
-            data = np.load(srcPath)
-            if nrec is not None:
-                data = data[origin:origin+nrec]
+      
+            if nrec is None: 
+                data = np.load(srcPath)
+            else:
+                data = np.load(srcPath,mmap_mode='r')
+                data = np.array(data[origin:origin+nrec])
 
         else:
             ' read nrain file and return'
@@ -195,24 +197,36 @@ class EPCDB(object):
 
         return data 
 
-    #def get_var(self, vname, nrec=None, origin=0)
-    #     
-    #    nrec    = self.nchunks if nrec == None       \
-    #         else nrec
 
-    #    vidx    = self.vars.index( vname )
-    #    fmt     = self.fmts[ vidx ]
-    #    size    = struct.calcsize( fmt )
-    #    seek    = struct.calcsize( '<'+''.join(self.fmts[:vidx]) )
+    #def get_var(self, vname, nrec=None, origin=0):
+    #    filevname, fmt = self.dictvars[vname]
+    #    srcPath = self.baseDir + '/%s/%05d.npy'%(filevname, self.idx_db)
+    #    if os.path.exists(srcPath):
+    #   
+    #        data = np.load(srcPath)
+    #        if nrec is not None:
+    #            data = data[origin:origin+nrec]
 
-    #    data    = np.array( self.dbmmap[origin : origin+nrec,
-    #                                    seek   : seek+size] )
+    #    else:
+    #        ' read nrain file and return'
+    #        nrainPath = self.baseDir + '/nrain/db_%05d.bin.nrain.txt'%(self.idx_db)
+    #        f=open(nrainPath,'r'); lines=f.readlines(); f.close()
+    #        line = lines[0].split()
+    #        ndat = int(line[0])
 
-    #    data.dtype  = fmt[-1]
+    #        dattype = self.ddattype[fmt[-1]]
+    #        miss    = self.dmiss[fmt[-1]]
+    #        if nrec is not None:
+    #            if ndat > nrec:
+    #                ndat = nrec
 
-    #    if data.shape[-1] == 1:
-    #        data.shape  = data.shape[:-1]
+    #        if len(fmt)==1:
+    #            data = np.ones(ndat, dtype=dattype) * miss
+    #            nlev = 1
+    #        else:
+    #            nlev = int(fmt[:-1])
+    #            data = np.ones([ndat,nlev], dtype=dattype) * miss
 
-    #    return data
+    #    return data 
 
 

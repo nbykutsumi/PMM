@@ -21,7 +21,7 @@ elif myhost == 'well':
     workbaseDir= '/home/utsumi/mnt/lab_work'
     tankbaseDir= '/home/utsumi/mnt/lab_tank'
     listDir    = '/home/utsumi/mnt/lab_tank/utsumi/PMM/US/obtlist'
-    srcbaseDir = '/media/disk2/share/PMM/retepc'
+    srcbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc'
     figDir   = '/home/utsumi/temp/ret'
 
 else:
@@ -29,7 +29,8 @@ else:
     sys.exit()
 
 
-expr = 'glb.wprof.org'
+#expr = 'glb.wprof.org'
+expr = 'test'
 
 argv = sys.argv
 if len(argv)==2:
@@ -62,14 +63,24 @@ elif len(argv)==1:
     #clat    = 14 # Africa case
     #clon    = 2  # -180 - +180
     
-    # SE.US case, oid=003556, 2014/10/14
-    oid = 3556
-    Year,Mon,Day = 2014,10,14
-    iy, ey = -9999,-9999
-    #iy, ey = 927, 1107
-    clat    = 34    # SE.US case. oid = 003556
-    clon    = -86   # 2014/10/14  05:42:03 UTC
-    DB_MAXREC = 20000
+    ## SE.US case, oid=003556, 2014/10/14
+    #oid = 3556
+    #Year,Mon,Day = 2014,10,14
+    #iy, ey = -9999,-9999
+    ##iy, ey = 927, 1107
+    #clat    = 34    # SE.US case. oid = 003556
+    #clon    = -86   # 2014/10/14  05:42:03 UTC
+    #DB_MAXREC = 20000
+
+    # Europe just to check batch-version
+    oid = 1927
+    Year,Mon,Day = 2014,7,1
+    iy, ey = 1764, 1784
+    clat    = 50.8
+    clon    = 28.1
+    DB_MAXREC = 10000
+    #DB_MAXREC = 20000
+
 
     ## SW.Japan typhoon case, oid=019015, 2017/07/03
     #oid = 19015
@@ -92,7 +103,8 @@ elif len(argv)==1:
     BBox    = [[clat-dlatlon, clon-dlatlon],[clat+dlatlon,clon+dlatlon]]
     [[lllat,lllon],[urlat,urlon]] = BBox
     
-    xpos    = 100  # x-position for cross section
+    #xpos    = 100  # x-position for cross section
+    xpos    = 87  # x-position for cross section
 else:
     print 'Too many standard input'
     print 'Exit'
@@ -318,27 +330,30 @@ if ((iy<0) or (ey<0)):
     print a2latMy.shape[0],cy,dscan
     iyTmp = max(0, cy-dscan)
     eyTmp = min(a2latMy.shape[0], cy+dscan)
-
+    iyMy  = iyTmp
+    eyMy  = ixTmp
  
 else:
     iyTmp = iy
     eyTmp = ey
+    iyMy = 0
+    eyMy = ey-iy
 #***********************************
 # Extract domain from my data
 #***********************************
 
-a2topprwatNS = a2topprwatNS[iyTmp:eyTmp+1,:]
-#a2topprwatMS = a2topprwatMS[iyTmp:eyTmp+1,:]
+a2topprwatNS = a2topprwatNS[iyMy:eyMy+1,:]
+#a2topprwatMS = a2topprwatMS[iyMy:eyMy+1,:]
 a2topprwatMS = a2topprwatNS*0.0 -9999.
 
-a2prwatNS= a2prwatNS[iyTmp:eyTmp+1,:]
-#a2prwatMS= a2prwatMS[iyTmp:eyTmp+1,:]
+a2prwatNS= a2prwatNS[iyMy:eyMy+1,:]
+#a2prwatMS= a2prwatMS[iyMy:eyMy+1,:]
 a2prwatMS= a2prwatNS*0.0 -9999.
 
-a1latMy  = a2latMy[iyTmp:eyTmp+1,:]
-a1lonMy  = a2latMy[iyTmp:eyTmp+1,:]
-
+a1latMy  = a2latMy[iyMy:eyMy+1,:]
+a1lonMy  = a2latMy[iyMy:eyMy+1,:]
 print 'after extract'
+print a2prwatNS
 print a2prwatNS.max()
 #sys.exit()
 #***********************************

@@ -37,6 +37,35 @@ else:
 #reftype = 'mrms'
 reftype = 'dpr'
 
+
+# Canada sea to check batch-version
+oid = 1700
+Year,Mon,Day = 2014,6,16
+#iy, ey = -9999,-9999
+iy, ey = 1311, 1351
+clat    = 57
+clon    = 211.0 -360.
+DB_MAXREC = 10000
+#DB_MAXREC = 20000
+DB_MINREC = 1000
+#DB_MINREC = 5000
+expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.nprof'
+
+## Canada sea to check batch-version
+#oid = 1686
+#Year,Mon,Day = 2014,6,16
+##iy, ey = -9999,-9999
+#iy, ey = 1746, 1766
+#clat    = 52.0
+#clon    = 270.0 -360.
+##DB_MAXREC = 10000
+#DB_MAXREC = 20000
+##DB_MINREC = 1000
+#DB_MINREC = 5000
+#expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+
+
 ## Africa case
 #oid = 2421
 #iy, ey = 2029, 2089
@@ -52,14 +81,14 @@ reftype = 'dpr'
 #clon    = -92
 #DB_MAXREC = 20000
 
-# West of Great Lakes (Under est.)
-oid = 1927
-Year,Mon,Day = 2014,7,1
-iy, ey = 1764,1784
-clat    = 50.8
-clon    = 28.1
-DB_MAXREC = 20000
-expr    = 'rnr'
+## West of Great Lakes (Under est.)
+#oid = 1927
+#Year,Mon,Day = 2014,7,1
+#iy, ey = 1764,1784
+#clat    = 50.8
+#clon    = 28.1
+#DB_MAXREC = 20000
+#expr    = 'rnr'
 #expr    = 'test'
 #expr    = 'glb.wprof.org'
 #expr    = 'glb.wprof.tqv'
@@ -210,10 +239,10 @@ a2latMy = np.load(latPath)
 a2lonMy = np.load(lonPath)
 
 #-- Screen <0.1mm/h
-a2MS= ma.masked_less(a2MS,0.1)
-a2NS= ma.masked_less(a2NS,0.1)
-a2MScmb= ma.masked_less(a2MScmb,0.1)
-a2NScmb= ma.masked_less(a2NScmb,0.1)
+a2MS= ma.masked_less(a2MS,thpr)
+a2NS= ma.masked_less(a2NS,thpr)
+a2MScmb= ma.masked_less(a2MScmb,thpr)
+a2NScmb= ma.masked_less(a2NScmb,thpr)
 
 #*****************
 #- Read GPROF data ----
@@ -243,7 +272,7 @@ if os.path.exists(mrmsPath):
 
 #*****************
 #- Read DPR/CMB data ----
-if (reftype=='dpr')and(os.path.exists(mrmsPath)):
+if (reftype=='dpr'):
     dprDir = workbaseDir + '/hk01/PMM/NASA/GPM.DPRGMI/2B/V06/%04d/%02d/%02d'%(Year,Mon,Day)
     ssearch= dprDir + '/2B.GPM.DPRGMI.CORRA*.%06d.V06A.HDF5'%(oid)
     dprPath= glob.glob(ssearch)[0]
@@ -329,10 +358,10 @@ for i in range(6):
     im    = M.scatter(a2lon, a2lat, c=a2dat, cmap='jet', s=ssize, vmin=vmin, vmax=vmax)
     M.drawcoastlines()
 
-    #--test --------------
+    #--test plot target --------------
     #print a2dat.shape
-    y=13
-    x=87
+    y=9
+    x=92
     lat, lon = a2latMy[y,x], a2lonMy[y,x]
     M.plot(lon, lat, 'x', color='r')
     if stype in ['GPROF']:
@@ -342,8 +371,6 @@ for i in range(6):
     else:
         yy = y
 
-    if i !=5:
-        print stype, a2lat[yy,x], a2lon[yy,x], a2dat[yy,x]
     #--------------------- 
     dgrid      = 5
     parallels  = arange(-90,90, dgrid)

@@ -9,7 +9,6 @@ import JPLDB
 import EPCDB
 from bisect import bisect_left
 import epcfunc
-#from math import acos, cos, sin
 
 #-- functions -----
 def mk_dir(sdir):
@@ -41,6 +40,40 @@ def read_nrain(idx_db):
     a1nrain_cold = a1nrain[:6]
     a1nrain_warm = a1nrain[6:]
     return a1nrain_warm, a1nrain_cold 
+
+
+def read_rnr_table(idx_db):
+    '''
+    Rain/No Rain screening
+    --- Contents of files ----
+    calc 0:Skip all pixels  1:Screening  2:Calc all pixels
+    D :  Linear discriminator threshold.
+         If discriminator for the pixelsi smaller than this threshold, assign 'no-rain' to the pixel.
+    SR:  Skip Ratio (expected fraction of skipped pixels)
+    WER: Wet Event Ratio
+    RMA: Ratio of Missing Amount  (>=0, 0.1, 1, 5, 10mm/h)
+    m_org-s_no: First 12: For 12 EPCs. 13th: T2m
+    '''
+
+    rnrDir  = dbDir + '/rnr.minrec%d'%(DB_MINREC)
+    srcPath = rnrDir + '/rnr.%05d.txt'%(idx_db)
+    f=open(srcPath,'r'); lines=f.readlines(); f.close()
+
+    rnrflag = int(lines[0].split('\t')[1])
+    thD     = float(lines[1].split('\t')[1])
+    SR      = float(lines[2].split('\t')[1])
+    WER     = float(lines[3].split('\t')[1])
+    lRMA    = map(float, lines[4].split('\t')[1:])
+    ave_org   = np.array(map(float, lines[5].split('\t')[1:]))  # for normalization
+    ave_rain  = np.array(map(float, lines[6].split('\t')[1:]))  # Averages of normalized variables
+    ave_no    = np.array(map(float, lines[7].split('\t')[1:]))  # Averages of normalized variables
+    std_org   = np.array(map(float, lines[8].split('\t')[1:]))  # for normalization
+    std_rain  = np.array(map(float, lines[9].split('\t')[1:]))  # Averages of normalized variables
+    std_no    = np.array(map(float, lines[10].split('\t')[1:]))  # Averages of normalized variables
+
+
+    return rnrflag, thD, SR, WER, lRMA, ave_org, ave_rain, ave_no, std_org, std_rain, std_no
+
 
 def ret_domain_cy(a2lat, a2lon, clat, clon, dlatlon):
     nyTmp, nxTmp = a2lat.shape
@@ -246,15 +279,18 @@ else:
     NLEV_PRECIP =int(dargv['NLEV_PRECIP'])
     thwtmin = float(dargv['thwtmin'])
     miss    = float(dargv['miss'])
-    
+    miss_int32= float(dargv['miss_int32'])
 
     DB_MAXREC = int(dargv['DB_MAXREC']) 
     DB_MINREC = int(dargv['DB_MINREC']) 
     DB_USE_MINREC = int(dargv['DB_USE_MINREC']) 
     NDB_EXPAND= int(dargv['NDB_EXPAND'])
     DB_RAINFRAC = float(dargv['DB_RAINFRAC']) # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
-    MAX_T2M_DIFF= int(dargv['MAX_T2M_DIFF'])
-    MAX_TQV_DIFF= int(dargv['MAX_TQV_DIFF'])
+    MAX_T2M_DIFF= float(dargv['MAX_T2M_DIFF'])
+    MAX_TQV_DIFF= float(dargv['MAX_TQV_DIFF'])
+    MAX_RMA_0   = float(dargv['MAX_RMA_0'])
+
+    flag_top_var= int(dargv['flag_top_var'])
     
     srcPath   = dargv['srcPath'] 
     s2xPath   = dargv['s2xPath'] 
@@ -264,6 +300,7 @@ else:
     tqvPath   = dargv['tqvPath']   
     elevPath  = dargv['elevPath']
     outDir    = dargv['outDir']
+
 
 #**************************************************************
 # Read parameters
@@ -347,7 +384,8 @@ else:
 
     if tqvPath !='':
         a2tqv  = a2tqv[iscan: escan+1]
-    elif elevPath !='':
+   
+    if elevPath !='': 
         a2elev= a2elev[iscan: escan+1]
 
 #****************************************************
@@ -371,22 +409,15 @@ print 'calc idx'
 a2idx_db = epcfunc.mk_epc_id_nbins(a3epc, a2pc_edge, NPCHIST)
 print 'calc idx done'
 
-##-- test: replace idx_db with JPL's ---
-#print '*'*40
-#print 'CAUTION!!'
-#print 'IDX is replaced for test'
-#print '*'*40
-#a2idx_db = np.load('/home/utsumi/temp/out/idx-jpl-full-002421.npy')
-#a2idx_db = a2idx_db[idx_c-dscan: idx_c+dscan+1]
 ##--------------------------------------
 
 a2idx_db = ma.masked_where(a2mask, a2idx_db).filled(miss)
 
-#-----------------
+#****************************************************
 lidxset  = list(set(a2idx_db.flatten()))
 lidxset  = sort(lidxset)
 #****************************************************
-# DBidx-y-x mapping
+# Initialize output variables
 #----------------------------------------------------
 nyout,nxout = a2idx_db.shape
 
@@ -400,64 +431,56 @@ a3prprofNS   = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
 a3prprofNScmb= ones([nyout,nxout,NLEV_PRECIP],float32)*miss
 a3prwatprofNS= ones([nyout,nxout,NLEV_PRECIP],float32)*miss
 
-a2top_idxdbMS   = ones([nyout,nxout],int32)*miss
-a2top_idxdbNS   = ones([nyout,nxout],int32)*miss
+a2top_idxdbMS   = ones([nyout,nxout],int32)*miss_int32
+a2top_idxdbNS   = ones([nyout,nxout],int32)*miss_int32
 
-a2top_irecMS   = ones([nyout,nxout],int32)*miss
-a2top_irecNS   = ones([nyout,nxout],int32)*miss
+a2top_irecMS   = ones([nyout,nxout],int32)*miss_int32
+a2top_irecNS   = ones([nyout,nxout],int32)*miss_int32
 
-#a2top_nsurfMS = ones([nyout,nxout],float32)*miss
-#a2top_nsurfNS = ones([nyout,nxout],float32)*miss
-#a2top_nsurfMScmb = ones([nyout,nxout],float32)*miss
-#a2top_nsurfNScmb = ones([nyout,nxout],float32)*miss
+if flag_top_var == 1:
+    #a2top_nsurfMS = ones([nyout,nxout],float32)*miss
+    #a2top_nsurfNS = ones([nyout,nxout],float32)*miss
+    #a2top_nsurfMScmb = ones([nyout,nxout],float32)*miss
+    #a2top_nsurfNScmb = ones([nyout,nxout],float32)*miss
 
-a3top_zmMS    = ones([nyout,nxout,NLEV_DPR],int32)*miss
-a3top_zmNS    = ones([nyout,nxout,NLEV_DPR],int32)*miss
+    a3top_zmMS    = ones([nyout,nxout,NLEV_DPR],int32)*miss
+    a3top_zmNS    = ones([nyout,nxout,NLEV_DPR],int32)*miss
+    
+    #a3top_prprofNS    = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+    #a3top_prprofNScmb = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+    a3top_prwatprofNS = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+    
+    a3top_tbMS      = ones([nyout,nxout,NTBREG],float32)*miss
+    a3top_tbNS      = ones([nyout,nxout,NTBREG],float32)*miss
 
-#a3top_prprofNS    = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
-#a3top_prprofNScmb = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
-a3top_prwatprofNS = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+elif flag_top_var ==0:
+    print 'Top-ranked variables will not be retrieved'
+else:
+    print 'check flag_top_var',flag_top_var
+    sys.exit()
 
-a3top_tbMS      = ones([nyout,nxout,NTBREG],float32)*miss
-a3top_tbNS      = ones([nyout,nxout,NTBREG],float32)*miss
-
-
-#print '***************************************************************'
-#print 'idx_db=',a2idx_db[1068-1067,117]   # test
-#print '***************************************************************'
-
-#-- Start retrieve --
+#-- Start retrieval --
 X,Y = meshgrid(range(nxout),range(nyout))
 for i,idx_db in enumerate(lidxset):
-    #print ''
-    #print '************************************'
-    #print 'idx_db for primary loop =',idx_db
-    #if idx_db==-9999: continue  # test
-
 
     ##***** test **************
-    #if idx_db !=3077: continue
+    if idx_db !=6628: continue
     ##***** test **************
 
 
+    print ''
+    print '************************************'
+    print 'idx_db for primary loop =',idx_db
+    if idx_db==-9999: continue
+
+
+    #****************************************************
     a2bool = ma.masked_equal(a2idx_db, idx_db).mask
     a1x    = X[a2bool]
     a1y    = Y[a2bool]
-    #print i,'/',len(lidxset), 'idx_db=%d pixels=%d'%(idx_db, len(a1x))  # test
-    ytmp = 19+1763-iscan   # test
-    xtmp = 89
-    #print '1---------------------'
-    #print ytmp,xtmp,iscan, a1y.max(), a1x.max()
-    if not ((ytmp,xtmp) in zip(a1y,a1x)):  # test
-        continue
-    print '*************************************************************'
-    print '*************************************************************'
-    print ''
-    print 'a2idx_db(ytmp,xtmp)=',a2idx_db[ytmp,xtmp]
-    print 'Found! ytmp,xtmp,idx_db=',ytmp,xtmp,idx_db
-    print ''
-    print '*************************************************************'
-    print '*************************************************************'
+    print i,'/',len(lidxset), 'idx_db=%d pixels=%d'%(idx_db, len(a1x))
+
+
     #******************************
     #- check Num of DB entries (expand to neighborhood, if necessary)
     #------------------------------
@@ -471,8 +494,6 @@ for i,idx_db in enumerate(lidxset):
     nevent_warm1 = 0
 
     for idx_db_expand in lidx_db_expand_tmp:
-
-        #continue  # test
 
         #-- If idx_db == -9999 --
         if ((idx_db_expand <0)or(pow(NPCHIST, NEM_USE)-1<idx_db_expand)):
@@ -506,9 +527,6 @@ for i,idx_db in enumerate(lidxset):
     else:
         frac1 = nevent_warm1/float(nevent_warm)
 
-    print '1----------------------------------'
-    print nevent_all,nevent_cold,nevent_cold1,nevent_warm1,nevent_warm
-    print DB_RAINFRAC
     #******************************
     #- Check rain ratio in DB
     #------------------------------
@@ -517,7 +535,64 @@ for i,idx_db in enumerate(lidxset):
         print '%.3f %.3f DB_RAINFRAC=%.3f'%(frac0,frac1, DB_RAINFRAC)
         continue
 
-    print '2----------------------------------'
+
+    #****************************************************
+    # Rain/No Rain (RNR) Screening : Conservative
+    #----------------------------------------------------
+    '''
+    Based on the first (closest) DB in lidx_db_expand
+    '''
+    if MAX_RMA_0 !=-9999.:
+        idx_db_tmp = lidx_db_expand[0]
+ 
+        rnrflag, thD, SR, WER, lRMA, ave_org, ave_rain, ave_no, std_org, std_rain, std_no = read_rnr_table(idx_db_tmp)
+
+
+    if MAX_RMA_0 ==-9999.:
+        ''' No screening. Calc all pixels. '''
+        pass
+
+    elif rnrflag == 0:
+        print 'RNR screening: SKIP all pixels for idx_db = ',idx_db
+        print 'Determined based on neigborhood idx_db=',idx_db_tmp
+        continue
+
+    elif rnrflag==2:
+        print 'RNR screening: CALC all pixels for idx_db=',idx_db
+        print 'Determined based on neigborhood idx_db=',idx_db_tmp
+        pass
+
+    elif (rnrflag==1) and (lRMA[0] > MAX_RMA_0):
+        print 'RNR screening: CALC all pixels for idx_db=',idx_db
+        print 'Determined based on neigborhood idx_db=',idx_db_tmp
+        print 'RMA(>=0mm/h) is too large for screening: RMA(>=0mm/h)=',lRMA[0]
+        pass 
+
+
+    elif rnrflag==1:  # Do screening
+        a2epcTmp = a3epc[a1y,a1x,:]
+        a1t2mTmp = a2t2m[a1y,a1x]
+        a2epcTmp = np.concatenate([a2epcTmp, a1t2mTmp.reshape(-1,1)],axis=1)
+        a2epcTmp = (a2epcTmp - ave_org)/std_org
+
+        a1dscriminant  = ( (ave_no - ave_rain)/(std_no + std_rain)*(ave_no - a2epcTmp) ).sum(axis=1)
+        a1flag_rain = ma.masked_greater_equal(a1dscriminant, thD).mask
+
+        #-- If all pixels are no-rain --
+        if a1flag_rain is np.bool_(False):
+            print 'RNR screening: SKIP all pixels for idx_db = ',idx_db
+            print 'Determined based on neigborhood idx_db=',idx_db_tmp
+            print 'Based on screening'
+            continue
+
+        #-- Keep only raining pixels --
+        print 'Screen: keep', len(a1flag_rain),'/',len(a1y)
+        #if len(a1flag_rain) != len(a1y):
+        #    sys.exit()
+        a1y = a1y[a1flag_rain]
+        a1x = a1x[a1flag_rain]
+
+
     #******************************
     #- Read DB (expand to neighborhood, if necessary)
     #------------------------------
@@ -535,26 +610,27 @@ for i,idx_db in enumerate(lidxset):
 
         #print 'set file done' 
         #print 'read DB'
-        a2epcdbTmp = db.get_var('pc_emis', nrec=DB_MAXREC)[:,:NEM]  # (nrec, 12)
-        a1nsurfMScmbTmp = db.get_var('precip_MS_cmb', nrec=DB_MAXREC)
-        a1nsurfNScmbTmp = db.get_var('precip_NS_cmb', nrec=DB_MAXREC)
-        a1nsurfMSTmp    = db.get_var('precip_nsfc_MS', nrec=DB_MAXREC)
-        a1nsurfNSTmp    = db.get_var('precip_nsfc_NS', nrec=DB_MAXREC)
+        a2epcdbTmp = db.get_var('pc_emis')[:,:NEM]  # (nrec, 12)
+        a1nsurfMScmbTmp = db.get_var('precip_MS_cmb')
+        a1nsurfNScmbTmp = db.get_var('precip_NS_cmb')
+        a1nsurfMSTmp    = db.get_var('precip_nsfc_MS')
+        a1nsurfNSTmp    = db.get_var('precip_nsfc_NS')
 
 
+        #a2prprofNSTmp   = ma.masked_less(db.get_var('precip_prof_MS'), 0).filled(0.0)[:,-NLEV_PRECIP:]
+        #a2prprofNSTmp   = db.get_var('precip_prof_NS')[:,-NLEV_PRECIP:]  # test
+        #a2prprofNScmbTmp= ma.masked_less(db.get_var('precip_prof_NS_cmb'), 0).filled(0.0)[:,-NLEV_PRECIP:]
 
-        #a2prprofNSTmp   = ma.masked_less(db.get_var('precip_prof_MS',     nrec=DB_MAXREC), 0).filled(0.0)[:,-NLEV_PRECIP:]
-        #a2prprofNSTmp   = db.get_var('precip_prof_NS',     nrec=DB_MAXREC)[:,-NLEV_PRECIP:]  # test
-        #a2prprofNScmbTmp= ma.masked_less(db.get_var('precip_prof_NS_cmb', nrec=DB_MAXREC), 0).filled(0.0)[:,-NLEV_PRECIP:]
-
-        a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS', nrec=DB_MAXREC)[:,-NLEV_PRECIP:]).filled(-9999.)
+        a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.)
 
 
-        #a1tsdbTmp  = db.get_var('ts',  nrec=DB_MAXREC) 
-        a1t2mdbTmp = db.get_var('t2m', nrec=DB_MAXREC) 
-        a1tqvdbTmp = db.get_var('tqv', nrec=DB_MAXREC) 
-        a1revdbTmp = db.get_var('rev', nrec=DB_MAXREC) 
-        a1elevdbTmp= db.get_var('elev', nrec=DB_MAXREC) 
+        #a1tsdbTmp  = db.get_var('ts') 
+        a1t2mdbTmp = db.get_var('t2m') 
+        a1revdbTmp = db.get_var('rev') 
+        if tqvPath !='':
+            a1tqvdbTmp = db.get_var('tqv') 
+        if elevPath !='':
+            a1elevdbTmp= db.get_var('elev') 
 
         a1idxdbTmp = np.ones(a2epcdbTmp.shape[0]).astype(int32)*idx_db_expand
         a1irecTmp  = np.arange(a2epcdbTmp.shape[0]).astype(int32)
@@ -577,9 +653,11 @@ for i,idx_db in enumerate(lidxset):
 
             #a1tsdb  = a1tsdbTmp
             a1t2mdb = a1t2mdbTmp
-            a1tqvdb = a1tqvdbTmp
             a1revdb = a1revdbTmp
-            a1elevdb= a1elevdbTmp
+            if tqvPath !='':
+                a1tqvdb = a1tqvdbTmp
+            if elevPath !='':
+                a1elevdb= a1elevdbTmp
 
             a1idxdb = a1idxdbTmp
             a1irec  = a1irecTmp
@@ -597,15 +675,17 @@ for i,idx_db in enumerate(lidxset):
 
             #a1tsdb  = concatenate([a1tsdb,   a1tsdbTmp], axis=0) 
             a1t2mdb  = concatenate([a1t2mdb,  a1t2mdbTmp], axis=0) 
-            a1tqvdb  = concatenate([a1tqvdb,  a1tqvdbTmp], axis=0) 
             a1revdb = concatenate([a1revdb,  a1revdbTmp], axis=0) 
-            a1elevdb= concatenate([a1elevdb, a1elevdbTmp], axis=0) 
+
+            if tqvPath !='':
+                a1tqvdb  = concatenate([a1tqvdb,  a1tqvdbTmp], axis=0) 
+            if elevPath !='':
+                a1elevdb= concatenate([a1elevdb, a1elevdbTmp], axis=0) 
 
             a1idxdb = concatenate([a1idxdb,  a1idxdbTmp], axis=0)
             a1irec  = concatenate([a1irec,   a1irecTmp], axis=0)
              
 
-    print '3----------------------------------'
     #******************************
     #-- Start loop over y,x with the same idx_db --
     #******************************
@@ -615,19 +695,18 @@ for i,idx_db in enumerate(lidxset):
     '''
 
     for (y,x) in zip(a1y,a1x):  # in idx_db loop
-        ####***** test **************
-        #if y !=1068: continue
-        #elif x !=117: continue
-        #print '------------------------------------------------'
-        #print ''
-        #print 'y,x =',y,x
-        #print ''
-        #print '------------------------------------------------'
-        ####***** test **************
-
+        print y,x
         #-- Obs EPC --
         #print 'idx_db y x=',idx_db,y,x
         a1epc = a3epc[y,x,:]
+
+
+        ####***** test **************
+        #if not ((y==9)and(x ==92)): continue
+        print 'OBS Tb',a3tb[y,x,:]
+        print 'OBS EPC',a3epc[y,x,:]
+        ####***** test **************
+
 
         #********************
         # Constrain candidates from DB
@@ -660,14 +739,14 @@ for i,idx_db in enumerate(lidxset):
         a1t2mflag = ma.masked_inside( a1t2mdb-t2m, -MAX_T2M_DIFF, MAX_T2M_DIFF).mask
 
         ##-- tqv --
-        if tqvPath != '':
+        if tqvPath !='':
             tqv  = a2tqv[y,x]
             a1tqvflag = ma.masked_inside( a1tqvdb-tqv, -MAX_TQV_DIFF, MAX_TQV_DIFF).mask
         else:
             a1tqvflag = True
 
         ##-- Elevation --
-        if elevPath != '':
+        if elevPath !='':
             elev = a2elev[y,x]
             if elev < 500:
                 a1elevflag = ma.masked_less(a1elevdb, 500).mask
@@ -686,34 +765,17 @@ for i,idx_db in enumerate(lidxset):
         a1flagNS   = a1prflagNS * a1t2mflag * a1tqvflag * a1elevflag * a1revflag
         a1flagMS   = a1prflagMS * a1t2mflag * a1tqvflag * a1elevflag * a1revflag
 
-        #--- test ------------
-        #a1flagNS   = a1prflagNS * a1t2mflag * a1revflag
-        #a1flagMS   = a1prflagMS * a1t2mflag * a1revflag
-
         #a1flagNS   = a1prflagNS * a1t2mflag * a1tqvflag * a1revflag
         #a1flagMS   = a1prflagMS * a1t2mflag * a1tqvflag * a1revflag
 
-        #a1flagNS   = a1prflagNS * a1t2mflag * a1elevflag * a1revflag
-        #a1flagMS   = a1prflagMS * a1t2mflag * a1elevflag * a1revflag
 
 
-        #a1flagNS   = a1prflagNS * a1t2mflag * a1tqvflag * a1elevflag * a1revflag
-        #a1flagMS   = a1prflagMS * a1t2mflag * a1tqvflag * a1elevflag * a1revflag
-
-        #---------------------
-        #print '# of rec=',len(a1flagNS),a1prflagNS.sum(), a1t2mflag.sum(), a1tqvflag.sum(), a1elevflag.sum(), a1revflag.sum(), a1flagNS.sum()
-        #print 'tqv, elev=', tqv, elev
         #if ((len(a1flagNS)<DB_USE_MINREC) or (len(a1flagMS)<DB_USE_MINREC)):
         if (a1flagNS.sum()<DB_USE_MINREC):
-            print 'len(a1flagNS)=',len(a1flagNS)
-            print 'a1prflagNS.sum=',a1prflagNS.sum()
-            print 'a1t2mflag.sum =',a1t2mflag.sum()
-            print 'a1flagNS.sum=',a1flagNS.sum()
             print 'the Number of records are too small'
             print 'Skip' 
             continue
         if (a1flagMS.sum()<DB_USE_MINREC):
-            print 'a1flagMS.sum=',a1flagMS.sum()
             print 'the Number of records are too small'
             print 'Skip' 
             continue
@@ -780,7 +842,6 @@ for i,idx_db in enumerate(lidxset):
         topirecNS  = a1irecNSSC[idxtopNS]
 
 
-        print '4----------------------------------'
         # Read top-db file (for MS) --
         if dbtype=='JPL':
             dbtopPath = dbDir + '/db_%05d.bin'%(topidxdbMS)
@@ -793,34 +854,35 @@ for i,idx_db in enumerate(lidxset):
 
         topirec = topirecMS
 
-
-        a3top_zmMS[y,x,:] = db.get_var('z_ka', nrec=1, origin=topirec).flatten()[-NLEV_DPR:] 
-        a3top_tbMS[y,x,:] = db.get_var('tb', nrec=1, origin=topirec).flatten() 
-
-        # Read top-db file (for NS) --
-        if dbtype=='JPL':
-            dbtopPath = dbDir + '/db_%05d.bin'%(topidxdbNS)
-            db.set_file(dbtopPath)
-        elif dbtype=='my':
-            db.set_idx_db(dbDir, topidxdbNS)
-        else:
-            print 'check dbtype', dbtype
-            sys.exit()
-
-        topirec = topirecNS
-
-        a3top_zmNS[y,x,:] = db.get_var('z_ku', nrec=1, origin=topirec).flatten()[-NLEV_DPR:] 
-        a3top_tbNS[y,x,:] = db.get_var('tb', nrec=1, origin=topirec).flatten()
-
-        #a3top_prprofNS[y,x,:] = db.get_var('precip_prof_NS', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
-        #a3top_prprofNScmb[y,x,:] = db.get_var('precip_prof_NS_cmb', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
-        a3top_prwatprofNS[y,x,:] = db.get_var('precip_water_prof_NS', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
-
-        #a2top_nsurfMS[y,x] = db.get_var('precip_nsfc_MS', nrec=1, origin=topirecNS)
-        #a2top_nsurfNS[y,x] = db.get_var('precip_nsfc_NS', nrec=1, origin=topirecNS)
-
-        #a2top_nsurfMScmb[y,x] = db.get_var('precip_MS_cmb', nrec=1, origin=topirecNS)
-        #a2top_nsurfNScmb[y,x] = db.get_var('precip_NS_cmb', nrec=1, origin=topirecNS)
+        # Top ranked db entries -------------------
+        if flag_top_var ==1:
+            a3top_zmMS[y,x,:] = db.get_var('z_ka', nrec=1, origin=topirec).flatten()[-NLEV_DPR:] 
+            a3top_tbMS[y,x,:] = db.get_var('tb', nrec=1, origin=topirec).flatten() 
+    
+            # Read top-db file (for NS) --
+            if dbtype=='JPL':
+                dbtopPath = dbDir + '/db_%05d.bin'%(topidxdbNS)
+                db.set_file(dbtopPath)
+            elif dbtype=='my':
+                db.set_idx_db(dbDir, topidxdbNS)
+            else:
+                print 'check dbtype', dbtype
+                sys.exit()
+    
+            topirec = topirecNS
+    
+            a3top_zmNS[y,x,:] = db.get_var('z_ku', nrec=1, origin=topirec).flatten()[-NLEV_DPR:] 
+            a3top_tbNS[y,x,:] = db.get_var('tb', nrec=1, origin=topirec).flatten()
+    
+            #a3top_prprofNS[y,x,:] = db.get_var('precip_prof_NS', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
+            #a3top_prprofNScmb[y,x,:] = db.get_var('precip_prof_NS_cmb', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
+            a3top_prwatprofNS[y,x,:] = db.get_var('precip_water_prof_NS', nrec=1, origin=topirecNS).flatten()[-NLEV_PRECIP:]
+    
+            #a2top_nsurfMS[y,x] = db.get_var('precip_nsfc_MS', nrec=1, origin=topirecNS)
+            #a2top_nsurfNS[y,x] = db.get_var('precip_nsfc_NS', nrec=1, origin=topirecNS)
+    
+            #a2top_nsurfMScmb[y,x] = db.get_var('precip_MS_cmb', nrec=1, origin=topirecNS)
+            #a2top_nsurfNScmb[y,x] = db.get_var('precip_NS_cmb', nrec=1, origin=topirecNS)
 
         #-- Weight --
         a1wtMS = np.exp(-0.5*np.square(a1rmsdMS/rmsd_minMS))
@@ -845,7 +907,6 @@ for i,idx_db in enumerate(lidxset):
         nsurfMScmb = (a1nsurfMScmbSC[a1boolwtMS] * a1wtMS).sum() / wtsumMS
 
 
-        print '5-----------------------'  # test
         a2nsurfMS[y,x] = nsurfMS
         a2nsurfNS[y,x] = nsurfNS
         a2nsurfMScmb[y,x] = nsurfMScmb
@@ -860,14 +921,11 @@ for i,idx_db in enumerate(lidxset):
         a3prwatprofNS[y,x,:]    = prwatprofNS.filled(-9999.)
 
 
-        print 'nsurfNS, nsurfNScmb=',nsurfNS, nsurfNScmb  # test
-        print y,x
-        print a2nsurfNS[y,x]
-        print ''        
+        #if ((y==3)&(x==100)):
+        #    print a1wtNS
+        #    sys.exit()
 
-print 'out of loop'
-print y,x
-print a2nsurfNS[y,x]
+'''
 #--- save (temporary)--
 mk_dir(outDir)
 
@@ -878,7 +936,6 @@ np.save(outDir + '/nsurfNS.%s.npy'%(stamp), a2nsurfNS)
 np.save(outDir + '/nsurfMScmb.%s.npy'%(stamp), a2nsurfMScmb)
 np.save(outDir + '/nsurfNScmb.%s.npy'%(stamp), a2nsurfNScmb)
 
-print outDir + '/nsurfNS.%s.npy'%(stamp), a2nsurfNS
 #np.save(outDir + '/prprofNS.%s.npy'%(stamp), a3prprofNS)
 #np.save(outDir + '/prprofNScmb.%s.npy'%(stamp), a3prprofNScmb)
 np.save(outDir + '/prwatprofNS.%s.npy'%(stamp), a3prwatprofNS)
@@ -891,25 +948,27 @@ np.save(outDir + '/top-idxdbNS.%s.npy'%(stamp), a2top_idxdbNS)
 
 np.save(outDir + '/top-irecMS.%s.npy'%(stamp), a2top_irecMS)
 np.save(outDir + '/top-irecNS.%s.npy'%(stamp), a2top_irecNS)
-
-np.save(outDir + '/top-zmMS.%s.npy'%(stamp), a3top_zmMS)
-np.save(outDir + '/top-zmNS.%s.npy'%(stamp), a3top_zmNS)
-
-#np.save(outDir + '/top-prprofNS.%s.npy'%(stamp), a3top_prprofNS)
-#np.save(outDir + '/top-prprofNScmb.%s.npy'%(stamp), a3top_prprofNScmb)
-np.save(outDir + '/top-prwatprofNS.%s.npy'%(stamp), a3top_prwatprofNS)
-
-np.save(outDir + '/top-tbMS.%s.npy'%(stamp), a3top_tbMS)
-np.save(outDir + '/top-tbNS.%s.npy'%(stamp), a3top_tbNS)
-
-
-#np.save(outDir + '/top-nsurfMS.%s.npy'%(stamp), a2top_nsurfMS)
-#np.save(outDir + '/top-nsurfNS.%s.npy'%(stamp), a2top_nsurfNS)
-#
-#np.save(outDir + '/top-nsurfMScmb.%s.npy'%(stamp), a2top_nsurfMScmb)
-#np.save(outDir + '/top-nsurfNScmb.%s.npy'%(stamp), a2top_nsurfNScmb)
+    
+if flag_top_var ==1:
+    np.save(outDir + '/top-zmMS.%s.npy'%(stamp), a3top_zmMS)
+    np.save(outDir + '/top-zmNS.%s.npy'%(stamp), a3top_zmNS)
+    
+    #np.save(outDir + '/top-prprofNS.%s.npy'%(stamp), a3top_prprofNS)
+    #np.save(outDir + '/top-prprofNScmb.%s.npy'%(stamp), a3top_prprofNScmb)
+    np.save(outDir + '/top-prwatprofNS.%s.npy'%(stamp), a3top_prwatprofNS)
+    
+    np.save(outDir + '/top-tbMS.%s.npy'%(stamp), a3top_tbMS)
+    np.save(outDir + '/top-tbNS.%s.npy'%(stamp), a3top_tbNS)
+    
+    
+    #np.save(outDir + '/top-nsurfMS.%s.npy'%(stamp), a2top_nsurfMS)
+    #np.save(outDir + '/top-nsurfNS.%s.npy'%(stamp), a2top_nsurfNS)
+    #
+    #np.save(outDir + '/top-nsurfMScmb.%s.npy'%(stamp), a2top_nsurfMScmb)
+    #np.save(outDir + '/top-nsurfNScmb.%s.npy'%(stamp), a2top_nsurfNScmb)
 
 
 
 print outDir
 print stamp
+'''

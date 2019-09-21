@@ -10,12 +10,13 @@ lMon  = range(1,12+1)
 lYM   = [[Year,Mon] for Year in lYear for Mon in lMon]
 iMon,eMon = lMon[0],lMon[-1]
 
-#lvarName = ['epc','Ka_MS_zFactorMeasured','Tc','gNum','t2m']
-#lvarName = ['DPRGMI_NS_precipTotWaterCont','DPRGMI_MS_surfPrecipTotRate','DPRGMI_NS_surfPrecipTotRate','Ku_NS_precipRateNearSurface']
-#lvarName = ['Ka_MS_precipRateNearSurface']
-lvarName = ['gtopo']
-NREC  = 20000
-#NREC  = 5000
+#lvarName1 = ['epc','Ka_MS_zFactorMeasured','Tc','gNum','t2m','gtopo']
+#lvarName2 = ['DPRGMI_NS_precipTotWaterCont','DPRGMI_MS_surfPrecipTotRate','DPRGMI_NS_surfPrecipTotRate','Ku_NS_precipRateNearSurface','Ka_MS_precipRateNearSurface']
+#lvarName = ['DPRGMI_MS_surfPrecipTotRate','DPRGMI_NS_surfPrecipTotRate', 'Ka_MS_zFactorMeasured','Tc','gNum','t2m','DPRGMI_NS_precipTotWaterCont', 'Ka_MS_precipRateNearSurface', 'Ku_NS_precipRateNearSurface', 'epc',  'gtopo', 'tqv']
+lvarName = ['t2m']
+
+#NREC  = 20000
+NREC  = 10000
 ibaseDir = '/work/hk01/utsumi/PMM/EPCDB/GMI.V05A.S1.ABp103-117'
 obaseDir = '/work/hk01/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.%02d-%02d'%(NREC,iMon,eMon)
 lepcid = range(0,29*29*29)
