@@ -14,7 +14,7 @@ fullverGMI='%s%s'%(verGMI, subverGMI)
 
 #iYM = [2017,2]
 #eYM = [2017,12]
-iYM = [2017,2]
+iYM = [2017,1]
 eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
 #lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
@@ -31,15 +31,16 @@ worg= 221  # GMI total angle bins
 #lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude']]
 #lvar = [['gmi','epc'],['gmi','S1/Tc'],['gmi','S1/pYXpmw'],['gprof','S1/surfaceTypeIndex']]
 #lvar = [['gmi','epc'],['gmi','Tc'],['gmi','S1/pYXpmw']]
-#lvar = [['gprof','S1/surfacePrecipitation']]
+lvar = [['gprof','S1/surfacePrecipitation']]
 #lvar = [['gmi','S1/Longitude']]
 #lvar = [['gmi','S1/Latitude']]
 #lvar = [['gmi','S1/pYXpmw'],['gprof','S1/surfaceTypeIndex']]
+#lvar = [['gprof','S1/surfaceTypeIndex']]
 #lvar = [['gmi','epc']]
 #lvar = [['gmi','S1/pYXpmw'],['gmi','S1/gNum'],['gmi','S1/Tc'],['gmi','S1/ScanTime/Year'],['gmi','S1/ScanTime/mdhms']]
 #lvar = [['gmi','S1/pYXpmw'],['gmi','S1/gNum'],['gmi','S1/ScanTime/Year'],['gmi','S1/ScanTime/mdhms']]
 #lvar = [['gmi','S1/ScanTime/Year'],['gmi','S1/ScanTime/mdhms']]
-lvar = [['gmi','S1/gNum']]
+#lvar = [['gmi','S1/gNum']]
 #lvar = [['gmi','S1/ScanTime/Year']]
 #lvar = [['gmi','S1/ScanTime/mdhms']]
 #lvar = [['gmi','S1/LatLon']]
@@ -140,7 +141,7 @@ for Year,Mon in lYM:
                     ssearch= srcDir + '/*.%s.V%s.HDF5'%(obtnum,fullverGMI)
                     srcPath= glob.glob(ssearch)[0]
                     print srcPath
-                elif (prodName=='gmi')&(varName !='epc'):
+                elif (prodName=='gprof')&(varName !='epc'):
                     srcDir = gprofbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
                     ssearch= srcDir + '/*.%s.V05?.HDF5'%(obtnum)
                     srcPath= glob.glob(ssearch)[0]
@@ -168,13 +169,12 @@ for Year,Mon in lYM:
                     Dat = np.concatenate([Dat1,Dat2],axis=1) 
     
                 elif varName=='mdhms':
-                    h    = h5py.File(srcPath)
-                    mm   = h[grp+'/Month'][:]
-                    dd   = h[grp+'/DayOfMonth'][:]
-                    hh   = h[grp+'/Hour'][:]
-                    mn   = h[grp+'/Minute'][:]
-                    ss   = h[grp+'/Second'][:]
-                    h.close()
+                    with h5py.File(srcPath) as h:
+                        mm   = h[grp+'/Month'][:]
+                        dd   = h[grp+'/DayOfMonth'][:]
+                        hh   = h[grp+'/Hour'][:]
+                        mn   = h[grp+'/Minute'][:]
+                        ss   = h[grp+'/Second'][:]
     
                     nytmp,nxtmp = a2epcid.shape 
                     Dat = np.zeros([nytmp,nxtmp,5],int8)
@@ -205,24 +205,19 @@ for Year,Mon in lYM:
                     Dat[:] = obtnum
 
                 elif varName=='Year':
-                    h   = h5py.File(srcPath)
-                    a1yyyy= h[grp+'/Year'][:]
+                    with h5py.File(srcPath) as h:
+                        a1yyyy= h[grp+'/Year'][:]
+   
                     nytmp,nxtmp = a2epcid.shape
                     Dat = empty([nytmp,nxtmp],int16)
                     for xtmp in range(nxtmp):
                         Dat[:,xtmp] = a1yyyy
                     Dat = Dat.flatten()
-    
-                else:
-                    h   = h5py.File(srcPath)
-                    Dat = h[var][:]
-                    h.close()
-  
-                    print 'check varName'
-                    print 'varName'
-                    print 'exit' 
-                    sys.exit()
-                     
+
+                elif varName in ['surfaceTypeIndex','surfacePrecipitation']:
+                    with h5py.File(srcPath) as h:
+                        Dat = h[var][:]
+
                     if len(Dat.shape)==2:
                         Dat = Dat[:,cx-w:cx+w+1].flatten()
                     elif len(Dat.shape)==3:
@@ -231,6 +226,12 @@ for Year,Mon in lYM:
                     else:
                         print 'check Dat.shape',Dat.shape
                         sys.exit()
+ 
+                else:
+                    print 'check varName', varName
+                    print 'exit' 
+                    sys.exit()
+                     
                 
                 #-- stack to epc-classifiled database ---
                 lepcidset = sort(list(set(a1epcid)))

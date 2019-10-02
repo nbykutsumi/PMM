@@ -22,14 +22,16 @@ else:
     print 'check myhost'
     sys.exit()
 #*******************************
-iDTime = datetime(2014,12,1)
-eDTime = datetime(2015,2,28)
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2014,6,30)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
-nrec   = 20000
+DB_MAXREC = 10000
+DB_MINREC = 1000
+expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+
 miss_out= -9999.
-#varName = 'prwatprofNS'
-varName = 'top-prwatprofNS'
-expr = 'glb.wprof.org'
+varName = 'prwatprofNS'
+#varName = 'top-prwatprofNS'
 #------------------------------------------------
 
 def prof250mTo500m(a3prof, miss_out):
@@ -43,7 +45,7 @@ def prof250mTo500m(a3prof, miss_out):
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
     pmwDir = epcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
-    ssearch  = pmwDir + '/%s.??????.y-9999--9999.nrec%05d.npy'%(varName,nrec)
+    ssearch  = pmwDir + '/%s.??????.y-9999--9999.nrec%05d.npy'%(varName,DB_MAXREC)
     lpmwPath = sort(glob.glob(ssearch))
    
     for pmwPath in lpmwPath: 
@@ -57,7 +59,7 @@ for DTime in lDTime:
         a3profp = prof250mTo500m(a3profp, miss_out=-9999.)  # 25 (500m) layers
 
         #-- Read PMW retrieval data (surface precip) ---------------
-        a2sfcprecp = np.load(pmwDir + '/nsurfMScmb.%06d.y-9999--9999.nrec%05d.npy'%(oid, nrec))[:,83:137+1]
+        a2sfcprecp = np.load(pmwDir + '/nsurfMScmb.%06d.y-9999--9999.nrec%05d.npy'%(oid, DB_MAXREC))[:,83:137+1]
         #-- Reshape PMW --
         a1sfcprecp=a2sfcprecp.flatten()
         a2profp = a3profp.reshape(-1,25)  # 25 (500m) layers
@@ -120,7 +122,7 @@ for DTime in lDTime:
         a2profd    = a2profd[a1flag]   # Bottom to top
         a2profp    = a2profp[a1flag]   # Bottom to top
    
-        outDir     = tankbaseDir + '/utsumi/validprof/pair.epc/%04d/%02d/%02d'%(Year,Mon,Day)
+        outDir     = tankbaseDir + '/utsumi/validprof/pair.epc.%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
         util.mk_dir(outDir)
         if varName =='prwatprofNS':
             np.save(outDir + '/profpmw.%06d.npy'%(oid), a2profp)

@@ -26,7 +26,12 @@ else:
     print 'check myhost'
     sys.exit()
 #*******************************
-lseason=['JJA']
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2014,6,1)
+lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
+
+[[ilat,ilon],[elat,elon]] = [[30,-110],[50,-80]]
+
 ny,nx = 120,360
 DB_MAXREC = 10000
 DB_MINREC = 1000
@@ -34,7 +39,8 @@ expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 dprof = {}
 #lrettype = ['dpr','epc','gprof']
-lrettype = ['dpr','epcNScmb','gprof']
+#lrettype = ['dpr','epcNScmb','gprof']
+lrettype = ['dpr','epcNScmb']
 #*******************************
 def draw_map(a2dat):
     fig = plt.figure(figsize=(8,4))
@@ -42,7 +48,7 @@ def draw_map(a2dat):
     a1lat = np.arange(-59.5,59.5+0.01,1.0)
     a1lon = np.arange(-179.5,179.5+0.01,1.0)
     X,Y = np.meshgrid(a1lon,a1lat)
-    M = Basemap(resolution='l', llcrnrlat=-60, llcrnrlon=-180, urcrnrlat=60, urcrnrlon=180, ax=ax)
+    M = Basemap(resolution='l', llcrnrlat=ilat, llcrnrlon=ilon, urcrnrlat=elat, urcrnrlon=elon, ax=ax)
     im  = M.pcolormesh(X, Y, a2dat, vmin=vmin, vmax=vmax, cmap=mycm)
 
     plt.title(stitle, fontsize=15)
@@ -63,37 +69,20 @@ a2orog = np.load(tankbaseDir + '/utsumi/validprof/const/orog.meter.sp.one.180x36
 a2orog = a2orog[30:30+120,:]
 
 #*******************************
-for season in lseason:
-    if season=='JJA':
-        #lYM = util.ret_lYM([2014,6],[2014,8])
-        lYM = util.ret_lYM([2014,6],[2014,6])
-    elif season=='SON':
-        lYM = util.ret_lYM([2014,9],[2014,11])
-    elif season=='DJF':
-        lYM = util.ret_lYM([2014,12],[2015,2])
-    elif season=='MAM':
-        lYM = util.ret_lYM([2015,3],[2015,5])
-
+for DTime in lDTime:
+    Year,Mon,Day = DTime.timetuple()[:3]
     ddat = {} 
     for rettype in lrettype:
-
-        a2sum = zeros([ny,nx], float32)
-        a2num = zeros([ny,nx], int32)
+        if rettype in ['epcNScmb','epcNS']:
+            srcDir = tankbaseDir + '/utsumi/validprof/map-daily-uncond/%s.%s'%(rettype, expr)
+        else:
+            srcDir = tankbaseDir + '/utsumi/validprof/map-daily-uncond/%s'%(rettype)
     
-        for Year,Mon in lYM:
-            if rettype in ['epcNScmb','epcNS']:
-                srcDir = tankbaseDir + '/utsumi/validprof/map-uncond/%s.%s'%(rettype, expr)
-            else:
-                srcDir = tankbaseDir + '/utsumi/validprof/map-uncond/%s'%(rettype)
-     
-            sumPath= srcDir  + '/prec.sum.%04d%02d.sp.one.npy' %(Year,Mon)
-            numPath= srcDir  + '/prec.num.%04d%02d.sp.one.npy' %(Year,Mon)
-        
-            a2sumTmp = np.load(sumPath)
-            a2numTmp = np.load(numPath)
+        sumPath= srcDir  + '/prec.sum.%04d%02d%02d.sp.one.npy' %(Year,Mon,Day)
+        numPath= srcDir  + '/prec.num.%04d%02d%02d.sp.one.npy' %(Year,Mon,Day)
     
-            a2sum = a2sum + a2sumTmp
-            a2num = a2num + a2numTmp
+        a2sum = np.load(sumPath)
+        a2num = np.load(numPath)
     
         ddat[rettype] = (ma.masked_where(a2num==0, a2sum) / a2num).filled(0.0)
         ddat[rettype] = ddat[rettype] * 24  # mm/h --> mm/day
@@ -105,34 +94,34 @@ for season in lseason:
     mycm  = 'rainbow'
     # DPR 
     a2dat  = ddat['dpr']
-    stitle= 'precipitation rate (mm/day)  %s\n(COMB)'%(season)
-    figPath= figDir + '/mmap.uncond.prec.dpr.%s.png'%(season)
+    stitle= 'precipitation rate (mm/day)  %04d/%02d/%02d\n(COMB)'%(Year,Mon,Day)
+    figPath= figDir + '/mmap.uncond.prec.%04d%02d%02d.dpr.png'%(Year,Mon,Day)
     draw_map(a2dat)
 
     # EPC
     a2dat  = ddat['epcNScmb']
-    stitle= 'precipitation rate (mm/day)  %s\n(EPC(NScmb))'%(season)
-    figPath= figDir + '/mmap.uncond.prec.epcNScmb.%s.%s.png'%(expr,season)
+    stitle= 'precipitation rate (mm/day)  %04d/%02d/%02d\n(EPC(NScmb))'%(Year,Mon,Day)
+    figPath= figDir + '/mmap.uncond.prec.%s.%04d%02d%02d.epcNScmb.png'%(expr,Year,Mon,Day)
     draw_map(a2dat)
 
-    # GPROF
-    a2dat  = ddat['gprof']
-    stitle= 'precipitation rate (mm/day)  %s\n(GPROF)'%(season)
-    figPath= figDir + '/mmap.uncond.prec.gprof.%s.png'%(season)
-    draw_map(a2dat)
+    ## GPROF
+    #a2dat  = ddat['gprof']
+    #stitle= 'precipitation rate (mm/day)  %04d/%02d/%02d\n(GPROF)'%(Year,Mon,Day)
+    #figPath= figDir + '/mmap.uncond.prec.%04d%02d%02d.gprof.png'%(Year,Mon,Day)
+    #draw_map(a2dat)
 
     # EPC-DPR
     vmin,vmax = -5,5
     a2dat  = ddat['epcNScmb'] - ddat['dpr']
     stitle= 'precipitation difference (mm/day)  %s\n(EPC(NScmb) - COMB)'%(season)
-    figPath= figDir + '/mmap.uncond.difprec.epcNScmb.%s.%s.png'%(expr,season)
+    figPath= figDir + '/mmap.uncond.epcNScmb.%s.difprec.%04d%02d%02d.png'%(expr,Year,Mon,Day)
     draw_map(a2dat)
 
-    # GPROF-DPR
-    vmin,vmax = -5,5
-    a2dat  = ddat['gprof'] - ddat['dpr']
-    stitle= 'precipitation difference (mm/day)  %s\n(GPROF - COMB)'%(season)
-    figPath= figDir + '/mmap.uncond.difprec.gprof.%s.png'%(season)
-    draw_map(a2dat)
+    ## GPROF-DPR
+    #vmin,vmax = -5,5
+    #a2dat  = ddat['gprof'] - ddat['dpr']
+    #stitle= 'precipitation difference (mm/day)  %s\n(GPROF - COMB)'%(season)
+    #figPath= figDir + '/mmap.uncond.difprec.gprof.%s.png'%(season)
+    #draw_map(a2dat)
 
 

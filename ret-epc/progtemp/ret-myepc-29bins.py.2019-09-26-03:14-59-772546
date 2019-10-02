@@ -1,6 +1,6 @@
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+#import matplotlib
+#matplotlib.use('Agg')
+#import matplotlib.pyplot as plt
 from numpy import *
 import h5py
 import sys, os
@@ -58,7 +58,7 @@ def read_rnr_table(idx_db):
     rnrDir  = dbDir + '/rnr.minrec%d'%(DB_MINREC)
     srcPath = rnrDir + '/rnr.%05d.txt'%(idx_db)
     f=open(srcPath,'r'); lines=f.readlines(); f.close()
-
+    #print srcPath
     rnrflag = int(lines[0].split('\t')[1])
     thD     = float(lines[1].split('\t')[1])
     SR      = float(lines[2].split('\t')[1])
@@ -462,17 +462,15 @@ else:
 #-- Start retrieval --
 X,Y = meshgrid(range(nxout),range(nyout))
 for i,idx_db in enumerate(lidxset):
-
-    ##***** test **************
-    if idx_db !=6628: continue
-    ##***** test **************
-
-
     print ''
     print '************************************'
     print 'idx_db for primary loop =',idx_db
     if idx_db==-9999: continue
 
+
+    ##***** test **************
+    #if idx_db !=3077: continue
+    ##***** test **************
 
     #****************************************************
     a2bool = ma.masked_equal(a2idx_db, idx_db).mask
@@ -575,8 +573,8 @@ for i,idx_db in enumerate(lidxset):
         a2epcTmp = np.concatenate([a2epcTmp, a1t2mTmp.reshape(-1,1)],axis=1)
         a2epcTmp = (a2epcTmp - ave_org)/std_org
 
-        a1dscriminant  = ( (ave_no - ave_rain)/(std_no + std_rain)*(ave_no - a2epcTmp) ).sum(axis=1)
-        a1flag_rain = ma.masked_greater_equal(a1dscriminant, thD).mask
+        a1discriminant = ( (ave_no - ave_rain)/(std_no + std_rain)*(ave_no - a2epcTmp) ).sum(axis=1)
+        a1flag_rain = ma.masked_greater_equal(a1discriminant, thD).mask
 
         #-- If all pixels are no-rain --
         if a1flag_rain is np.bool_(False):
@@ -695,18 +693,13 @@ for i,idx_db in enumerate(lidxset):
     '''
 
     for (y,x) in zip(a1y,a1x):  # in idx_db loop
-        print y,x
+        ####***** test **************
+        #if x !=98: continue
+        ####***** test **************
+
         #-- Obs EPC --
         #print 'idx_db y x=',idx_db,y,x
         a1epc = a3epc[y,x,:]
-
-
-        ####***** test **************
-        #if not ((y==9)and(x ==92)): continue
-        print 'OBS Tb',a3tb[y,x,:]
-        print 'OBS EPC',a3epc[y,x,:]
-        ####***** test **************
-
 
         #********************
         # Constrain candidates from DB
@@ -925,7 +918,7 @@ for i,idx_db in enumerate(lidxset):
         #    print a1wtNS
         #    sys.exit()
 
-'''
+
 #--- save (temporary)--
 mk_dir(outDir)
 
@@ -971,4 +964,3 @@ if flag_top_var ==1:
 
 print outDir
 print stamp
-'''

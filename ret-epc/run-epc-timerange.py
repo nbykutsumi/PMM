@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 import numpy as np
 import shutil
 
-iDTime = datetime(2014,6,16)
-eDTime = datetime(2014,6,16)
+iDTime = datetime(2014,8,1)
+eDTime = datetime(2014,8,31)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 
@@ -69,7 +69,7 @@ for DTime in lDTime:
         oid = int(gmiPath.split('.')[-3])
         print 'oid=',oid
 
-        #if oid <=1487: continue  # test
+        #if oid !=4140: continue  # test
 
         dargv = {}
         outDir  = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
@@ -110,20 +110,12 @@ for DTime in lDTime:
        
         ##-- test ---- 
         #dargv['oid'] = oid
-        #dargv['clat'] = 52.5
-        #dargv['clon'] = 270-360
-        #dargv['dlatlon'] = 20
-        #dargv['iscan'] = -9999
-        #dargv['escan'] = -9999
-        #dargv['dscan'] = 10
-
-        #dargv['oid'] = oid
-        #dargv['clat'] = 39.6
-        #dargv['clon'] = -104.1
+        #dargv['clat'] = 43
+        #dargv['clon'] = -79.5
         #dargv['dlatlon'] = 15
         #dargv['iscan'] = -9999
         #dargv['escan'] = -9999
-        #dargv['dscan'] = 20
+        #dargv['dscan'] = 30
 
 
         dargv['oid'] = oid

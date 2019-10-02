@@ -13,7 +13,8 @@ iMon,eMon = lMon[0],lMon[-1]
 #lvarName1 = ['epc','Ka_MS_zFactorMeasured','Tc','gNum','t2m','gtopo']
 #lvarName2 = ['DPRGMI_NS_precipTotWaterCont','DPRGMI_MS_surfPrecipTotRate','DPRGMI_NS_surfPrecipTotRate','Ku_NS_precipRateNearSurface','Ka_MS_precipRateNearSurface']
 #lvarName = ['DPRGMI_MS_surfPrecipTotRate','DPRGMI_NS_surfPrecipTotRate', 'Ka_MS_zFactorMeasured','Tc','gNum','t2m','DPRGMI_NS_precipTotWaterCont', 'Ka_MS_precipRateNearSurface', 'Ku_NS_precipRateNearSurface', 'epc',  'gtopo', 'tqv']
-lvarName = ['t2m']
+#lvarName = ['surfaceTypeIndex']
+lvarName = ['surfacePrecipitation']
 
 #NREC  = 20000
 NREC  = 10000

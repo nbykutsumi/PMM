@@ -1,6 +1,6 @@
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+#import matplotlib
+#matplotlib.use('Agg')
+#import matplotlib.pyplot as plt
 from numpy import *
 import h5py
 import sys, os
@@ -58,7 +58,7 @@ def read_rnr_table(idx_db):
     rnrDir  = dbDir + '/rnr.minrec%d'%(DB_MINREC)
     srcPath = rnrDir + '/rnr.%05d.txt'%(idx_db)
     f=open(srcPath,'r'); lines=f.readlines(); f.close()
-    print srcPath
+    #print srcPath
     rnrflag = int(lines[0].split('\t')[1])
     thD     = float(lines[1].split('\t')[1])
     SR      = float(lines[2].split('\t')[1])

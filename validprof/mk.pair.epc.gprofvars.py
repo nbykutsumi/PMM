@@ -22,13 +22,16 @@ else:
 #*******************************
 
 iDTime = datetime(2014,6,1)
-eDTime = datetime(2014,8,31)
+eDTime = datetime(2014,6,30)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
-nrec   = 20000
+DB_MAXREC = 10000
+DB_MINREC = 1000
+expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+
+
 miss_out= -9999.
 #lvar  = ['S1/Latitude', 'S1/Longitude'] 
 lvar  = ['S1/Latitude', 'S1/Longitude']+ ['S1/qualityFlag','S1/surfaceTypeIndex'] 
-expr = 'glb.wprof.org'
 #------------------------------------------------
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
@@ -71,7 +74,7 @@ for DTime in lDTime:
 
         #-- Read PMW precip ---
         pmwDir = tankbaseDir + '/utsumi/PMM/retepc/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
-        pmwPath = pmwDir + '/nsurfMScmb.%06d.y-9999--9999.nrec%05d.npy'%(oid,nrec)
+        pmwPath = pmwDir + '/nsurfMScmb.%06d.y-9999--9999.nrec%05d.npy'%(oid,DB_MAXREC)
         a2sfcprecp = np.load(pmwPath)[:,83:137+1]
 
         #-- Reshape PMW --
@@ -108,7 +111,7 @@ for DTime in lDTime:
             a1var = a2var.flatten() 
             a1var = a1var[a1flag] 
    
-            outbaseDir = tankbaseDir + '/utsumi/validprof/pair.epc'
+            outbaseDir = tankbaseDir + '/utsumi/validprof/pair.epc.%s'%(expr)
             outDir     = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
             util.mk_dir(outDir)
             np.save(outDir + '/%s.%06d.npy'%(varName, oid), a1var)

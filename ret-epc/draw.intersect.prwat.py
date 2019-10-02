@@ -29,8 +29,6 @@ else:
     sys.exit()
 
 
-#expr = 'glb.wprof.org'
-expr = 'test'
 
 argv = sys.argv
 if len(argv)==2:
@@ -63,23 +61,28 @@ elif len(argv)==1:
     #clat    = 14 # Africa case
     #clon    = 2  # -180 - +180
     
-    ## SE.US case, oid=003556, 2014/10/14
-    #oid = 3556
-    #Year,Mon,Day = 2014,10,14
+    # SE.US case, oid=003556, 2014/10/14
+    oid = 3556
+    Year,Mon,Day = 2014,10,14
     #iy, ey = -9999,-9999
-    ##iy, ey = 927, 1107
-    #clat    = 34    # SE.US case. oid = 003556
-    #clon    = -86   # 2014/10/14  05:42:03 UTC
-    #DB_MAXREC = 20000
-
-    # Europe just to check batch-version
-    oid = 1927
-    Year,Mon,Day = 2014,7,1
-    iy, ey = 1764, 1784
-    clat    = 50.8
-    clon    = 28.1
+    #iy, ey = 927, 1107
+    iy, ey = 987, 1047
+    clat    = 34    # SE.US case. oid = 003556
+    clon    = -86   # 2014/10/14  05:42:03 UTC
     DB_MAXREC = 10000
-    #DB_MAXREC = 20000
+    DB_MINREC = 1000
+    expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+    xpos    = 100  # x-position for cross section
+
+
+    ## Europe just to check batch-version
+    #oid = 1927
+    #Year,Mon,Day = 2014,7,1
+    #iy, ey = 1764, 1784
+    #clat    = 50.8
+    #clon    = 28.1
+    #DB_MAXREC = 10000
+    ##DB_MAXREC = 20000
 
 
     ## SW.Japan typhoon case, oid=019015, 2017/07/03
@@ -104,7 +107,7 @@ elif len(argv)==1:
     [[lllat,lllon],[urlat,urlon]] = BBox
     
     #xpos    = 100  # x-position for cross section
-    xpos    = 87  # x-position for cross section
+    #xpos    = 87  # x-position for cross section
 else:
     print 'Too many standard input'
     print 'Exit'
@@ -463,13 +466,17 @@ for i in range(5):
         stype = 'Top-Ranked Precip water (CMB/MS)'
         cbarlbl='g/m3'
 
-
     a2dat = a2dat[::-1,:] # Tot to Bottom -> Bottom to Top
+
+    #print i, stype, a2dat.shape
+    #print a2dat[:,30]
+
     ax = fig.add_axes([x0, y0, w, h])
     cax= fig.add_axes([x0+w+0.01, y0, 0.03, h*0.9])
     im = ax.imshow(a2dat, interpolation='none', aspect=aspect, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower')
     ax.grid()
-    ax.set_title(stype+' '+stamp)
+    stime = '%04d/%02d/%02d '%(Year,Mon,Day)
+    ax.set_title(stime + stype+' '+stamp)
     #plt.yticks(tick_locs, tick_lbls, fontsize=14)
     #plt.yticks([0,5],['a','b'])
     ax.set_yticks(tick_locs)

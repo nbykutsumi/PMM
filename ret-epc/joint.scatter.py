@@ -7,7 +7,7 @@ import socket
 lseason = ['JJA']
 lsurftype= ['ocean','vegetation','coast']
 lrettype = ['NS','MS','NScmb','MScmb','GPROF']
-
+expr = 'glb.minrec1000.maxrec10000'
 myhost = socket.gethostname()
 if myhost == 'shui':
     figDir   = '/home/utsumi/temp/ret'
@@ -30,8 +30,7 @@ for season in lseason:
     for rettype in lrettype:
         for surftype in lsurftype:
             i = i+1
-            #figPath = figDir + '/scatter.log.NScmb.vegetation.JJA.png'
-            figPath = figDir + '/scatter.log.%s.%s.%s.png'%(rettype,surftype,season)
+            figPath = figDir + '/scatter.%s.%s.%s.%s.png'%(expr,rettype,surftype,season)
             iimg    = Image.open(figPath)
             a2array = asarray(iimg)[iy:ey, ix:ex]
             ddat[i] = a2array    

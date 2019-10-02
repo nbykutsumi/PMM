@@ -9,8 +9,9 @@ iDTime = datetime(2017,7,1)
 eDTime = datetime(2017,7,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 #lvar = ['Latitude','Longitude']
-lvar = ['convfrac','stratfrac','otherfrac','Latitude','Longitude']
+#lvar = ['convfrac','stratfrac','otherfrac','Latitude','Longitude']
 #lvar = ['landSurfaceType']
+lvar = ['heightStormTop']
 
 noscreen = False
 dprver = 'V06'
@@ -80,7 +81,7 @@ for DTimeDay in lDTime:
                     hdfvar ='/NS/%s'%(var)
                     a2var = h5[hdfvar][:]
 
-                elif var in ['landSurfaceType']:
+                elif var in ['landSurfaceType','heightStormTop']:
                     hdfvar = '/NS/PRE/%s'%(var)
                     a2var = h5[hdfvar][:]
 
@@ -103,7 +104,7 @@ for DTimeDay in lDTime:
                     a2sumbit = sum_9grids(a2bit)
                     a2sumwet = sum_9grids(a2wet)
                     a2var = (ma.masked_where(a2sumwet==0, a2sumbit) / a2sumwet)
-
+                
                 else:
                     print 'check var',var
                     sys.exit() 

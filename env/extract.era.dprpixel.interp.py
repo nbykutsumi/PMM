@@ -15,7 +15,7 @@ from metpy.units import units
 noscreen = False
 #preenv   = True
 preenv   = False
-iDTime = datetime(2017,7,20)
+iDTime = datetime(2017,7,1)
 eDTime = datetime(2017,7,31)
 lDTimeDay = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 dprver = 'V06'
@@ -251,7 +251,10 @@ for DTimeDay in lDTimeDay:
                     a3var = mpcalc.virtual_temperature(a3t,  a3w)  # virtual temperature
 
                     #--- Surface -
-                    a2surfvar = mpcalc.equivalent_potential_temperature(a2sp, a2tsurf, a2dsurf)
+                    #a2surfvar = mpcalc.equivalent_potential_temperature(a2sp, a2tsurf, a2dsurf) # comment out @ 2019/9/29
+                    a2rsurf   = mpcalc.relative_humidity_from_dewpoint(a2tsurf, a2dsurf)
+                    a2wsurf   = mpcalc.mixing_ratio_from_relative_humidity(a2rsurf, a2tsurf, a2sp)
+                    a2surfvar = mpcalc.virtual_temperature(a2tsurf, a2wsurf)  # Add @ 2019/9/29
 
                 elif var=='r':
                     #a3var = mpcalc.relative_humidity_from_specific_humidity(a3q, a3t, a1p)

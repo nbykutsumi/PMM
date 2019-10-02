@@ -1,6 +1,6 @@
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+#import matplotlib
+#matplotlib.use('Agg')
+#import matplotlib.pyplot as plt
 from numpy import *
 import h5py
 import sys, os
@@ -58,7 +58,7 @@ def read_rnr_table(idx_db):
     rnrDir  = dbDir + '/rnr.minrec%d'%(DB_MINREC)
     srcPath = rnrDir + '/rnr.%05d.txt'%(idx_db)
     f=open(srcPath,'r'); lines=f.readlines(); f.close()
-    print srcPath
+    #print srcPath
     rnrflag = int(lines[0].split('\t')[1])
     thD     = float(lines[1].split('\t')[1])
     SR      = float(lines[2].split('\t')[1])
@@ -414,6 +414,12 @@ print 'calc idx done'
 a2idx_db = ma.masked_where(a2mask, a2idx_db).filled(miss)
 
 #****************************************************
+#--- test ---------
+print a2idx_db.shape
+ytmp, xtmp = 30, 100
+print 'idx_db_primary=',a2idx_db[ytmp,xtmp]
+
+#****************************************************
 lidxset  = list(set(a2idx_db.flatten()))
 lidxset  = sort(lidxset)
 #****************************************************
@@ -462,6 +468,10 @@ else:
 #-- Start retrieval --
 X,Y = meshgrid(range(nxout),range(nyout))
 for i,idx_db in enumerate(lidxset):
+
+    if idx_db != 5832: continue
+
+
     print ''
     print '************************************'
     print 'idx_db for primary loop =',idx_db
@@ -694,7 +704,7 @@ for i,idx_db in enumerate(lidxset):
 
     for (y,x) in zip(a1y,a1x):  # in idx_db loop
         ####***** test **************
-        #if x !=98: continue
+        if not ((y ==30)and(x ==100)): continue
         ####***** test **************
 
         #-- Obs EPC --
@@ -881,6 +891,8 @@ for i,idx_db in enumerate(lidxset):
         a1wtMS = np.exp(-0.5*np.square(a1rmsdMS/rmsd_minMS))
         a1wtNS = np.exp(-0.5*np.square(a1rmsdNS/rmsd_minNS))
 
+        print 'before',a1wtNS[idxtopNS]
+        sys.exit()
         a1wtMS[idxtopMS] = 1.0
         a1wtNS[idxtopNS] = 1.0
 
@@ -912,6 +924,29 @@ for i,idx_db in enumerate(lidxset):
 
         prwatprofNS   = (ma.masked_less(a2prwatprofNSSC[a1boolwtNS],0) * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
         a3prwatprofNS[y,x,:]    = prwatprofNS.filled(-9999.)
+
+        #****** test *********************
+        #-- sorting by weight ----
+        a2profTmp = a2prwatprofNSSC[a1boolwtNS]
+        a1idxTmp = np.arange(a2profTmp.shape[0]).astype(int32)
+
+        print a1wtNS.shape, a1boolwtNS.sum(), a2profTmp.shape
+        ltmp = np.concatenate([a1idxTmp.reshape(-1,1), a1wtNS.reshape(-1,1)], axis=1)
+        ltmp = np.array(sorted(ltmp, key= lambda x:x[1], reverse=True))
+        a1idxsort = ltmp[:,0].astype(int32)
+        a1wtsort  = ltmp[:,1]
+
+        a2profsort = a2profTmp[a1idxsort,:]
+        print a1wtsort
+        print a2profsort.shape
+        a2profsort = a2profsort[:,::-1]  # flip: high to low --> low to high
+        sout = 'i,wt,' + ','.join(map(str,0.25*np.arange(a2profsort.shape[1]))) + '\n'
+        for i,wt in enumerate(a1wtsort):
+            print i,wt, a2profsort[i]
+            sout = sout + '%d,%f'%(i,wt) + ',' + ','.join(map(str,a2profsort[i])) + '\n'
+        csvPath = '/home/utsumi/temp/ret/temp.prof.%d.csv'%(oid)
+        f=open(csvPath,'w'); f.write(sout); f.close()
+        #*********************************
 
 
         #if ((y==3)&(x==100)):

@@ -20,13 +20,17 @@ if myhost =='shui':
 elif myhost == 'well':
     tankbaseDir = '/home/utsumi/mnt/lab_tank'
     workbaseDir = '/home/utsumi/mnt/lab_work'
-    figDir      = '/home/utsumi/mnt/lab_home_rainbow/public_html/tempfig/validprof'
+    figDir      = '/home/utsumi/mnt/lab_home_rainbow/public_html/tempfig/ret'
 
 else:
     print 'check myhost'
     sys.exit()
 #*******************************
 lseason=['JJA']
+DB_MAXREC = 10000
+DB_MINREC = 1000
+expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+
 ny,nx = 120,360
 dprof = {}
 lrettype = ['rad-epc','rad-gprof','epc','gprof']
@@ -74,8 +78,8 @@ a2orog = a2orog[30:30+120,:]
 #*******************************
 for season in lseason:
     if season=='JJA':
-        lYM = util.ret_lYM([2014,6],[2014,8])
-        #lYM = util.ret_lYM([2014,6],[2014,6])
+        #lYM = util.ret_lYM([2014,6],[2014,8])
+        lYM = util.ret_lYM([2014,6],[2014,6])
     elif season=='SON':
         lYM = util.ret_lYM([2014,9],[2014,11])
     elif season=='DJF':
@@ -121,7 +125,10 @@ for season in lseason:
         a2num = zeros([ny,nx], int32)
     
         for Year,Mon in lYM:
-            outDir = tankbaseDir + '/utsumi/validprof/mapprof/%s'%(rettype)
+            if rettype in ['rad-epc','epc']:
+                outDir = tankbaseDir + '/utsumi/validprof/mapprof/%s.%s'%(rettype,expr)
+            else:
+                outDir = tankbaseDir + '/utsumi/validprof/mapprof/%s'%(rettype)
             util.mk_dir(outDir)
         
             sumPath= outDir  + '/prof.sum.%04d%02d.sp.one.npy' %(Year,Mon)
@@ -144,8 +151,8 @@ for season in lseason:
     a2cc  = calc_cc(dprof['rad-epc'], dprof['epc'], axis=2)
     vmin,vmax=0,1 
     mycm  = 'jet'
-    stitle= 'Correlation of profles. %s\n(COMB & EPC)'%(season)
-    figPath= figDir + '/mmap.cc.prof.epc.%s.png'%(season)
+    stitle= 'Correlation of profles. %s\n(COMB & EPC) %s'%(season, expr)
+    figPath= figDir + '/mmap.cc.prof.epc.%s.%s.png'%(expr,season)
     draw_map(a2cc)
 
     # DPR vs GPROF
@@ -190,13 +197,13 @@ for season in lseason:
     a2ph = dprof['epc'].argmax(axis=2) * 0.5
     a2mask= ma.masked_invalid( dprof['epc'].max(axis=2) ).mask
     a2ph = ma.masked_where(a2mask, a2ph)
-    stitle= 'Peak height (Above sea) (km) %s\n(EPC)'%(season)
-    figPath= figDir + '/mmap.peakh-asl.prof.epc.%s.png'%(season)
+    stitle= 'Peak height (Above sea) (km) %s\n(EPC) %s'%(season, expr)
+    figPath= figDir + '/mmap.peakh-asl.prof.epc.%s.%s.png'%(expr,season)
     draw_map(a2ph)
 
     a2ph = a2ph-a2orog*0.001
-    stitle= 'Peak height (Above surface) (km) %s\n(EPC)'%(season)
-    figPath= figDir + '/mmap.peakh-agl.prof.epc.%s.png'%(season)
+    stitle= 'Peak height (Above surface) (km) %s\n(EPC) %s'%(season, expr)
+    figPath= figDir + '/mmap.peakh-agl.prof.epc.%s.%s.png'%(expr,season)
     draw_map(a2ph)
 
     # GPROF
@@ -213,25 +220,25 @@ for season in lseason:
     draw_map(a2ph)
 
     #*** Peak water content ***
-    #vmin,vmax = 0,0.2
-    #mycm = 'jet'
-    ## DPR
-    #a2pw = dprof['rad-epc'].max(axis=2)
-    #stitle= 'Peak Wat. Cont (g/m3) %s\n(COMB)'%(season)
-    #figPath= figDir + '/mmap.peakw.prof.dpr.%s.png'%(season)
-    #draw_map(a2pw)
+    vmin,vmax = 0,0.2
+    mycm = 'jet'
+    # DPR
+    a2pw = dprof['rad-epc'].max(axis=2)
+    stitle= 'Peak Wat. Cont (g/m3) %s\n(COMB)'%(season)
+    figPath= figDir + '/mmap.peakw.prof.dpr.%s.png'%(season)
+    draw_map(a2pw)
 
-    ## DPR
-    #a2pw = dprof['epc'].max(axis=2)
-    #stitle= 'Peak Wat. Cont (g/m3) %s\n(EPC)'%(season)
-    #figPath= figDir + '/mmap.peakw.prof.epc.%s.png'%(season)
-    #draw_map(a2pw)
+    # DPR
+    a2pw = dprof['epc'].max(axis=2)
+    stitle= 'Peak Wat. Cont (g/m3) %s\n(EPC) %s'%(season, expr)
+    figPath= figDir + '/mmap.peakw.prof.epc.%s.%s.png'%(expr, season)
+    draw_map(a2pw)
 
-    ## GPROF
-    #a2pw = dprof['gprof'].max(axis=2)
-    #stitle= 'Peak Wat. Cont (g/m3) %s\n(GPROF)'%(season)
-    #figPath= figDir + '/mmap.peakw.prof.gprof.%s.png'%(season)
-    #draw_map(a2pw)
+    # GPROF
+    a2pw = dprof['gprof'].max(axis=2)
+    stitle= 'Peak Wat. Cont (g/m3) %s\n(GPROF)'%(season)
+    figPath= figDir + '/mmap.peakw.prof.gprof.%s.png'%(season)
+    draw_map(a2pw)
 
 
     ##*** Tot. precip. water ***

@@ -10,21 +10,15 @@ import numpy as np
 import epcfunc
 import EPCDB
 
-DB_MAXREC = 10000
-DB_MINREC = 1000
-NDB_EXPAND= 20
-NEM = 12
-NEM_USE = 3
-NPCHIST = 29
 sensor = 'GMI'
 myhost = socket.gethostname()
 
 if myhost =="shui":
-    dbDir   = '/tank/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
+    dbDir   = '/tank/utsumi/PMM/EPCDB/samp.10000.GMI.V05A.S1.ABp103-117.01-12'
     outDir  = '/home/utsumi/temp/ret'
 elif myhost =="well":
     coefDir = '/media/disk2/share/PMM/EPCDB/EPC_COEF/%s'%(sensor)
-    dbDir   = '/media/disk2/share/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
+    dbDir   = '/media/disk2/share/PMM/EPCDB/samp.10000.GMI.V05A.S1.ABp103-117.01-12'
     outDir  = '/home/utsumi/temp/ret'
 
 
@@ -60,6 +54,9 @@ elif dbtype=='my':
 else:
     print 'check dbtype',dbtype
 #**********************
+DB_MAXREC = 10000
+NEM = 12
+
 
 ###** Make idx_db list ***
 #ndb = 29*29*29  # 24388
@@ -78,76 +75,35 @@ else:
 #lidx_db = np.sort(random.sample(lidx_db, 10))
 
 
-lidx_db = [3312,3948,4750,8859,9503,9865,13668,13752,14425,19618,20666,22617]
+#lidx_db = [3312,3948,4750,8859,9503,9865,13668,13752,14425,19618,20666,22617]
 #lidx_db = [22617]
 #lidx_db = [20666]
 #lidx_db = [3312]
 #lidx_db = [4750]
 #lidx_db = [9865,4750]
 #lidx_db = [11719]  # Precip ratio>0.9
-#lidx_db = [22617]
+lidx_db = [22617]
 icount = 0
-
-#******************************
-# Start pribary idx loop
-#------------------------------
 for idx_db in lidx_db:
-    #******************************
-    # Make expanded idx_db list
-    #------------------------------
-    lidx_db_expand_tmp = [idx_db] + [idx_db + i*sign for i in range(1,NDB_EXPAND) for sign in [-1,1]]
+    print 'idx_db=',idx_db
 
-    nevent_all = 0
+    dbPath = dbDir + '/db_%05d.bin'%(idx_db)
+    if   dbtype == 'JPL':
+        db.set_file(dbPath)
+    elif dbtype == 'my':
+        db.set_idx_db(dbDir, idx_db)
 
-    lidx_db_expand = []
-    for idx_db_expand in lidx_db_expand_tmp:
-
-        #-- If idx_db == -9999 --
-        if ((idx_db_expand <0)or(pow(NPCHIST, NEM_USE)-1<idx_db_expand)):
-            print 'No matching database'
-            print 'idx_db=',idx_db_expand
-            continue
-
-        #-- Read nrain file --
-        try:
-            a1nrain_warm, a1nrain_cold = read_nrain(idx_db_expand)
-        except IOError:
-            print 'No DB file for idx_db=',idx_db_expand
-            print 'SKIP'
-            continue
-
-        nevent_all  = nevent_all  + a1nrain_cold[0] + a1nrain_warm[0]
-        lidx_db_expand.append(idx_db_expand)
-        if nevent_all >DB_MINREC: break
-
-    #******************************
-    # Stack data
-    #------------------------------
-    a2epcdb = []
-    a1prec  = []
-    a1t2m   = []
-    for idx_db_expand in lidx_db_expand:
-        dbPath = dbDir + '/db_%05d.bin'%(idx_db_expand)
-        if   dbtype == 'JPL':
-            db.set_file(dbPath)
-        elif dbtype == 'my':
-            db.set_idx_db(dbDir, idx_db_expand)
-
-        a2epcdb.append(db.get_var('pc_emis')[:,:NEM])  # (nrec, 12)
-        a1prec .append(db.get_var('precip_NS_cmb'))
-        a1t2m  .append(db.get_var('t2m'))
-
-    a2epcdb = np.concatenate(a2epcdb, axis=0)
-    a1prec  = np.concatenate(a1prec, axis=0)
-    a1t2m   = np.concatenate(a1t2m,  axis=0)
+    a2epcdb = db.get_var('pc_emis', nrec=DB_MAXREC)[:,:NEM]  # (nrec, 12)
+    a1nsurfNScmb = db.get_var('precip_NS_cmb', nrec=DB_MAXREC)
+    a1t2m        = db.get_var('t2m', nrec=DB_MAXREC)
 
     #-- Screening ----------
     a1flagepc= ma.masked_not_equal(a2epcdb,-9999.).all(axis=1).mask
     a1flagT  = ma.masked_greater(a1t2m,0).mask   # screen T2m=0
     a1flag_good = a1flagepc * a1flagT
 
-    a1flag_rain = ma.masked_greater(a1prec, 0).mask
-    a1flag_no   = ma.masked_equal(a1prec,0).mask
+    a1flag_rain = ma.masked_greater(a1nsurfNScmb, 0).mask
+    a1flag_no   = ma.masked_equal(a1nsurfNScmb,0).mask
 
     a1flag_rain = a1flag_rain * a1flag_good
     a1flag_no   = a1flag_no   * a1flag_good

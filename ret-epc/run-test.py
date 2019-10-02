@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 import numpy as np
 import shutil
 
-iDTime = datetime(2014,11,20)
-eDTime = datetime(2014,11,20)
+iDTime = datetime(2014,10,14)
+eDTime = datetime(2014,10,14)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 
@@ -24,9 +24,9 @@ expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 #expr = 'rnr'
 #expr = 'glb.wprof.rnr'
 #expr = 'glb.nprof'
-prog = 'ret-myepc-29bins.py'
+#prog = 'ret-myepc-29bins.py'
 #prog = 'ret-testrnr.py'
-#prog = 'ret-test.py'
+prog = 'ret-test.py'
 sensor  = 'GMI'
 myhost = socket.gethostname()
 if myhost =="shui":
@@ -69,7 +69,7 @@ for DTime in lDTime:
         oid = int(gmiPath.split('.')[-3])
         print 'oid=',oid
 
-        if oid != 4140: continue  # test
+        if oid != 3556: continue  # test
 
         dargv = {}
         outDir  = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
@@ -111,19 +111,11 @@ for DTime in lDTime:
         #-- test ---- 
         dargv['oid'] = oid
         dargv['clat'] = 43
-        dargv['clon'] = -80
+        dargv['clon'] = 79.5
         dargv['dlatlon'] = 20
         dargv['iscan'] = -9999
         dargv['escan'] = -9999
         dargv['dscan'] = 30
-
-        #dargv['oid'] = oid
-        #dargv['clat'] = 39.6
-        #dargv['clon'] = -104.1
-        #dargv['dlatlon'] = 15
-        #dargv['iscan'] = -9999
-        #dargv['escan'] = -9999
-        #dargv['dscan'] = 20
 
 
         #dargv['oid'] = oid

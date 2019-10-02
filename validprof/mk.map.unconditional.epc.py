@@ -26,14 +26,16 @@ else:
 iYM = [2014,6]
 eYM = [2014,8]
 lYM = util.ret_lYM(iYM,eYM)
-nrec   = 20000
+DB_MAXREC = 10000
+DB_MINREC = 1000
+expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+
 miss_out= -9999.
 lat0 = -60
 lon0 = -180
 dlatlon = 1.0
-#rettype = 'epcNScmb'
-rettype = 'epcNS'
-expr = 'glb.wprof.org'
+rettype = 'epcNScmb'
+#rettype = 'epcNS'
 
 ny,nx = 120,360
 for Year,Mon in lYM:
@@ -53,9 +55,9 @@ for Year,Mon in lYM:
         Year,Mon,Day = DTime.timetuple()[:3]
         srcDir = epcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
         if rettype=='epcNS':
-            ssearch  = srcDir + '/nsurfNS.??????.y-9999--9999.nrec%05d.npy'%(nrec)
+            ssearch  = srcDir + '/nsurfNS.??????.y-9999--9999.nrec%d.npy'%(DB_MAXREC)
         elif rettype=='epcNScmb':
-            ssearch  = srcDir + '/nsurfNScmb.??????.y-9999--9999.nrec%05d.npy'%(nrec)
+            ssearch  = srcDir + '/nsurfNScmb.??????.y-9999--9999.nrec%d.npy'%(DB_MAXREC)
         else:
             print 'check rettype',rettype
             sys.exit()
@@ -68,8 +70,8 @@ for Year,Mon in lYM:
             print DTime,oid
     
             a2prec = ma.masked_less(np.load(srcPath)[:,83:137+1],0.01).filled(0.0)
-            a2lat  = np.load(srcDir + '/lat.%06d.y-9999--9999.nrec20000.npy'%(oid))[:,83:137+1]
-            a2lon  = np.load(srcDir + '/lon.%06d.y-9999--9999.nrec20000.npy'%(oid))[:,83:137+1]
+            a2lat  = np.load(srcDir + '/lat.%06d.y-9999--9999.nrec%d.npy'%(oid, DB_MAXREC))[:,83:137+1]
+            a2lon  = np.load(srcDir + '/lon.%06d.y-9999--9999.nrec%d.npy'%(oid, DB_MAXREC))[:,83:137+1]
     
             a1prec = a2prec.flatten()
             a1lat  = a2lat.flatten()
@@ -91,7 +93,7 @@ for Year,Mon in lYM:
                 a2n[y,x]  += 1
 
     #-- Save -------
-    outDir = tankbaseDir + '/utsumi/validprof/map-uncond/%s'%(rettype)
+    outDir = tankbaseDir + '/utsumi/validprof/map-uncond/%s.%s'%(rettype,expr)
 
     util.mk_dir(outDir)
     np.save(outDir+'/prec.sum.%04d%02d.sp.one.npy' %(Year,Mon), a2s)

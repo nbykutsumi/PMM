@@ -12,32 +12,30 @@ import shutil
 from numpy import *
 import EPCDB
 
-iDTime = datetime(2014,7,1)
-eDTime = datetime(2014,7,1)
+iDTime = datetime(2014,10,14)
+eDTime = datetime(2014,10,14)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 
 
 #** Constants ******
-expr = 'test'
-#expr = 'rnr'
-#expr = 'glb.wprof.rnr'
-prog = 'ret-myepc-29bins.py'
-#prog = 'ret-testrnr.py'
-#prog = 'ret-test.py'
 sensor  = 'GMI'
 #iscan = -9999
 #escan = -9999
-iscan = 1764
-escan = 1784
+iscan = 987
+escan = 1047
+#oid = -9999
+oid = 3556
 
-DB_MAXREC = 20000
-
+DB_MAXREC = 10000
+DB_MINREC = 1000
 NLEV_DPR = 50    # extract this number of layers
 NLEV_PRECIP = 50
 
+expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
-myhost = socket.gethostname()
+
+myhost  = socket.gethostname()
 if myhost =="shui":
     gmibaseDir  = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05'
     matchbaseDir= '/tank/utsumi/PMM/MATCH.GMI.V05A'
@@ -131,8 +129,8 @@ for DTime in lDTime:
                 aout[a1yTmp, a1xTmp] = dat
 
             #--- Save -------------
-            #outDir = retDir
-            outDir  = '/home/utsumi/temp/ret'
+            outDir = retDir
+            #outDir  = '/home/utsumi/temp/ret'
             outPath = outDir + '/top-%s.%s.npy'%(varName, stamp)
             np.save(outPath, aout)
             print outPath

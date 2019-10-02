@@ -21,15 +21,18 @@ else:
     sys.exit()
 #*******************************
 iYM  = [2014,6]
-eYM  = [2014,8]
+eYM  = [2014,6]
 lYM  = util.ret_lYM(iYM,eYM)
+DB_MAXREC = 10000
+DB_MINREC = 1000
+expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
-nrec   = 20000
 miss_out= -9999.
 #lrettype= ['epc-top']
 #lrettype= ['gprof']
 #lrettype= ['epc','rad','gprof']
-lrettype= ['rad-epc','rad-gprof']
+#lrettype= ['rad-epc','rad-gprof']
+lrettype= ['epc','rad-epc']
 #lrettype= ['rad','gprof','epc']
 #lrettype= ['gprof','epc']
 lat0 = -60.
@@ -85,7 +88,11 @@ for Year,Mon in lYM:
         for DTime in lDTime:
             print rettype, DTime
             Year,Mon,Day = DTime.timetuple()[:3]
-            srcDir  = tankbaseDir + '/utsumi/validprof/pair.%s/%04d/%02d/%02d'%(dirtype,Year,Mon,Day)
+            if rettype in ['epc','rad-epc']:
+                srcDir  = tankbaseDir + '/utsumi/validprof/pair.%s.%s/%04d/%02d/%02d'%(dirtype,expr,Year,Mon,Day)
+            else:
+                srcDir  = tankbaseDir + '/utsumi/validprof/pair.%s/%04d/%02d/%02d'%(dirtype,Year,Mon,Day)
+
             ssearch = srcDir + '/prof%s.??????.npy'%(filetype)
             lprofPath = np.sort(glob.glob(ssearch))
             for profPath in lprofPath:
@@ -137,7 +144,7 @@ for Year,Mon in lYM:
         #-- Save ---
         a3ave = ma.masked_invalid( a3sum/a2num.reshape(ny,nx,1) ).filled(-9999.)
    
-        outDir = tankbaseDir + '/utsumi/validprof/mapprof/%s'%(rettype)
+        outDir = tankbaseDir + '/utsumi/validprof/mapprof/%s.%s'%(rettype,expr)
         util.mk_dir(outDir)
     
         sumPath= outDir  + '/prof.sum.%04d%02d.sp.one.npy' %(Year,Mon)

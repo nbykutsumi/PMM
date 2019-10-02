@@ -7,12 +7,12 @@ import numpy as np
 import h5py
 import shutil
 
-iDTime = datetime(2014,7,11)
-eDTime = datetime(2014,7,20)
+iDTime = datetime(2015,1,23)
+eDTime = datetime(2015,1,31)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 
-batchsize = 4
+batchsize = 6
 #batchsize = 1
 
 DB_MAXREC = 10000

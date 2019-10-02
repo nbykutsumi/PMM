@@ -7,19 +7,31 @@ import os, sys, glob, socket
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
+#from collections import deque
+
+calcflag = True:
+lseason = [7]
 
 dprver = 'V06'
 dprverfull='V06A'
 myhost = socket.gethostname()
 if myhost =='shui':
     pairbaseDir = '/tank/utsumi/env/pair'
+    pickleDir   = '/tank/utsumi/env/pickle'
     figDir = '/home.rainbow/utsumi/public_html/tempfig'
 elif myhost == 'well':
     pairbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/env/pair'
+    pickleDir = '/home/utsumi/mnt/lab_tank/utsumi/env/pickle'
     figDir = '/home/utsumi/mnt/lab_home_rainbow/public_html/tempfig'
 else:
     print 'check myhost'
     sys.exit()
+
+
+lprtype= ['conv']   # 'conv', 'strat'
+lheight= ['high','low']
+lregion= ['t','s','m']
+lsurf  = ['land','sea']
 
 
 #lvar = ['pre.dtvdz_low','pre.dtvdz_mid']
@@ -62,6 +74,20 @@ lskipoid = [
 ,19109
 ]
 #***********************8
+def season_lDTime(season):
+    Year = 2017
+    lMon = util.ret_lmon(season)
+    lDTime = []
+    for Mon in lMon:
+        eDay = calendar.monthrange(Year,Mon)[1]
+        iDTime = datetime(Year,Mon,1)
+        eDTime = datetime(Year,Mon,eDay)
+        lDTimeTmp = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
+        lDTime = lDTime + lDTimeTmp
+    return lDTime
+
+
+
 def ret_var(var):
     if var in ['deptdz_low','deptdz_mid','pre.deptdz_low','pre.deptdz_mid', 'dtvdz_low','dtvdz_mid','pre.dtvdz_low','pre.dtvdz_mid']:
 
@@ -108,158 +134,223 @@ def ret_var(var):
         sys.exit()
     return a1var
 
+
 #***********************8
-for var in lvar:
-    #for surftype in ['land','sea']:
-    for surftype in lsurftype:
-
-        a1var  = []
-        a1conv = []
-        for DTime in lDTime:
-            print DTime
-            Year,Mon,Day = DTime.timetuple()[:3]
-            convDir = pairbaseDir + '/convfrac/%04d/%02d/%02d'%(Year,Mon,Day)
-            varDir  = pairbaseDir + '/%s/%04d/%02d/%02d'%(var,Year,Mon,Day)
-            surfDir = pairbaseDir + '/%s/%04d/%02d/%02d'%('landSurfaceType',Year,Mon,Day)
+for season in lseason:
+    for var in lvar:
+        for prtype in lprtype:
+            for dt in ldtenv:
+                #****************************
+                # Initialize
+                #----------------------------
+                d1var = {}
+                d1frac= {}
+                for height in lheight:
+                    for region in lregion:
+                        for surf in lsurf:
+                            dvar [height,region,surf] = np.array([])
+                            dfrac[height,region,surf] = np.array([]) 
+                #----------------------------
+                lDTime = season_lDTime(season)
+    
+                for DTime in lDTime:
+                    print DTime
+                    Year,Mon,Day = DTime.timetuple()[:3]
+                    convDir = pairbaseDir + '/convfrac/%04d/%02d/%02d'%(Year,Mon,Day)
+                    stratDir= pairbaseDir + '/stratfrac/%04d/%02d/%02d'%(Year,Mon,Day)
+                    varDir  = pairbaseDir + '/%s/%04d/%02d/%02d'%(var,Year,Mon,Day)
+                    surfDir = pairbaseDir + '/%s/%04d/%02d/%02d'%('landSurfaceType',Year,Mon,Day)
+                    stopDir = pairbaseDir + '/%s/%04d/%02d/%02d'%('heightStormTop',Year,Mon,Day)
+                    latDir  = pairbaseDir + '/%s/%04d/%02d/%02d'%('Latitude',Year,Mon,Day)
+                    lonDir  = pairbaseDir + '/%s/%04d/%02d/%02d'%('Longitude',Year,Mon,Day)
+                
+                    lconvPath = np.sort(glob.glob(convDir + '/*.npy'))
+                
+                    for convPath in lconvPath:
+                        oid = convPath.split('.')[-2]
         
-            lconvPath = np.sort(glob.glob(convDir + '/*.npy'))
+                        if int(oid) in lskipoid:
+                            print 'skip',oid
+                            continue
+         
+                        a1varTmp = ret_var(var)
+                        a1surfTmp= np.load(surfDir + '/landSurfaceType.00.0km.%s.npy'%(oid))
+                        a1stopTmp= np.load(stopDir + '/heightStormTop.00.0km.%s.npy'%(oid))
+                        a1latTmp = np.load(stopDir + '/Latitude.00.0km.%s.npy'%(oid))
+                        a1lonTmp = np.load(stopDir + '/Longitude.00.0km.%s.npy'%(oid))
         
-            for convPath in lconvPath:
-                oid = convPath.split('.')[-2]
-
-                if int(oid) in lskipoid:
-                    print 'skip',oid
-                    continue
- 
-                a1varTmp = ret_var(var)
-                a1surfTmp= np.load(surfDir + '/landSurfaceType.00.0km.%s.npy'%(oid))
-                a1convTmp= np.load(convPath) 
-
-                #** mask ****
-                if   surftype=='land': isurf,esurf = 0,99
-                elif surftype=='sea' : isurf,esurf = 100,199
-                elif surftype=='coast':isurf,esurf = 200,299
-                else:
-                    print 'check surftype',surftype
-                    sys.exit()
-
-                try:
-                    a1maskvar  = a1varTmp.mask
-                except AttributeError:
-                    a1maskvar  = False
-
-                a1masksurf = ma.masked_outside(a1surfTmp, isurf, esurf).mask
-                a1masktype = ma.masked_less(a1convTmp, 0).mask
-                a1mask = a1maskvar + a1masksurf + a1masktype
- 
-                a1varTmp = ma.masked_where(a1mask, a1varTmp).compressed()
-                a1convTmp= ma.masked_where(a1mask, a1convTmp).compressed()
-                a1var  = np.concatenate([a1var,  a1varTmp])
-                a1conv = np.concatenate([a1conv, a1convTmp])
-
-                ##-- test ---
-                #if len(a1varTmp)>0:
-                #    nmore = ma.masked_less_equal(a1varTmp,110).count()
-                #    nless = ma.masked_greater_equal(a1varTmp,0).count()
-                #    nall  = float(len(a1varTmp))
-
-                #    print a1varTmp.min(),a1varTmp.max(),nless,nmore,nall,nless/nall, nmore/nall
-
-        #-- Histograms --------
-        xmin  = np.percentile(a1var,10)
-        xmax  = np.percentile(a1var,90)
-        xbins  = np.linspace(xmin,xmax,20)
-        ybins  = np.linspace(0,1,20)
-
-        H,xedges,yedges = np.histogram2d(a1var, a1conv, bins = [xbins,ybins])
-        H = H.T
-        H = ma.masked_equal(H,0)
-        X,Y = np.meshgrid(xbins,ybins)
-
-        #-- Binned average -----
-        a1convmean,_,_ = stats.binned_statistic(a1var, a1conv, bins = xbins)
-        a1xcenter = 0.5*(xbins[:-1]+xbins[1:])
-
-        #*** Prep for figure **
-        if   var in ['deptdz_low','deptdz_mid','pre.deptdz_low','pre.deptdz_mid']:
-
-            lev = var.split('_')[1]
-            varlongname = r'$d\theta$' +'e/dz %s'%(lev)
-            if var.split('.')[0]=='pre':
-                varlongname = varlongname + ' pre'
-
-            sunit = 'K/km'
-
-        elif   var in ['dtvdz_low','dtvdz_mid','pre.dtvdz_low','pre.dtvdz_mid']:
-
-            lev = var.split('_')[1]
-            varlongname = 'Tv/dz %s'%(lev)
-            if var.split('.')[0]=='pre':
-                varlongname = varlongname + ' pre'
-
-            sunit = 'K/km'
-
-        elif var in ['skt']:
-            varlongname='Skin temperature'
-            sunit = 'K'
+                        if prtype =='conv':
+                            a1fracTmp = np.load(convDir  + '/convfrac.00.0km.%s.npy'%(oid))
+                        elif prtype == 'strat':
+                            a1fracTmp = np.load(stratDir + '/stratfrac.00.0km.%s.npy'%(oid))
+                        else:
+                            print 'check prtype',prtype
+                            sys.exit() 
+                        #****************
+                        # Flags
+                        #----------------
+                
+                        d1flagh = {}
+                        d1flagh['high'] = ma.masked_greater(a1stopTmp,6000).mask
+                        d1flagh['mid' ] = ma.masked_inside(a1stopTmp,4000,6000).mask
+                        d1flagh['low' ] = ma.masked_less(a1stopTmp,4000).mask
+                
+                        d1flagr = {}
+                        d1flagr['t']    = ma.masked_less(np.abs(a1latTmp), 15).mask
+                        d1flagr['s']    = ma.masked_inside(np.abs(a1latTmp), 20, 30).mask
+                        d1flagr['m']    = ma.masked_greater(np.abs(a1latTmp), 35).mask
+                
+                        d1flags = {}
+                        d1flags['land']= ma.masked_inside(a1surfTmp,0,99).mask
+                        d1flags['sea'] = ma.masked_inside(a1surfTmp,100,199).mask
+        
+                        aflagvar = ma.masked_not_equal(a1var,-9999.).mask
+        
+                        lkey = [[height,region,surf]
+                                for height in lheight
+                                for region in lregion
+                                for surf   in lsurf
+                                ]
+                        for (height,region,surf) in lkey:
+                            a1flagh = d1flagh[height]
+                            a1flagr = d1flagr[region]
+                            a1flags = d1flags[surf]
+        
+                            a1flag = a1flagvar * a1flagh * a1flagr * a1flags * a1flage
+                            #*******************
+                            # Stack
+                            #-------------------
+                            d1var[height,region,surf] = np.concatenate([d1var[height,region,surf], a1varTmp[a1flag]])
+        
+                            d1frac[height,region,surf] = np.concatenate([d1frac[height,region,surf], a1convTmp[a1flag]])
+    
+            #**********************
+            # Save
+            #----------------------
+            varPath  = pickleDir + '/stack.var.%s.dt%03d.%s.bfile'%(var,dt,season)
+            fracPath = pickleDir + '/stack.frac%s.%s.%s.dt%03d.bfile'%(prtype,var,dt,season)
+    
+            if calcflag == True:
+                with open(varPath, 'wb') as f:
+                    pickle.dump(dvar, f)
             
-        elif var in ['cape','pre.cape']:
-            varlongname=var
-            sunit = 'J/kg'
-        elif var in ['tcwv']:
-            varlongname='Total column water vapor'
-            sunit = 'kg/m2'
-        elif var in ['mvimd']:
-            varlongname='Total moisture divergence'
-            sunit = 'kg/m2/s'
-        elif var.split('_')[0] == 'w':
-            lev = float(var.split('_')[1])
-            varlongname='Upward velocity (%3.1fkm)'%(lev)
-            sunit = 'm/s'
-        elif var.split('_')[0] == 'r':
-            lev = float(var.split('_')[1])
-            varlongname='Relative Humid. (%3.1fkm)'%(lev)
-            sunit = '%'
+                with open(fracPath, 'wb') as f:
+                    pickle.dump(dconv, f)
 
-
-        else:
-            print 'check var in varlongname and sunit',var
-            sys.exit() 
-
-        corr = np.corrcoef(a1var, a1conv)[0][1]
-        #*** Figure ******
-        fig = plt.figure(figsize=(4,4))
-        ax  = fig.add_axes([0.17,0.15,0.65,0.65])
-       
-        im  = ax.pcolormesh(X,Y,H, cmap='jet', norm=matplotlib.colors.LogNorm())
-
-        #-- binned mean convective ratio --
-        ax.plot(a1xcenter, a1convmean, '-',color='k')
-
-        #----------------------------------
-        ax.set_xlabel(sunit, fontsize=20)
-        ax.set_ylabel('convective ratio', fontsize=20)
-
-        #stitle = '%s %s'%(varlongname,surftype)
-        stitle = varlongname + ' ' + surftype
-        stitle = stitle + '\n' + 'corr=%.2f'%(corr)
-        plt.title(stitle, fontsize=19)
-
-        cax = fig.add_axes([0.84,0.17,0.02, 0.6])
-        cbar=plt.colorbar(im, orientation='vertical', cax=cax)
-        cbar.ax.tick_params(labelsize=16)
-
-
- 
-        figPath = figDir + '/scatter.convfrac.%s.%s.png'%(var,surftype)
-        plt.savefig(figPath)
-        print figPath
-        plt.clf() 
-
-        print 'corr=',corr
-        #-- write corrcoef ---
-        corrDir = figDir + '/txt'
-        util.mk_dir(corrDir)
-        corrPath= corrDir + '/cc.%s.%s.txt'%(var,surftype)
-        f=open(corrPath,'w');f.write('%.2f'%(corr)); f.close()
-
+            #*********************
+            # Load
+            #---------------------
+            with open(varPath, 'rb') as f:
+                dvar = pickle.load(f)
+            
+            with open(fracPath, 'rb') as f:
+                dconv = pickle.load(f)
+     
+            #**********************
+            #----------------------
+            lkey = [[height,region,surf]
+                    for height in lheight
+                    for region in lregion
+                    for surf   in lsurf
+                    ]
+            for (height,region,surf) in lkey:
+                a1var  = d1var [height,region,surf]
+                a1frac = d1frac[height,region,surf]
+                #-- Histograms --------
+                xmin  = np.percentile(a1var,10)
+                xmax  = np.percentile(a1var,90)
+                xbins  = np.linspace(xmin,xmax,20)
+                ybins  = np.linspace(0,1,20)
+                
+                H,xedges,yedges = np.histogram2d(a1var, a1conv, bins = [xbins,ybins])
+                H = H.T
+                H = ma.masked_equal(H,0)
+                X,Y = np.meshgrid(xbins,ybins)
+                
+                #-- Binned average -----
+                a1convmean,_,_ = stats.binned_statistic(a1var, a1conv, bins = xbins)
+                a1xcenter = 0.5*(xbins[:-1]+xbins[1:])
+                
+                #*** Prep for figure **
+                if   var in ['deptdz_low','deptdz_mid','pre.deptdz_low','pre.deptdz_mid']:
+                
+                    lev = var.split('_')[1]
+                    varlongname = r'$d\theta$' +'e/dz %s'%(lev)
+                    if var.split('.')[0]=='pre':
+                        varlongname = varlongname + ' pre'
+                
+                    sunit = 'K/km'
+                
+                elif   var in ['dtvdz_low','dtvdz_mid','pre.dtvdz_low','pre.dtvdz_mid']:
+                
+                    lev = var.split('_')[1]
+                    varlongname = 'Tv/dz %s'%(lev)
+                    if var.split('.')[0]=='pre':
+                        varlongname = varlongname + ' pre'
+                
+                    sunit = 'K/km'
+                
+                elif var in ['skt']:
+                    varlongname='Skin temperature'
+                    sunit = 'K'
+                    
+                elif var in ['cape','pre.cape']:
+                    varlongname=var
+                    sunit = 'J/kg'
+                elif var in ['tcwv']:
+                    varlongname='Total column water vapor'
+                    sunit = 'kg/m2'
+                elif var in ['mvimd']:
+                    varlongname='Total moisture divergence'
+                    sunit = 'kg/m2/s'
+                elif var.split('_')[0] == 'w':
+                    lev = float(var.split('_')[1])
+                    varlongname='Upward velocity (%3.1fkm)'%(lev)
+                    sunit = 'm/s'
+                elif var.split('_')[0] == 'r':
+                    lev = float(var.split('_')[1])
+                    varlongname='Relative Humid. (%3.1fkm)'%(lev)
+                    sunit = '%'
+                
+                
+                else:
+                    print 'check var in varlongname and sunit',var
+                    sys.exit() 
+                
+                corr = np.corrcoef(a1var, a1conv)[0][1]
+                #*** Figure ******
+                fig = plt.figure(figsize=(4,4))
+                ax  = fig.add_axes([0.17,0.15,0.65,0.65])
+                
+                im  = ax.pcolormesh(X,Y,H, cmap='jet', norm=matplotlib.colors.LogNorm())
+                
+                #-- binned mean convective ratio --
+                ax.plot(a1xcenter, a1convmean, '-',color='k')
+                
+                #----------------------------------
+                ax.set_xlabel(sunit, fontsize=20)
+                ax.set_ylabel('convective ratio', fontsize=20)
+                
+                #stitle = '%s %s'%(varlongname,surftype)
+                stitle = varlongname + ' ' + surftype
+                stitle = stitle + '\n' + 'corr=%.2f'%(corr)
+                plt.title(stitle, fontsize=19)
+                
+                cax = fig.add_axes([0.84,0.17,0.02, 0.6])
+                cbar=plt.colorbar(im, orientation='vertical', cax=cax)
+                cbar.ax.tick_params(labelsize=16)
+                
+                
+                
+                figPath = figDir + '/scatter.frac.%s.%s.dt%03d.%s.%s.%s.%s.txt'%(prtype,var,dt,season,height,region,surftype)
+                plt.savefig(figPath)
+                print figPath
+                plt.clf() 
+                
+                print 'corr=',corr
+                #-- write corrcoef ---
+                corrDir = figDir + '/txt'
+                util.mk_dir(corrDir)
+                corrPath= corrDir + '/cc.%s.%s.dt%03d.%s.%s.%s.%s.txt'%(prtype,var,dt,season,height,region,surftype)
+                f=open(corrPath,'w');f.write('%.2f'%(corr)); f.close()
+    

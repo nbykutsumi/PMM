@@ -33,8 +33,8 @@ else:
     sys.exit()
 
 
-reftype = 'dpr'
-#reftype = 'mrms'
+#reftype = 'dpr'
+reftype = 'mrms'
 
 ## Africa case
 #oid = 2421
@@ -116,12 +116,12 @@ reftype = 'dpr'
 ## West of Great Lakes (Under est.)
 #oid = 1574
 #Year,Mon,Day = 2014,6,8
-#iy, ey = 1051, 1091
+#iy, ey = -9999,-9999
 #clat    = 41
 #clon    = -(360-254)
 #DB_MAXREC = 10000
 ##DB_MAXREC = 20000
-#expr = 'test.minrec1000.maxrec%d'%(DB_MAXREC)
+#expr = 'glb.minrec1000.maxrec%d'%(DB_MAXREC)
 
 ## Southeast of Grate lakes (Fair)
 #oid = 1573
@@ -133,7 +133,7 @@ reftype = 'dpr'
 
 
 
-## Great Lake Snow
+### Great Lake Snow
 oid = 4140
 Year,Mon,Day = 2014,11,20
 iy, ey = 1145,1205
@@ -143,22 +143,25 @@ DB_MAXREC = 10000
 DB_MINREC = 1000
 expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
-## Great Lake Snow oid=003556, 2015/1/9
+## Great Lake Snow (some missing)
 #oid = 4914
 #Year,Mon,Day = 2015,1,9
-#iy, ey = -9999, -9999
+#iy, ey = 1755, 1815
 #clat    = 43
 #clon    = -79.5
-#DB_MAXREC = 20000
+#DB_MAXREC = 10000
+#DB_MINREC = 1000
+#expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 ## SE.US case, oid=003556, 2014/10/14
 #oid = 3556
 #Year,Mon,Day = 2014,10,14
-#iy, ey = 927, 1107
+#iy, ey = 987, 1047
 ##iy, ey = 1012, 1022
 #clat    = 34    # SE.US case. oid = 003556
 #clon    = -86   # 2014/10/14  05:42:03 UTC
-#DB_MAXREC = 20000
+#DB_MAXREC = 10000
+#expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 ## SW.Japan typhoon case, oid=019015, 2017/07/03
 #oid = 19015
@@ -208,9 +211,9 @@ expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 #clon    = -94 # -180 - +180
 #DB_MAXREC = 20000
 
-#thpr = 0.1  # Minimum threshold for EPC
+thpr = 0.1  # Minimum threshold for EPC
 #thpr = 0.01  # Minimum threshold for EPC
-thpr = 0.  # Minimum threshold for EPC
+#thpr = 0.  # Minimum threshold for EPC
 
 if clat !=-9999.:
     #dlatlon = 20
@@ -221,6 +224,8 @@ if clat !=-9999.:
     #BBox    = [[clat-2, clon-4],[clat+2,clon+4]] # test
 else:
     BBox    = [[-60,-180],[60,180]]
+
+#BBox = [[41,-84], [45,-75]]   # test
 
 [[lllat,lllon],[urlat,urlon]] = BBox
 miss = -9999.
@@ -321,7 +326,7 @@ if (reftype=='dpr'):
 print 'Draw figure'
 fig   = plt.figure(figsize=(12,9))
 vmin,vmax = 1,20
-#vmin,vmax = 0,3
+#vmin,vmax = 0,3   # test
 
 #-- My retrieval --
 for i in range(6):
