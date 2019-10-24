@@ -16,23 +16,26 @@ iDTime = datetime(2014,10,14)
 eDTime = datetime(2014,10,14)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
+#lvar = ['zmNS','prwatprofNS']
+lvar = ['tbNS']
 
 
 #** Constants ******
 sensor  = 'GMI'
 #iscan = -9999
 #escan = -9999
-iscan = 987
-escan = 1047
-#oid = -9999
-oid = 3556
+iscan = 917
+escan = 1117
+#target_oid = None
+target_oid = 3556
+
 
 DB_MAXREC = 10000
 DB_MINREC = 1000
 NLEV_DPR = 50    # extract this number of layers
 NLEV_PRECIP = 50
 
-expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 
 myhost  = socket.gethostname()
@@ -51,7 +54,6 @@ elif myhost =="well":
     #outbaseDir = '/media/disk2/share/PMM/retepc/%s'%(expr)
     outbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/%s'%(expr)
 
-lvar = ['prwatprofNS']
 stampshort = 'y%04d-%04d.nrec%d'%(iscan,escan,DB_MAXREC)
 
 
@@ -87,6 +89,9 @@ for DTime in lDTime:
 
         for idxdbPath in lidxdbPath:
             oid = int(os.path.basename(idxdbPath).split('.')[1])
+            if (target_oid is not None) and (oid != target_oid):
+                continue
+
             stamp= '%06d.y%04d-%04d.nrec%d'%(oid, iscan, escan,DB_MAXREC)
            
             idxPath  = retDir + '/top-idxdb%s.%s.npy'%(scan, stamp)
@@ -97,7 +102,7 @@ for DTime in lDTime:
 
             a1idxdb = a2idxdb.flatten()
             a1irec  = a2irec.flatten()
-            lidx_db = list(set(a1idxdb))
+            lidx_db = np.sort(list(set(a1idxdb)))
 
             ny,nx  = a2idxdb.shape
 

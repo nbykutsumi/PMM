@@ -20,8 +20,11 @@ else:
     print 'check myhost'
     sys.exit()
 #*******************************
-iDTime = datetime(2014,6,1)
-eDTime = datetime(2014,6,30)
+#iDTime = datetime(2014,7,1)
+#eDTime = datetime(2014,8,31)
+iDTime = datetime(2014,12,1)
+eDTime = datetime(2015,2,28)
+
 lDTime= util.ret_lDTime(iDTime, eDTime, timedelta(days=1))
 
 miss_out= -9999.
@@ -74,7 +77,7 @@ for DTime in lDTime:
             a2n[y,x]  += 1
 
     #-- Save -------
-    outDir = tankbaseDir + '/utsumi/validprof/map-daily-uncond/%s'%(rettype)
+    outDir = tankbaseDir + '/utsumi/PMM/validprof/map-daily-uncond/%s'%(rettype)
 
     util.mk_dir(outDir)
     np.save(outDir+'/prec.sum.%04d%02d%02d.sp.one.npy' %(Year,Mon,Day), a2s)

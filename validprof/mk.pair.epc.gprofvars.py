@@ -21,17 +21,52 @@ else:
     sys.exit()
 #*******************************
 
-iDTime = datetime(2014,6,1)
-eDTime = datetime(2014,6,30)
+iDTime = datetime(2015,2,1)
+eDTime = datetime(2015,2,28)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 DB_MAXREC = 10000
 DB_MINREC = 1000
-expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
-
+thpr = 0.1
 miss_out= -9999.
 #lvar  = ['S1/Latitude', 'S1/Longitude'] 
-lvar  = ['S1/Latitude', 'S1/Longitude']+ ['S1/qualityFlag','S1/surfaceTypeIndex'] 
+#lvar  = ['S1/Latitude', 'S1/Longitude']+ ['S1/qualityFlag','S1/surfaceTypeIndex'] 
+lvar  = ['S1/Latitude', 'S1/Longitude','S1/surfaceTypeIndex'] 
+
+
+#------------------------------------------------
+def ave_9grids_2d(a2in, a1y, a1x, miss):
+    '''
+    returns 1-d array with the size of (nl)
+    a2in: (ny,nx)
+    nl = len(a1y)=len(a1x)
+    output: (nl)
+    '''
+    #-- Average 9 grids --
+    nydpr,nxdpr = a2in.shape
+    ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
+
+    a1dprmask   = False
+
+    a2datTmp    = empty([9,len(a1y)], float32)
+
+    for itmp, [dy,dx] in enumerate(ldydx):
+        a1yTmp  = ma.masked_outside(a1y + dy, 0,nydpr-1)
+        a1xTmp  = ma.masked_outside(a1x + dx, 0,nxdpr-1)
+        a1dprmask= a1dprmask + a1yTmp.mask + a1xTmp.mask
+
+        a1datTmp= a2in[a1yTmp.filled(0),a1xTmp.filled(0)]
+
+        a2datTmp[itmp,:] = a1datTmp
+
+    #------------
+    a1datTmp = ma.masked_equal(a2datTmp,miss).mean(axis=0)
+    a1datTmp[a1dprmask] = miss
+
+    return a1datTmp
+
+
 #------------------------------------------------
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
@@ -43,7 +78,7 @@ for DTime in lDTime:
     
     for gprofPath in lgprofPath: 
         oid = int(gprofPath.split('/')[-1].split('.')[-3])
-        print gprofPath
+        #print gprofPath
  
         #-- Read and Save profile database of GPROF (Only once) ----
         if not os.path.exists(gprofPath):
@@ -88,12 +123,14 @@ for DTime in lDTime:
         a1x = ma.masked_where(a1mask, a1x).filled(0)
         a1y = ma.masked_where(a1mask, a1y).filled(0)
     
-        a1sfcprecd = a2sfcprecd[a1y,a1x]
-        a1sfcprecd[a1mask] = miss_out
+        a2sfcprecd = ma.masked_less(a2sfcprecd,0)
+        a1sfcprecd = ave_9grids_2d(a2sfcprecd, a1y, a1x, miss=-9999.).filled(-9999.)
+
+        #a1sfcprecd[a1mask] = miss_out
 
         #-- Screen no precipitation cases -----------------------
-        a1flag1 = ma.masked_greater(a1sfcprecd, 0).mask
-        a1flag2 = ma.masked_greater(a1sfcprecp, 0).mask
+        a1flag1 = ma.masked_greater(a1sfcprecd, thpr).mask
+        a1flag2 = ma.masked_greater(a1sfcprecp, thpr).mask
         a1flag  = a1flag1 + a1flag2 
        
         # screen a1sfcprecd==-9999. --
@@ -101,7 +138,6 @@ for DTime in lDTime:
         a1flag4 = ma.masked_not_equal(a1sfcprecp, -9999.).mask
 
         a1flag  = a1flag * a1flag3 * a1flag4
-
         #-- Start var loop ----------------------------------------
         for var in lvar:
             varName = var.split('/')[-1]
@@ -111,8 +147,8 @@ for DTime in lDTime:
             a1var = a2var.flatten() 
             a1var = a1var[a1flag] 
    
-            outbaseDir = tankbaseDir + '/utsumi/validprof/pair.epc.%s'%(expr)
+            outbaseDir = tankbaseDir + '/utsumi/PMM/validprof/pair/epc.%s'%(expr)
             outDir     = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
             util.mk_dir(outDir)
             np.save(outDir + '/%s.%06d.npy'%(varName, oid), a1var)
-            print outDir
+            print outDir, oid

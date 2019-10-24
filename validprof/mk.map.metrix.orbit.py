@@ -72,7 +72,7 @@ for Year,Mon in lYM:
         for DTime in lDTime:
             print var, DTime
             Year, Mon, Day = DTime.timetuple()[:3]
-            srcDir = '/tank/utsumi/validprof/pair.gprof/%04d/%02d/%02d'%(Year,Mon,Day)
+            srcDir = '/tank/utsumi/PMM/validprof/pair.gprof/%04d/%02d/%02d'%(Year,Mon,Day)
             ssearch= srcDir + '/Latitude.*.npy'
             llatPath= sort(glob.glob(ssearch))
         
@@ -165,7 +165,7 @@ for Year,Mon in lYM:
         #print a2var.max(), imax, a2num.flatten()[imax]
 
     
-        mapDir  = '/tank/utsumi/validprof/maperror'
+        mapDir  = '/tank/utsumi/PMM/validprof/maperror'
         util.mk_dir(mapDir)
 
         mapPath = mapDir + '/ave.%s.%04d%02d.npy'%(var, Year,Mon)

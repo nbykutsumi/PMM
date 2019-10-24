@@ -24,9 +24,44 @@ iDTime = datetime(2014,6,1)
 eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
+thpr = 0.1
 miss_out= -9999.
 #lvar  = ['S1/Latitude', 'S1/Longitude'] 
 lvar  = ['S1/Latitude', 'S1/Longitude']+ ['S1/qualityFlag','S1/surfaceTypeIndex'] 
+#------------------------------------------------
+
+def ave_9grids_2d(a2in, a1y, a1x, miss):
+    '''
+    returns 1-d array with the size of (nl)
+    a2in: (ny,nx)
+    nl = len(a1y)=len(a1x)
+    output: (nl)
+    '''
+    #-- Average 9 grids --
+    nydpr,nxdpr = a2in.shape
+    ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
+
+    a1dprmask   = False
+
+    a2datTmp    = empty([9,len(a1y)], float32)
+
+    for itmp, [dy,dx] in enumerate(ldydx):
+        a1yTmp  = ma.masked_outside(a1y + dy, 0,nydpr-1)
+        a1xTmp  = ma.masked_outside(a1x + dx, 0,nxdpr-1)
+        a1dprmask= a1dprmask + a1yTmp.mask + a1xTmp.mask
+
+        a1datTmp= a2in[a1yTmp.filled(0),a1xTmp.filled(0)]
+
+        a2datTmp[itmp,:] = a1datTmp
+
+    #------------
+    a1datTmp = ma.masked_equal(a2datTmp,miss).mean(axis=0)
+    a1datTmp[a1dprmask] = miss
+
+
+    return a1datTmp
+
+
 #------------------------------------------------
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
@@ -89,21 +124,29 @@ for DTime in lDTime:
         a1mask2 = ma.masked_less(a1y,0).mask
         a1mask  = a1mask1 + a1mask2
     
-        a1x = ma.masked_where(a1mask, a1x).filled(0)
-        a1y = ma.masked_where(a1mask, a1y).filled(0)
-    
         nyg,nxg = a2sfcprecg.shape
-        a1sfcprecd = a2sfcprecd[a1y,a1x]
+        #*** surface precip (DPR) *****
+        a2sfcprecd = ma.masked_less(a2sfcprecd,0)
+        a1sfcprecd = ave_9grids_2d(a2sfcprecd, a1y, a1x, miss=-9999.).filled(-9999.)
+
         a1sfcprecd[a1mask] = miss_out
 
         #-- Screen no precipitation cases -----------------------
-        a1flag1 = ma.masked_greater(a1sfcprecd, 0).mask
-        a1flag2 = ma.masked_greater(a1sfcprecg, 0).mask
+        a1flag1 = ma.masked_greater(a1sfcprecd, thpr).mask
+        a1flag2 = ma.masked_greater(a1sfcprecg, thpr).mask
         a1flag  = a1flag1 + a1flag2 
        
         # screen a1sfcprecd==-9999. --
         a1flag3 = ma.masked_not_equal(a1sfcprecd, -9999.).mask
         a1flag  = a1flag * a1flag3
+        #print oid
+        #print 'mask1',~a1mask1.sum(),a1mask1.shape
+        #print 'mask2',~a1mask2.sum(),a1mask2.shape
+        #print 'mask ',~a1mask.sum(), a1mask.shape
+        #print 'a1flag1',a1flag1.sum(), a1flag1.shape
+        #print 'a1flag2',a1flag2.sum(), a1flag2.shape
+        #print 'a1flag3',a1flag3.sum(), a1flag3.shape
+        #sys.exit()
 
         #-- Start var loop ----------------------------------------
         for var in lvar:
@@ -115,7 +158,7 @@ for DTime in lDTime:
             a1var = a2var.flatten() 
             a1var = a1var[a1flag] 
    
-            outbaseDir = tankbaseDir + '/utsumi/validprof/pair.gprof'
+            outbaseDir = tankbaseDir + '/utsumi/PMM/validprof/pair/gprof'
             outDir     = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
             util.mk_dir(outDir)
             np.save(outDir + '/%s.%06d.npy'%(varName, oid), a1var)

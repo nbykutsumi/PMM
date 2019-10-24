@@ -15,13 +15,14 @@ verDPR    = '06'
 subverDPR = 'A'
 fullverDPR= '%s%s'%(verDPR, subverDPR)
 
-iYM = [2017,12]
+iYM = [2017,1]
 eYM = [2017,12]
+#eYM = [2017,11]
 lYM = util.ret_lYM(iYM,eYM)
 #lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15624]]  # 25*25*25 = 15625
 #lepcid_range = [[0,5000],[5000,10000],[10000,15000],[15000,20000],[20000,25000]]  # 29*29*29 = 24389
-#lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15000],[15000,17500],[17500,20000],[20000,22500],[22500,25000]]  # 29*29*29 = 24389
-lepcid_range = [[7500,10000],[10000,12500],[12500,15000],[15000,17500],[17500,20000],[20000,22500],[22500,25000]]  # 29*29*29 = 24389
+lepcid_range = [[0,2500],[2500,5000],[5000,7500],[7500,10000],[10000,12500],[12500,15000],[15000,17500],[17500,20000],[20000,22500],[22500,25000]]  # 29*29*29 = 24389
+#lepcid_range = [[7500,10000],[10000,12500],[12500,15000],[15000,17500],[17500,20000],[20000,22500],[22500,25000]]  # 29*29*29 = 24389
 
 cx  = 110  # GMI center angle bin (py-idx)
 cw  = 15    # extract this width around center
@@ -33,7 +34,7 @@ worg= 221  # GMI total angle bins
 #lvar = [['Ku','NS/SLV/zFactorCorrected'],['Ku','NS/SLV/precipRate']]
 #lvar = [['Ku','NS/SLV/zFactorCorrected']]
 #lvar = [['Ku','NS/PRE/zFactorMeasured'],['Ka','MS/PRE/zFactorMeasured'],['Ku','NS/PRE/elevation']]
-lvar = [['Ku','NS/PRE/zFactorMeasured']]
+#lvar = [['Ku','NS/PRE/zFactorMeasured']]
 #lvar = [['Ka','MS/PRE/zFactorMeasured']]
 #lvar = [['Ku','NS/PRE/zFactorMeasured']]
 #lvar = [['DPRGMI','NS/precipTotWaterCont']]
@@ -46,6 +47,8 @@ lvar = [['Ku','NS/PRE/zFactorMeasured']]
 #lvar = [['Ka','MS/SLV/precipRateNearSurface']]
 #lvar = [['Ku','NS/PRE/elevation'],['Ku','NS/CSF/typePrecip'],['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','NS/PRE/heightStormTop']]
+#lvar = [['Ku','NS/CSF/typePrecip'],['Ku','NS/PRE/heightStormTop']]
+lvar = [['Ku','NS/PRE/heightStormTop']]
 
 
 
@@ -392,24 +395,20 @@ for Year,Mon in lYM:
                     Dat = (DatStrat + DatConv*10 + DatOther*100)
 
 
-                elif varName in ['heightStormTop']:
+                elif varName =='heightStormTop':
                     with h5py.File(srcPath) as h:
-                        Dat0 = ma.masked_greater(h[var][:], 32767).filled(32767).astype(dattype[var])
+                        Dat0 = ma.masked_greater(h[var][:], 32767).filled(32767).astype(dattype[var])    # original data: float32 (miss=-9999.9) --> int16 (miss=-9999.9 is converted to -9999 by astype(int16))
 
-                    a1dpryTmp = ma.masked_less(a1dpry,0).filled(0)
-                    a1dprxTmp = ma.masked_less(a1dprx,0).filled(0)
-                    Dat = Dat0[a1dpryTmp, a1dprxTmp]
-                    if dattype[var] in ['int32','int16']:
-                        miss = -9999
-                    elif dattype[var] in ['float32']:
-                        miss = -9999.9
-                    Dat = ma.masked_where(a1dpry==-9999, Dat).filled(miss)
-                    print Dat.min(),Dat.max()
+                    #-----------------
+                    # a1dpry==-9999 and a1dprx==-9999 iwll be
+                    # masked in ave_9grids_2d 
+                    #------------------
+                    Dat = ave_9grids_2d(Dat0, a1dpry, a1dprx, miss=-9999).filled(-9999).astype(dattype[var])
 
                 else:
                     print 'check varName',varName
                     sys.exit()
-                
+              
                 #-- stack to epc-classifiled database ---
                 lepcidset = sort(list(set(a1epcid)))
                 lepcidset = ma.masked_less(lepcidset, epcid_min)

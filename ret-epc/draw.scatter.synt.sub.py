@@ -6,7 +6,14 @@ import numpy as np
 import myfunc.util as util
 import os, sys, glob, socket
 
-lidx_db = [1652]
+#lidx_db = [1681] # bad
+#lidx_db = [10820] # good
+#lidx_db = [10849] # good
+#lidx_db = [17954] # good
+#lidx_db = [10878] # good, but bimodal
+#lidx_db = [13198] # good
+#lidx_db = [20129] # good, but not good for extreme
+lidx_db = [23547] # bad
 
 nsample = 1000
 DB_MAXREC = 10000

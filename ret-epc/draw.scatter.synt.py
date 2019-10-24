@@ -13,7 +13,8 @@ import myfunc.util as util
 import calendar
 import pickle
 
-calcflag  = True
+#calcflag  = True
+calcflag  = False
 #coefflag  = 'nocoef'  # 'nocoef', 'wcoef'
 coefflag  = 'wcoef'  # 'nocoef', 'wcoef'
 DB_MAXREC = 10000
@@ -22,8 +23,9 @@ nsample   = 1000
 dbtype = 'my'
 #lrettype = ['NS','MS','NScmb','MScmb']
 #lrettype = ['NS','MS','NScmb','MScmb','GPROF']
-lrettype = ['GPROF']  
+#lrettype = ['GPROF']  
 #lrettype = ['MS','NS','NScmb','MScmb']
+lrettype = ['NScmb','GPROF']
 #prmin = 0.1
 #prmin = 0.01
 prmin = 0.0
@@ -64,7 +66,7 @@ else:
     sys.exit()
 
 
-lsurftype = ['ocean','vegetation','coast']
+lsurftype = ['ocean','vegetation','coast','snow']
 #lsurftype = ['ocean']
 
 dsurflabel={ 'ocean':'Class1 (Ocean)'
@@ -111,6 +113,7 @@ else:
     sys.exit()
 
 #--------------------------------------
+dvnummax = {}
 for rettype in lrettype:
 
     #***************************
@@ -125,6 +128,8 @@ for rettype in lrettype:
 
     #---------------------------
     for idx_db in lidx_db:
+        if calcflag ==False:
+            continue
 
         if rettype != 'GPROF':
             print 'idx_db=',idx_db
@@ -164,7 +169,6 @@ for rettype in lrettype:
         a1surftype = np.load(dbDir + '/surfaceTypeIndex/%05d.npy'%(idx_db))[a1irec]
 
         #---------------------------
-        dvnummax = {}
         for surftype in lsurftype:
             #-- Screen by surface types -------------------
             if surftype=='ocean':
@@ -227,7 +231,9 @@ for rettype in lrettype:
         H   = d2freq[surftype]
         X,Y = np.meshgrid(bins,bins) 
         #-- Figure density plot ----
-        dvnummax[surftype] = np.percentile(H.max(),70)
+        if rettype == lrettype[0]:
+            dvnummax[surftype] = np.percentile(H,95)
+         
     
         fig = plt.figure(figsize=[6,6])
         ax  = fig.add_axes([0.15,0.13,0.68,0.68])

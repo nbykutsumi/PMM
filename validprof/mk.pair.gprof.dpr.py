@@ -19,10 +19,11 @@ else:
     print 'check myhost'
     sys.exit()
 #*******************************
-iDTime = datetime(2014,6,1)
-eDTime = datetime(2015,5,31)
+iDTime = datetime(2014,12,9)
+eDTime = datetime(2014,12,10)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
+thpr   = 0.1
 miss_out= -9999.
 #------------------------------------------------
 def ret_aprof(a4clusterProf, a2tIndex, a3profNum, a3profScale, lspecies=[0,2,3,4]):
@@ -61,21 +62,88 @@ def gprofLayerconversion(a3prof):
     a3outTop[:,:,0::2] = a3prof[:,:,20:]
     a3outTop[:,:,1::2] = a3prof[:,:,20:]
     return concatenate([a3prof[:,:,:20], a3outTop], axis=2)
-#------------------------------------------------
+
+
+def ave_9grids_3d(a3in, a1y, a1x, miss):
+    '''
+    returns 2-d array with the size of (nl,nz)
+    a3in: (ny,nx,nz)
+    nl = len(a1y)=len(a1x)
+    output: (nl, nz)
+    '''
+    #-- Average 9 grids (over Linearlized Z)--
+    nydpr,nxdpr,nzdpr= a3in.shape
+    ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
+
+    a1dprmask   = False
+
+    a3datTmp    = empty([9,len(a1y),nzdpr], float32)
+
+    for itmp, [dy,dx] in enumerate(ldydx):
+        a1yTmp  = ma.masked_outside(a1y + dy, 0,nydpr-1)
+        a1xTmp  = ma.masked_outside(a1x + dx, 0,nxdpr-1)
+        a1dprmask= a1dprmask + a1yTmp.mask + a1xTmp.mask
+
+        a2datTmp= a3in[a1yTmp.filled(0),a1xTmp.filled(0),:]
+
+        a3datTmp[itmp,:] = a2datTmp
+
+
+    a2datTmp = ma.masked_equal(a3datTmp,miss).mean(axis=0)
+    a2datTmp[a1dprmask,:] = miss
+    return a2datTmp
+
+
+def ave_9grids_2d(a2in, a1y, a1x, miss):
+    '''
+    returns 1-d array with the size of (nl)
+    a2in: (ny,nx)
+    nl = len(a1y)=len(a1x)
+    output: (nl)
+    '''
+    #-- Average 9 grids --
+    nydpr,nxdpr = a2in.shape
+    ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
+
+    a1dprmask   = False
+
+    a2datTmp    = empty([9,len(a1y)], float32)
+
+    for itmp, [dy,dx] in enumerate(ldydx):
+        a1yTmp  = ma.masked_outside(a1y + dy, 0,nydpr-1)
+        a1xTmp  = ma.masked_outside(a1x + dx, 0,nxdpr-1)
+        a1dprmask= a1dprmask + a1yTmp.mask + a1xTmp.mask
+
+        a1datTmp= a2in[a1yTmp.filled(0),a1xTmp.filled(0)]
+
+        a2datTmp[itmp,:] = a1datTmp
+
+    #------------
+    a1datTmp = ma.masked_equal(a2datTmp,miss).mean(axis=0)
+    a1datTmp[a1dprmask] = miss
+
+
+    return a1datTmp
+
+#***************************************
+
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
-    
     gprofbaseDir = workbaseDir + '/hk01/PMM/NASA/GPM.GMI/2A/V05'
     gprofDir = gprofbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
     ssearch  = gprofDir + '/2A.GPM.GMI.GPROF2017v1.*.??????.V05A.HDF5'
     lgprofPath = sort(glob.glob(ssearch))
+    if len(lgprofPath)==0:
+        print 'no flies'
+        print ssearch
     
     for gprofPath in lgprofPath: 
         oid = int(gprofPath.split('/')[-1].split('.')[-3])
-        print gprofPath
+        #print gprofPath
  
         #-- Read and Save profile database of GPROF (Only once) ----
         if not os.path.exists(gprofPath):
+            print gprofPath
             continue
 
         with h5py.File(gprofPath,'r') as h:
@@ -150,33 +218,48 @@ for DTime in lDTime:
         a1mask2 = ma.masked_less(a1y,0).mask
         a1mask  = a1mask1 + a1mask2
     
-        a1x = ma.masked_where(a1mask, a1x).filled(0)
-        a1y = ma.masked_where(a1mask, a1y).filled(0)
+        #a1xTmp = ma.masked_where(a1mask, a1x).filled(0)
+        #a1yTmp = ma.masked_where(a1mask, a1y).filled(0)
     
         nyg,nxg = a2sfcprecg.shape
-        a1sfcprecd = a2sfcprecd[a1y,a1x]
-        a2profd    = a3profd[a1y,a1x,:]
+
+        #*** surface precip *****
+        a2sfcprecd = ma.masked_less(a2sfcprecd,0)
+        a1sfcprecd = ave_9grids_2d(a2sfcprecd, a1y, a1x, miss=-9999.).filled(-9999.)
+
+        #*** water content profile *****
+        a2profd    = ave_9grids_3d(a3profd, a1y, a1x, miss=-9999.).filled(-9999.)  # use a1y and a1x, not a1yTmp and a1xTmp.
+
     
         a1sfcprecd[a1mask] = miss_out
         a2profd[a1mask,:] = miss_out
         #-- Screen no precipitation cases -----------------------
-        a1flag1 = ma.masked_greater(a1sfcprecd, 0).mask
-        a1flag2 = ma.masked_greater(a1sfcprecg, 0).mask
+        a1flag1 = ma.masked_greater(a1sfcprecd, thpr).mask
+        a1flag2 = ma.masked_greater(a1sfcprecg, thpr).mask
         a1flag  = a1flag1 + a1flag2 
        
         # screen a1sfcprecd==-9999. --
         a1flag3 = ma.masked_not_equal(a1sfcprecd, -9999.).mask
         a1flag  = a1flag * a1flag3
- 
+
+        #print oid
+        #print 'mask1',~a1mask1.sum(),a1mask1.shape 
+        #print 'mask2',~a1mask2.sum(),a1mask2.shape
+        #print 'mask ',~a1mask.sum(), a1mask.shape
+        #print 'a1flag1',a1flag1.sum(), a1flag1.shape
+        #print 'a1flag2',a1flag2.sum(), a1flag2.shape
+        #print 'a1flag3',a1flag3.sum(), a1flag3.shape
+        #sys.exit()
+
         a1sfcprecd = a1sfcprecd[a1flag] 
         a1sfcprecg = a1sfcprecg[a1flag] 
         a2profd    = a2profd[a1flag]   # Bottom to top
         a2profg    = a2profg[a1flag]   # Bottom to top
    
-        outDir     = tankbaseDir + '/utsumi/validprof/pair.gprof/%04d/%02d/%02d'%(Year,Mon,Day)
+        outDir     = tankbaseDir + '/utsumi/PMM/validprof/pair/gprof/%04d/%02d/%02d'%(Year,Mon,Day)
         util.mk_dir(outDir)
-        np.save(outDir + '/profpmw.%06d.npy'%(oid), a2profg)
-        np.save(outDir + '/profrad.%06d.npy'%(oid), a2profd)
-        np.save(outDir + '/precpmw.%06d.npy'%(oid), a1sfcprecg)    
-        np.save(outDir + '/precrad.%06d.npy'%(oid), a1sfcprecd)
-        print outDir 
+        np.save(outDir + '/profpmw.%06d.npy'%(oid), a2profg.astype('float32'))
+        np.save(outDir + '/profrad.%06d.npy'%(oid), a2profd.astype('float32'))
+        np.save(outDir + '/precpmw.%06d.npy'%(oid), a1sfcprecg.astype('float32'))    
+        np.save(outDir + '/precrad.%06d.npy'%(oid), a1sfcprecd.astype('float32'))
+        print outDir , oid

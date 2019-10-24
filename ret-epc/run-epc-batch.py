@@ -4,11 +4,12 @@ import glob
 import subprocess
 from datetime import datetime, timedelta
 import numpy as np
+import numpy.ma as ma
 import h5py
 import shutil
 
-iDTime = datetime(2015,1,23)
-eDTime = datetime(2015,1,31)
+iDTime = datetime(2014,11,1)
+eDTime = datetime(2014,11,10)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 
@@ -23,7 +24,10 @@ DB_MINREC = 1000
 #expr = 'glb.wprof.batch'
 #expr = 'glb.wprof.rnr'
 #expr = 'glb.nprof'
-expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.v02.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr  = 'test.batch2'
+expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+
 
 prog = 'ret-myepc-29bins.py'
 #prog = 'ret-test.py'
@@ -86,10 +90,12 @@ for DTime in lDTime:
         a2elev= []
         loid  = []
         lny   = [] 
+
+        yoffset = 0
         for gmiPath in lgmiPath:
             oid = int(gmiPath.split('.')[-3])
             print 'oid=',oid
-            #if oid <=1923: continue  # test
+            #if oid <=4474: continue  # test
 
             loid.append(oid)
             #------------
@@ -112,13 +118,21 @@ for DTime in lDTime:
                 a2lon.append( h['/S1/Longitude'][:])
 
             #-- Append npy files -----
-            a2x.append(np.load(s2xPath))
-            a2y.append(np.load(s2yPath))
+            a2xTmp = np.load(s2xPath).astype('int32')
+            a2yTmp = np.load(s2yPath).astype('int32')
+            a2yTmp = (ma.masked_less(a2yTmp,0) + yoffset ).filled(-9999)  # add yoffset
+
+            a2x.append(a2xTmp)
+            a2y.append(a2yTmp)
             a2t2m.append(np.load(t2mPath))
             if tqvPath !='':
                 a2tqv.append(np.load(tqvPath))
             if elevPath !='':
                 a2elev.append(np.load(elevPath))
+
+            #-- Renew yoffset ---------------
+            yoffset = yoffset + a3tb1[-1].shape[0]
+
             #-- Append NREC -----------------
             print s2xPath
             print np.load(s2xPath).shape[0], a3tb1[-1].shape[0]
@@ -227,6 +241,7 @@ for DTime in lDTime:
         dargv['DB_RAINFRAC'] = 0.0001 # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
         dargv['MAX_T2M_DIFF'] = 10
         dargv['MAX_TQV_DIFF'] = 10
+        dargv['MAX_TB_RMSD'] = -9999 # max TB RMS difference between observed and DB pixel 
         dargv['MAX_RMA_0'] = 0.05 # Maximum Ratio of missing amount (0>=mm/h) acceptable for rain / no-rain classification # -9999. --> No screening
         dargv['flag_top_var'] = 0  # 0: No top-ranked vars. 1: Retrieve top-ranked vars.
         #dargv['flag_top_var'] = 1  # 0: No top-ranked vars. 1: Retrieve top-ranked vars.

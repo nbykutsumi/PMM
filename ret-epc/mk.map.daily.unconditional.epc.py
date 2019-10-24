@@ -23,12 +23,14 @@ else:
     print 'check myhost'
     sys.exit()
 #*******************************
-iDTime = datetime(2014,6,1)
-eDTime = datetime(2014,6,30)
-lDTime= util.ret_lDTime(iDTime, eDTime, timedelta(days=1))
+#iDTime = datetime(2014,6,1)
+#eDTime = datetime(2014,7,31)
+iDTime = datetime(2015,2,1)
+eDTime = datetime(2015,2,28)
+lDTime = util.ret_lDTime(iDTime, eDTime, timedelta(days=1))
 DB_MAXREC = 10000
 DB_MINREC = 1000
-expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 miss_out= -9999.
 lat0 = -60
@@ -84,7 +86,7 @@ for DTime in lDTime:
             a2n[y,x]  += 1
 
     #-- Save -------
-    outDir = tankbaseDir + '/utsumi/validprof/map-daily-uncond/%s.%s'%(rettype,expr)
+    outDir = tankbaseDir + '/utsumi/PMM/validprof/map-daily-uncond/%s.%s'%(rettype,expr)
 
     util.mk_dir(outDir)
     np.save(outDir+'/prec.sum.%04d%02d%02d.sp.one.npy' %(Year,Mon,Day), a2s)

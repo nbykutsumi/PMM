@@ -154,6 +154,7 @@ for case in lcase:
         dargv['DB_RAINFRAC'] = 0.0001 # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
         dargv['MAX_T2M_DIFF'] = 10
         dargv['MAX_TQV_DIFF'] = 10
+        dargv['MAX_TB_RMSD'] = -9999
         dargv['MAX_RMA_0'] = 0.05 # Maximum Ratio of missing amount (0>=mm/h) acceptable for rain / no-rain classification # -9999. --> No screening
         dargv['flag_top_var'] = 0  # 0: No top-ranked vars. 1: Retrieve top-ranked vars.
         #dargv['flag_top_var'] = 1  # 0: No top-ranked vars. 1: Retrieve top-ranked vars.

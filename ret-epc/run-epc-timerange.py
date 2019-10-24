@@ -6,12 +6,13 @@ from datetime import datetime, timedelta
 import numpy as np
 import shutil
 
-iDTime = datetime(2014,8,1)
+iDTime = datetime(2014,8,16)
 eDTime = datetime(2014,8,31)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 
-
+#target_oid = 3556
+target_oid = None
 #** Constants ******
 DB_MAXREC = 10000
 #DB_MAXREC = 20000
@@ -23,7 +24,8 @@ DB_MINREC = 1000
 #expr = 'rnr'
 #expr = 'glb.wprof.rnr'
 #expr = 'glb.nprof'
-expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 prog = 'ret-myepc-29bins.py'
 #prog = 'ret-testrnr.py'
 #prog = 'ret-test.py'
@@ -69,7 +71,9 @@ for DTime in lDTime:
         oid = int(gmiPath.split('.')[-3])
         print 'oid=',oid
 
-        #if oid !=4140: continue  # test
+        if (target_oid is not None)and(oid !=target_oid):
+            continue
+        #if oid <=1969: continue  # test
 
         dargv = {}
         outDir  = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
@@ -110,12 +114,12 @@ for DTime in lDTime:
        
         ##-- test ---- 
         #dargv['oid'] = oid
-        #dargv['clat'] = 43
-        #dargv['clon'] = -79.5
+        #dargv['clat'] = 34
+        #dargv['clon'] = -86
         #dargv['dlatlon'] = 15
         #dargv['iscan'] = -9999
         #dargv['escan'] = -9999
-        #dargv['dscan'] = 30
+        #dargv['dscan'] = 100
 
 
         dargv['oid'] = oid
@@ -143,6 +147,7 @@ for DTime in lDTime:
         dargv['DB_RAINFRAC'] = 0.0001 # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
         dargv['MAX_T2M_DIFF'] = 10
         dargv['MAX_TQV_DIFF'] = 10
+        dargv['MAX_TB_RMSD'] = -9999   #  max TB RMS difference between observed and DB pixel 
         dargv['MAX_RMA_0'] = 0.05   # Maximum Ratio of missing amount (0>=mm/h) acceptable for rain / no-rain classification # -9999. --> No screening
 
         dargv['flag_top_var'] = 0  # 0: No top-ranked vars. 1: Retrieve top-ranked vars.

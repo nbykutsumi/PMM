@@ -33,14 +33,46 @@ else:
     sys.exit()
 
 
-#reftype = 'dpr'
-reftype = 'mrms'
+reftype = 'dpr'
+#reftype = 'mrms'
 
-## Africa case
-#oid = 2421
-#iy, ey = 2029, 2089
-#clat    = 14 # Africa case
-#clon    = 2  # -180 - +180
+
+## Amazon (Underestimation)
+#oid = 1732
+#Year,Mon,Day = 2014,6,18
+#iy, ey = -9999,-9999
+##iy,ey = 1311, 1351
+#clat    = 2
+#clon    = 303 -360.
+#DB_MAXREC = 10000
+#DB_MINREC = 1000
+#expr = 'glb.minrec1000.maxrec10000'
+
+
+## West of Great lakes (Underestimation)
+#oid = 1871
+#Year,Mon,Day = 2014,6,27
+#iy, ey = -9999,-9999
+##iy,ey = 1311, 1351
+#clat    = 37
+#clon    = 270 -360.
+#DB_MAXREC = 10000
+#DB_MINREC = 1000
+#expr = 'glb.minrec1000.maxrec10000'
+
+
+## West of Great lakes (Underestimation)
+#oid = 1917
+#Year,Mon,Day = 2014,6,30
+##iy, ey = -9999,-9999
+#iy,ey = 1826, 1886
+#clat    = 42
+#clon    = 269 -360.
+#DB_MAXREC = 10000
+#DB_MINREC = 1000
+#expr = 'test'
+##expr = 'glb.minrec1000.maxrec10000'
+
 
 ## Alaska to check (Heavy rain missing)
 #oid = 1700
@@ -71,13 +103,15 @@ reftype = 'mrms'
 #oid = 1686
 #Year,Mon,Day = 2014,6,16
 ##iy, ey = -9999,-9999
-#iy, ey = 1746, 1766
+#iy, ey = 1720,1780
 #clat    = 52.0
 #clon    = 270.0 -360.
 #DB_MAXREC = 10000
 ##DB_MAXREC = 20000
 #DB_MINREC = 1000
-#expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+##expr  = 'test.wtb'
+#expr  = 'test.ntb'
+##expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 ## Yellow sea to check batch-version
 #oid = 1693
@@ -133,15 +167,15 @@ reftype = 'mrms'
 
 
 
-### Great Lake Snow
-oid = 4140
-Year,Mon,Day = 2014,11,20
-iy, ey = 1145,1205
-clat    = 43
-clon    = -79.5
-DB_MAXREC = 10000
-DB_MINREC = 1000
-expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#### Great Lake Snow
+#oid = 4140
+#Year,Mon,Day = 2014,11,20
+#iy, ey = 1145,1205
+#clat    = 43
+#clon    = -79.5
+#DB_MAXREC = 10000
+#DB_MINREC = 1000
+#expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 ## Great Lake Snow (some missing)
 #oid = 4914
@@ -153,15 +187,16 @@ expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 #DB_MINREC = 1000
 #expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
-## SE.US case, oid=003556, 2014/10/14
-#oid = 3556
-#Year,Mon,Day = 2014,10,14
+# SE.US case, oid=003556, 2014/10/14
+oid = 3556
+Year,Mon,Day = 2014,10,14
 #iy, ey = 987, 1047
-##iy, ey = 1012, 1022
-#clat    = 34    # SE.US case. oid = 003556
-#clon    = -86   # 2014/10/14  05:42:03 UTC
-#DB_MAXREC = 10000
-#expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+iy, ey = 917,1117
+clat    = 34    # SE.US case. oid = 003556
+clon    = -86   # 2014/10/14  05:42:03 UTC
+DB_MINREC = 1000
+DB_MAXREC = 10000
+expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 ## SW.Japan typhoon case, oid=019015, 2017/07/03
 #oid = 19015
@@ -211,13 +246,14 @@ expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 #clon    = -94 # -180 - +180
 #DB_MAXREC = 20000
 
-thpr = 0.1  # Minimum threshold for EPC
+thpr = 0.5  # Minimum threshold for EPC
+#thpr = 0.1  # Minimum threshold for EPC
 #thpr = 0.01  # Minimum threshold for EPC
 #thpr = 0.  # Minimum threshold for EPC
 
 if clat !=-9999.:
     #dlatlon = 20
-    dlatlon = 5
+    dlatlon = 10
     #dscan   = 55
     dscan   = 200  # used to extract GPROf
     BBox    = [[clat-dlatlon, clon-dlatlon],[clat+dlatlon,clon+dlatlon]]
@@ -394,16 +430,20 @@ for i in range(6):
         elif reftype=='dpr':
             stype = 'CMB'
 
-        
+       
+    mycm  = 'jet'
+    mycm  = 'gist_ncar_r' 
     M     = Basemap(resolution='l', llcrnrlat=lllat, llcrnrlon=lllon, urcrnrlat=urlat, urcrnrlon=urlon, ax=ax)
-    im    = M.scatter(a2lon, a2lat, c=a2dat, cmap='jet', s=ssize, vmin=vmin, vmax=vmax)
-    M.drawcoastlines()
+    im    = M.scatter(a2lon, a2lat, c=a2dat, cmap=mycm, s=ssize, vmin=vmin, vmax=vmax)
+
+    M.bluemarble()
+    M.drawcoastlines(color='0.8')
     
     dgrid      = 5
     parallels  = arange(-90,90, dgrid)
     meridians  = arange(-180,180,dgrid)
-    M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d')
-    M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d')
+    M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d', color='0.8')
+    M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d', color='0.8')
 
     plt.title(stype)
 #-- Colorbar (Shared) ----

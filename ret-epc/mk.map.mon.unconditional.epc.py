@@ -24,11 +24,11 @@ else:
     sys.exit()
 #*******************************
 iYM = [2014,6]
-eYM = [2014,8]
+eYM = [2014,6]
 lYM = util.ret_lYM(iYM,eYM)
 DB_MAXREC = 10000
 DB_MINREC = 1000
-expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 miss_out= -9999.
 lat0 = -60

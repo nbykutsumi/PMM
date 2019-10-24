@@ -38,19 +38,57 @@ else:
 reftype = 'dpr'
 
 
-# Canada sea to check batch-version
-oid = 1700
-Year,Mon,Day = 2014,6,16
-#iy, ey = -9999,-9999
-iy, ey = 1311, 1351
-clat    = 57
-clon    = 211.0 -360.
+## Amazon (missing rain area)
+#oid = 1732
+#Year,Mon,Day = 2014,6,18
+##iy, ey = -9999,-9999
+#iy, ey = 2208, 2268
+#clat    = 2
+#clon    = 303-360.
+#DB_MAXREC = 10000
+#DB_MINREC = 1000
+#expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+##expr = 'test.batch.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+
+## South of Great lakes (missing rain area)
+#oid = 1871
+#Year,Mon,Day = 2014,6,27
+##iy, ey = -9999,-9999
+#iy, ey = 1885, 1945
+#clat    = 37
+#clon    = 270-360.
+#DB_MAXREC = 10000
+#DB_MINREC = 1000
+#expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+##expr = 'test.batch.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+
+# West of Great lakes (missing rain area)
+oid = 1917
+Year,Mon,Day = 2014,6,30
+iy, ey = -9999,-9999
+#iy, ey = 1836, 1896
+clat    = 42
+clon    = 269-360.
 DB_MAXREC = 10000
-#DB_MAXREC = 20000
 DB_MINREC = 1000
-#DB_MINREC = 5000
-expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-#expr = 'glb.nprof'
+#expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'test.batch.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.v02.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+
+
+## Canada sea to check batch-version
+#oid = 1700
+#Year,Mon,Day = 2014,6,16
+##iy, ey = -9999,-9999
+#iy, ey = 1311, 1351
+#clat    = 57
+#clon    = 211.0 -360.
+#DB_MAXREC = 10000
+##DB_MAXREC = 20000
+#DB_MINREC = 1000
+##DB_MINREC = 5000
+#expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+##expr = 'glb.nprof'
 
 ## Canada sea to check batch-version
 #oid = 1686

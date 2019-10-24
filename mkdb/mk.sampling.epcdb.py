@@ -10,11 +10,16 @@ lMon  = range(1,12+1)
 lYM   = [[Year,Mon] for Year in lYear for Mon in lMon]
 iMon,eMon = lMon[0],lMon[-1]
 
+#lvarName = ['Ku_NS_typePrecip','Ku_NS_heightStormTop']
+#lvarName = ['Ku_NS_heightStormTop']
+#lvarName = ['Ku_NS_zFactorMeasured']
+#lvarName = ['Latitude','Longitude']
+lvarName = ['mdhms']
 #lvarName1 = ['epc','Ka_MS_zFactorMeasured','Tc','gNum','t2m','gtopo']
 #lvarName2 = ['DPRGMI_NS_precipTotWaterCont','DPRGMI_MS_surfPrecipTotRate','DPRGMI_NS_surfPrecipTotRate','Ku_NS_precipRateNearSurface','Ka_MS_precipRateNearSurface']
 #lvarName = ['DPRGMI_MS_surfPrecipTotRate','DPRGMI_NS_surfPrecipTotRate', 'Ka_MS_zFactorMeasured','Tc','gNum','t2m','DPRGMI_NS_precipTotWaterCont', 'Ka_MS_precipRateNearSurface', 'Ku_NS_precipRateNearSurface', 'epc',  'gtopo', 'tqv']
 #lvarName = ['surfaceTypeIndex']
-lvarName = ['surfacePrecipitation']
+#lvarName = ['surfacePrecipitation']
 
 #NREC  = 20000
 NREC  = 10000

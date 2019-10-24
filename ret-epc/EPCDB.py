@@ -12,7 +12,7 @@ class EPCDB(object):
         NEM     = 16
 
         NLEV_MODEL= 42      # 42 levels of MERRA2
-        NLEV_DPR= 50        # 50 lowest bins of DPR (250m each)
+        NLEV_DPR= 60        # 60 lowest bins of DPR (250m each)
         NLEV_PRECIP= 60     # 60 lowest levels for preicp (250m each)
 
 
@@ -92,7 +92,7 @@ class EPCDB(object):
             ('precip_MS_cmb',      ['DPRGMI_MS_surfPrecipTotRate', 'f']),                 #
             ('precip_max_MS_cmb',  ['', 'f']),                 #
 
-            ('type_precip_NS',     ['','3h']),                 # Number of radar pixels for each typePrecip (from DPR product) in PMW pixel.
+            ('type_precip_NS',     ['Ku_NS_typePrecip','3h']),                 # Number of radar pixels for each typePrecip (from DPR product) in PMW pixel.
             ('shallow_rain_NS',    ['','5h']),                 # Number of radar pixels for each flagShallowRain (from DPR product) in PMW pixel.
             ('type_precip_MS',     ['','3h']),                 #
             ('shallow_rain_MS',    ['','5h']),                 #
@@ -132,6 +132,7 @@ class EPCDB(object):
             ('z_ka',              ['Ka_MS_zFactorMeasured', '%ih'%NLEV_DPR]), #
 
             ('precip_water_prof_NS',    ['DPRGMI_NS_precipTotWaterCont', '%if'%NLEV_PRECIP]),  # precipitation water content profile from Comb product
+            ('storm_height_ku',   ['Ku_NS_heightStormTop', 'h']),    # heightStormTop from L2-DPR-Ku (m) int16
 
             ))
 
@@ -164,19 +165,27 @@ class EPCDB(object):
 
 
 
-    def get_var(self, vname, nrec=None, origin=0):
+    def get_var(self, vname, nrec=None, origin=0, idx=None):
+
+        ''' idx can be array '''
+
         filevname, fmt = self.dictvars[vname]
         srcPath = self.baseDir + '/%s/%05d.npy'%(filevname, self.idx_db)
         if os.path.exists(srcPath):
-      
-            if nrec is None: 
+            if (nrec is None)and(idx is None): 
                 data = np.load(srcPath)
-            else:
+            elif (nrec is None)and(idx is not None):
+                data = np.load(srcPath,mmap_mode='r')
+                data = np.array(data[idx])
+            elif (nrec is not None)and(idx is None):
                 data = np.load(srcPath,mmap_mode='r')
                 data = np.array(data[origin:origin+nrec])
+            else:
+                print 'check nrec and idx',nrec,idx
 
         else:
             ' read nrain file and return'
+            print 'No file',srcPath 
             nrainPath = self.baseDir + '/nrain/db_%05d.bin.nrain.txt'%(self.idx_db)
             f=open(nrainPath,'r'); lines=f.readlines(); f.close()
             line = lines[0].split()

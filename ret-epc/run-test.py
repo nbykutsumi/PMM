@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 import numpy as np
 import shutil
 
-iDTime = datetime(2014,10,14)
-eDTime = datetime(2014,10,14)
+iDTime = datetime(2014,6,16)
+eDTime = datetime(2014,6,16)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 
@@ -16,17 +16,21 @@ lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 DB_MAXREC = 10000
 #DB_MAXREC = 20000
 DB_MINREC = 1000
-#DB_MINREC = 5000
 #expr = 'test.minrec5000'
 #expr = 'test.minrec5000.maxrec20000'
 #expr = 'test.minrec5000.maxrec%d'%(DB_MAXREC)
-expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 #expr = 'rnr'
 #expr = 'glb.wprof.rnr'
 #expr = 'glb.nprof'
-#prog = 'ret-myepc-29bins.py'
+#expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.v04.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'test.wtb'
+expr = 'test.ntb'
+prog = 'ret-myepc-29bins.py'
 #prog = 'ret-testrnr.py'
-prog = 'ret-test.py'
+#prog = 'ret-test.py'
 sensor  = 'GMI'
 myhost = socket.gethostname()
 if myhost =="shui":
@@ -69,7 +73,7 @@ for DTime in lDTime:
         oid = int(gmiPath.split('.')[-3])
         print 'oid=',oid
 
-        if oid != 3556: continue  # test
+        if oid not in [1686]: continue  # test
 
         dargv = {}
         outDir  = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
@@ -110,9 +114,9 @@ for DTime in lDTime:
        
         #-- test ---- 
         dargv['oid'] = oid
-        dargv['clat'] = 43
-        dargv['clon'] = 79.5
-        dargv['dlatlon'] = 20
+        dargv['clat'] = 53
+        dargv['clon'] = -90.
+        dargv['dlatlon'] = 15
         dargv['iscan'] = -9999
         dargv['escan'] = -9999
         dargv['dscan'] = 30
@@ -143,6 +147,8 @@ for DTime in lDTime:
         dargv['DB_RAINFRAC'] = 0.0001 # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
         dargv['MAX_T2M_DIFF'] = 10
         dargv['MAX_TQV_DIFF'] = 10
+        #dargv['MAX_TB_RMSD'] = 50   #  max TB RMS difference between observed and DB pixel 
+        dargv['MAX_TB_RMSD'] = -9999   #  max TB RMS difference between observed and DB pixel 
         dargv['MAX_RMA_0'] = 0.05   # Maximum Ratio of missing amount (0>=mm/h) acceptable for rain / no-rain classification # -9999. --> No screening
 
         dargv['flag_top_var'] = 0  # 0: No top-ranked vars. 1: Retrieve top-ranked vars.

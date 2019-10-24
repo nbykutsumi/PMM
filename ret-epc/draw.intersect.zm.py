@@ -22,7 +22,7 @@ elif myhost == 'well':
     workbaseDir= '/home/utsumi/mnt/lab_work'
     tankbaseDir= '/home/utsumi/mnt/lab_tank'
     listDir    = '/home/utsumi/mnt/lab_tank/utsumi/PMM/US/obtlist'
-    srcbaseDir = '/media/disk2/share/PMM/retepc'
+    srcbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc'
     gprofbaseDir = '/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.GMI/2A/V05'
     figDir   = '/home/utsumi/temp/ret'
 
@@ -69,12 +69,17 @@ elif len(argv)==1:
     # SE.US case, oid=003556, 2014/10/14
     oid = 3556
     Year,Mon,Day = 2014,10,14
-    stamp = '%04d/%02d/%02d OID=%d'%(Year,Mon,Day,oid)
-    #iy, ey = 1012, 1022
-    iy, ey = 927, 1107
+    #iy, ey = -9999,-9999
+    #iy, ey = 987, 1047
+    iy,ey = 917,1117
     clat    = 34    # SE.US case. oid = 003556
     clon    = -86   # 2014/10/14  05:42:03 UTC
-    DB_MAXREC = 20000
+    DB_MAXREC = 10000
+    DB_MINREC = 1000
+    expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+    xpos    = 100  # x-position for cross section
+
+
     #
     ## SW.Japan typhoon case, oid=019015, 2017/07/03
     #oid = 19015
@@ -97,7 +102,6 @@ elif len(argv)==1:
     #dscan   = 30
     BBox    = [[clat-dlatlon, clon-dlatlon],[clat+dlatlon,clon+dlatlon]]
     [[lllat,lllon],[urlat,urlon]] = BBox
-    xpos    = 100  # x-position for cross section
 
 miss = -9999.
 #--------------------------------
@@ -221,7 +225,7 @@ def load_GMI_Tb13(Year,Mon,Day,oid):
 #stamp = '%06d.y%04d-%04d.nrec%d'%(oid, idx_c-dscan, idx_c+dscan,DB_MAXREC)
 srcDir = srcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
 stamp = '%06d.y%04d-%04d.nrec%d'%(oid, iy, ey, DB_MAXREC)
-a2topzmMS  = np.load(srcDir + '/top-zmMS.%s.npy'%(stamp))[:, xpos, :]
+#a2topzmMS  = np.load(srcDir + '/top-zmMS.%s.npy'%(stamp))[:, xpos, :]
 a2topzmNS  = np.load(srcDir + '/top-zmNS.%s.npy'%(stamp))[:, xpos, :]
 #a2topprNS  = np.load(srcDir + '/top-prprofNS.%s.npy'%(stamp))[:, xpos, :]
 #a2topprNScmb= np.load(srcDir + '/top-prprofNScmb.%s.npy'%(stamp))[:, xpos, :]
@@ -243,23 +247,28 @@ if ((iy<0) or (ey<0)):
     print a2latMy.shape[0],cy,dscan
     iyTmp = max(0, cy-dscan)
     eyTmp = min(a2latMy.shape[0], cy+dscan)
-
+    iyMy  = iyTmp
+    eyMy  = ixTmp
 
 else:
     iyTmp = iy
     eyTmp = ey
+    iyMy = 0
+    eyMy = ey-iy
+
+
 
 #***********************************
 # Extract domain from my data
 #***********************************
-a2topzmNS = a2topzmNS[iyTmp:eyTmp+1,:]
-a2topzmMS = a2topzmMS[iyTmp:eyTmp+1,:]
+a2topzmNS = a2topzmNS[iyMy:eyMy+1,:]
+#a2topzmMS = a2topzmMS[iyMy:eyMy+1,:]
 #a2topprwatMS = a2topprwatNS*0.0 -9999.
 
-a1latMy  = a2latMy[iyTmp:eyTmp+1,:]
-a1lonMy  = a2latMy[iyTmp:eyTmp+1,:]
+a1latMy  = a2latMy[iyMy:eyMy+1,:]
+a1lonMy  = a2latMy[iyMy:eyMy+1,:]
 
-a2toptbNS= a2toptbNS[iyTmp:eyTmp+1,:]
+a2toptbNS= a2toptbNS[iyMy:eyMy+1,:]
 #***********************************
 #- Read GMI 1C (Tb) ----
 #-----------------------------------
@@ -279,17 +288,31 @@ a1ydpr = np.load(yPath)[iyTmp:eyTmp+1,xpos-83]
 
 #-- Read DPR (Ku) ----
 #dprDir  = '/work/hk01/PMM/NASA/GPM.Ku/2A/V06/%04d/%02d/%02d'%(Year,Mon,Day)
-dprDir  = workbaseDir + '/hk01/PMM/NASA/GPM.Ku/2A/V06/%04d/%02d/%02d'%(Year,Mon,Day)
+if Year in [2014,2015]:
+    dprDir  = tankbaseDir + '/utsumi/data/PMM/NASA/GPM.Ku/2A/V06/%04d/%02d/%02d'%(Year,Mon,Day)
+else:
+    dprDir  = workbaseDir + '/hk01/PMM/NASA/GPM.Ku/2A/V06/%04d/%02d/%02d'%(Year,Mon,Day)
+
 dprPath = glob.glob(dprDir + '/2A.GPM.Ku.*.%06d.V06A.HDF5'%(oid))[0]
+
 
 with h5py.File(dprPath, 'r') as h:
     a3dprzmNS = h['NS/PRE/zFactorMeasured'][:]
     #a3dprprNS = h['NS/SLV/precipRate'][:]
-    #a2latdpr = h['NS/Latitude'][:]
-    #a2londpr = h['NS/Longitude'][:]
+    a2latdpr = h['NS/Latitude'][:]   # test
+    a2londpr = h['NS/Longitude'][:]  # test
     #a2cfbBin = h['NS/PRE/binClutterFreeBottom'][:]
     #a2surfBin= h['NS/PRE/binRealSurface'][:]
 
+
+#-- test --
+print 'latdpr-extracted'
+print a2latdpr[a1ydpr,a1xdpr]
+print 'londpr-extracted'
+print a2londpr[a1ydpr,a1xdpr]
+print 'shape'
+print a2latdpr.shape
+print
 #- extract lower levels --
 a3dprzmNS = a3dprzmNS[:,:,-88*2:]   # 125 m layers
 #a3dprzmMS = a3dprzmMS[:,:,-88*2:]  # 125 m layers
@@ -310,16 +333,15 @@ a3dprzmNS = average_2ranges_3d(a3dprzmNS, miss=-9999.9)
 #a2dprprNS = a3dprprNS[a1ydpr,a1xdpr]
 a2dprzmNS = a3dprzmNS[a1ydpr,a1xdpr]
 #- Screen dB less than 15dB 
-a2topzmMS = (ma.masked_less(a2topzmMS, 1500)*0.01).filled(miss)  # 50x250m leyers
+#a2topzmMS = (ma.masked_less(a2topzmMS, 1500)*0.01).filled(miss)  # 50x250m leyers
 a2topzmNS = (ma.masked_less(a2topzmNS, 1500)*0.01).filled(miss)  # 50x250m layers
 #a2dprzmMS = ma.masked_less(a2dprzmMS,15).filled(miss)
 a2dprzmNS = ma.masked_less(a2dprzmNS,15).filled(miss)[:,-50:]
 
-
 #******************************************************
 # Figure Zm and Tb
 #******************************************************
-fig   = plt.figure(figsize=(12,12))
+fig   = plt.figure(figsize=(12,10))
 ssize = 1
 
 #nx    = a2prNS.shape[0]
@@ -344,7 +366,7 @@ tick_locsTb = [None]
 tick_lblsTb = [None]
 #for i in range(6):
 #for i in range(8):
-for i in range(5):
+for i in range(4):
     nx,nh = a2dprzmNS.shape
     a1y   = arange(nh)*0.25
     a1x   = a1latMy
@@ -352,7 +374,7 @@ for i in range(5):
 
     #--- Zm ---------------------------- 
     x0= 0.1
-    h = 0.14
+    h = 0.2
     w = 0.7
 
     #--- Tb ---------------------------- 
@@ -366,7 +388,7 @@ for i in range(5):
         cbarlbl='Kelvin'
 
     elif i==1:
-        y0 = 0.22
+        y0 = 0.25
         a2dat = ma.masked_less_equal(a2toptbNS.T,0)
         vmin, vmax = tbmin, tbmax
         tick_locs, tick_lbls = tick_locsTb, tick_lblsTb
@@ -375,39 +397,27 @@ for i in range(5):
         cbarlbl='Kelvin'
 
     elif i==2:
-        y0 = 0.42
+        y0 = 0.48
         print 'a2dprzmNS.shape', a2dprzmNS.shape
         a2dat = ma.masked_less_equal(a2dprzmNS.T,0)
         vmin, vmax = zmin, zmax
         tick_locs, tick_lbls = tick_locs50, tick_lbls50
         aspect= aspect1
         stype = 'Zm DPR-Ku'
-        cbarlbl='db (uncorrected)'
+        cbarlbl='dBZ (uncorrected)'
 
     elif i==3:
-        y0 = 0.62
+        y0 = 0.71
         a2dat = ma.masked_less_equal(a2topzmNS.T,0)
         vmin, vmax = zmin, zmax
         tick_locs, tick_lbls = tick_locs50, tick_lbls50
         aspect= aspect1
         stype = 'Top-Ranked Zm (Ku)'
-        cbarlbl='db (uncorrected)'
-
-    elif i==4:
-        y0 = 0.82
-        a2dat = ma.masked_less_equal(a2topzmMS.T,0)
-
-        print 'a2topzmMS.shape',a2topzmMS.shape
-
-        vmin, vmax = zmin, zmax
-        tick_locs, tick_lbls = tick_locs50, tick_lbls50
-        aspect= aspect1
-        stype = 'Top-Ranked Zm (Ka)'
-        cbarlbl='db (uncorrected)'
+        cbarlbl='dBZ (uncorrected)'
 
 
     ax = fig.add_axes([x0, y0, w, h])
-    cax= fig.add_axes([x0+w+0.01, y0, 0.03, h*0.9])
+    cax= fig.add_axes([x0+w+0.01, y0, 0.02, h*0.9])
     im = ax.imshow(a2dat, interpolation='none', aspect=aspect, cmap=cmap, vmin=vmin, vmax=vmax)
     ax.grid()
     ax.set_title(stype+' '+stamp)

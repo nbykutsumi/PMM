@@ -18,6 +18,7 @@ import random
 #lidx_db = [14155]  # N ~3500
 #lidx_db = [4721]
 lidx_db = range(29*29*29)[1:]
+#lidx_db = [1365]
 nsample = 1000
 #fracsample= 0.1  # used if nsample <0
 
@@ -343,8 +344,7 @@ for idx_db in lidx_db:
 
             #a1tsdb  = concatenate([a1tsdb,   a1tsdbTmp], axis=0) 
             a1t2mdb  = concatenate([a1t2mdb,  a1t2mdbTmp], axis=0) 
-            a1revdb = concatenate([a1revdb,  a1revdbTmp], axis=0) 
-
+            a1revdb  = concatenate([a1revdb,  a1revdbTmp], axis=0) 
             if tqvflag ==1:
                 a1tqvdb  = concatenate([a1tqvdb,  a1tqvdbTmp], axis=0) 
             if elevflag ==1:
@@ -466,7 +466,8 @@ for idx_db in lidx_db:
     a1nsurfMScmbobs  = ma.masked_invalid(a1nsurfMScmb).filled(miss)[lirec]
 
     a1irec           = np.array(lirec).astype(int32)
-
+    a1topirec        = np.ones(len(lirec), int32)*miss
+    a1topidxdb       = np.ones(len(lirec), int32)*miss
 
 
     #****************************************************
@@ -506,6 +507,13 @@ for idx_db in lidx_db:
         a1wt   = np.exp(-0.5*np.square(a1rmsd/rmsd_min))
         a1wt   = ma.masked_less(a1wt, thwtmin)
         a1wt[irectop] = 1.0
+
+        #**********************************
+        # Top-ranked entry info
+        #---------------------------------- 
+        a1topirec[iirec] = a1irecsubdb[irectop]
+        a1topidxdb[iirec]= a1idxdb[irectop]
+
         #**********************************
         # Constrain maximum number of entries
         #---------------------------------- 
@@ -561,6 +569,7 @@ for idx_db in lidx_db:
     np.save(outDir + '/nsurfMScmb.obs.%05d.npy'%(idx_db), a1nsurfMScmbobs) 
 
     np.save(outDir + '/irec.obs.%05d.npy'%(idx_db), a1irec) 
-
+    np.save(outDir + '/irec.top.%05d.npy'%(idx_db), a1topirec)
+    np.save(outDir + '/idx_db.top.%05d.npy'%(idx_db), a1topidxdb)
     print outDir + '/nsurfNS.est.%05d.npy'%(idx_db)
 

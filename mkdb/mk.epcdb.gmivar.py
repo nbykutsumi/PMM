@@ -12,8 +12,6 @@ verGMI   = '05'
 subverGMI= 'A'
 fullverGMI='%s%s'%(verGMI, subverGMI)
 
-#iYM = [2017,2]
-#eYM = [2017,12]
 iYM = [2017,1]
 eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
@@ -29,9 +27,11 @@ worg= 221  # GMI total angle bins
 
 #lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude'],['gprof','S1/surfaceTypeIndex'],['gprof','S1/surfacePrecipitation'], ['gmi','S1/Tc']]
 #lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude']]
+#lvar = [['gmi','S1/Latitude']]
+#lvar = [['gmi','S1/Longitude']]
 #lvar = [['gmi','epc'],['gmi','S1/Tc'],['gmi','S1/pYXpmw'],['gprof','S1/surfaceTypeIndex']]
 #lvar = [['gmi','epc'],['gmi','Tc'],['gmi','S1/pYXpmw']]
-lvar = [['gprof','S1/surfacePrecipitation']]
+#lvar = [['gprof','S1/surfacePrecipitation']]
 #lvar = [['gmi','S1/Longitude']]
 #lvar = [['gmi','S1/Latitude']]
 #lvar = [['gmi','S1/pYXpmw'],['gprof','S1/surfaceTypeIndex']]
@@ -42,7 +42,7 @@ lvar = [['gprof','S1/surfacePrecipitation']]
 #lvar = [['gmi','S1/ScanTime/Year'],['gmi','S1/ScanTime/mdhms']]
 #lvar = [['gmi','S1/gNum']]
 #lvar = [['gmi','S1/ScanTime/Year']]
-#lvar = [['gmi','S1/ScanTime/mdhms']]
+lvar = [['gmi','S1/ScanTime/mdhms']]
 #lvar = [['gmi','S1/LatLon']]
 
 '''
@@ -214,7 +214,7 @@ for Year,Mon in lYM:
                         Dat[:,xtmp] = a1yyyy
                     Dat = Dat.flatten()
 
-                elif varName in ['surfaceTypeIndex','surfacePrecipitation']:
+                elif varName in ['surfaceTypeIndex','surfacePrecipitation','Latitude','Longitude']:
                     with h5py.File(srcPath) as h:
                         Dat = h[var][:]
 

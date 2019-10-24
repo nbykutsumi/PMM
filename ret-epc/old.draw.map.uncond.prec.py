@@ -73,6 +73,7 @@ for season in lseason:
         lYM = util.ret_lYM([2014,12],[2015,2])
     elif season=='MAM':
         lYM = util.ret_lYM([2015,3],[2015,5])
+    elif type(season)==int:
 
     ddat = {} 
     for rettype in lrettype:

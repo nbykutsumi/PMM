@@ -16,6 +16,7 @@ if  myhost =="mizu":
     orootDir   = "/home/utsumi/mnt/wellshare/data/GPM"
 elif myhost =="shui":
     orootDir   = "/work/hk01/PMM/NASA"
+    #orootDir   = "/tank/utsumi/data/PMM/NASA"
 elif myhost =="well":
     #orootDir   = "/media/disk2/share/data/GPM"
     orootDir   = "/media/disk2/share/data/PMM/NASA"
@@ -23,19 +24,19 @@ elif myhost =="well":
 #GPM/TRMM.TMI/L2A12/07/2014/
 
 
-iDTime  = datetime(2014,7,1)
+iDTime  = datetime(2014,12,8)
 #iDTime  = datetime(2014,5,1)
 #iDTime  = datetime(2017,1,1)
 #iDTime  = datetime(2014,7,11)
 #eDTime  = datetime(2014,7,11)
-eDTime  = datetime(2014,7,1)
+eDTime  = datetime(2014,12,11)
 dDTime  = timedelta(days=1)
 lDTime  = util.ret_lDTime(iDTime, eDTime, dDTime)
 
 #spec      = ["TRMM","TMI","2A-CLIM","gprof","V05","A"]
-spec      = ["GPM","GMI","1C","1C","V05","A"]
+#spec      = ["GPM","GMI","1C","1C","V05","A"]
 #spec      = ["GPM","GMI","2A-CLIM","gprof","V05","A"] # input=ECMWF
-#spec      = ["GPM","GMI","2A","gprof","V05","A"] # input=GANAL
+spec      = ["GPM","GMI","2A","gprof","V05","A"] # input=GANAL
 #spec      = ["GPM","Ku","2A","radar","V06","A"]
 #spec      = ["GPM","Ka","2A","radar","V06","A"]
 #spec      = ["GPM","DPR","2A","radar","V06","A"]

@@ -65,13 +65,13 @@ elif len(argv)==1:
     oid = 3556
     Year,Mon,Day = 2014,10,14
     #iy, ey = -9999,-9999
-    #iy, ey = 927, 1107
-    iy, ey = 987, 1047
+    #iy, ey = 987, 1047
+    iy,ey = 917,1117
     clat    = 34    # SE.US case. oid = 003556
     clon    = -86   # 2014/10/14  05:42:03 UTC
     DB_MAXREC = 10000
     DB_MINREC = 1000
-    expr = 'test.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+    expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
     xpos    = 100  # x-position for cross section
 
 
@@ -310,10 +310,10 @@ srcDir = srcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
 stamp = '%06d.y%04d-%04d.nrec%d'%(oid, iy, ey, DB_MAXREC)
 
 a2topprwatNS = np.load(srcDir + '/top-prwatprofNS.%s.npy'%(stamp))[:, xpos, :]
-a2topprwatMS = a2topprwatNS*0 - 9999.  # test
+#a2topprwatMS = a2topprwatNS*0 - 9999.  # test
 
 a2prwatNS= np.load(srcDir + '/prwatprofNS.%s.npy'%(stamp))[:, xpos, :]
-a2prwatMS= a2prwatNS*0 -9999. # test
+#a2prwatMS= a2prwatNS*0 -9999. # test
 
 
 print srcDir + '/prwatprofNS.%s.npy'%(stamp)
@@ -347,11 +347,11 @@ else:
 
 a2topprwatNS = a2topprwatNS[iyMy:eyMy+1,:]
 #a2topprwatMS = a2topprwatMS[iyMy:eyMy+1,:]
-a2topprwatMS = a2topprwatNS*0.0 -9999.
+#a2topprwatMS = a2topprwatNS*0.0 -9999.
 
 a2prwatNS= a2prwatNS[iyMy:eyMy+1,:]
 #a2prwatMS= a2prwatMS[iyMy:eyMy+1,:]
-a2prwatMS= a2prwatNS*0.0 -9999.
+#a2prwatMS= a2prwatNS*0.0 -9999.
 
 a1latMy  = a2latMy[iyMy:eyMy+1,:]
 a1lonMy  = a2latMy[iyMy:eyMy+1,:]
@@ -395,7 +395,7 @@ a2prwatgprof = a3prwatgprof[iyTmp:eyTmp+1,xpos-83,-50:]
 #******************************************************
 # Precipitation water content profile
 #******************************************************
-fig   = plt.figure(figsize=(12,12))
+fig   = plt.figure(figsize=(12,10))
 ssize = 1
 
 nx    = a2prwatNS.shape[0]
@@ -406,19 +406,24 @@ prmin, prmax = 0, 2.0
 tick_locs22 = [0,8,16,24,32, 40, 48]
 tick_lbls22 = [0,2,4, 6, 8, 10, 12]
 
-for i in range(5):
+for i in range(4):
     nx,nh = a2prwatNS.shape
     a1y   = arange(nh)*0.25
     a1x   = a1latMy
     cmap  = 'jet'
 
+    #x0= 0.1
+    #h = 0.14
+    #w = 0.7
+
     x0= 0.1
-    h = 0.14
+    h = 0.2
     w = 0.7
 
     #--- Precip water content -------------- 
-    if i==0:
+    if i==3:
         y0 = 0.02
+        y0 = 0.71
         a2dat = ma.masked_less_equal(a2cmbprwatNS.T,0)
         vmin, vmax = prmin, prmax
         tick_locs, tick_lbls = tick_locs22, tick_lbls22
@@ -426,8 +431,32 @@ for i in range(5):
         stype = 'CMB/NS precip water product'
         cbarlbl='g/m3'
 
+
+    elif i==2:
+        y0 = 0.25
+        y0 = 0.48
+        a2dat = ma.masked_less_equal(a2prwatNS.T,0)
+        vmin, vmax = prmin, prmax
+        tick_locs, tick_lbls = tick_locs22, tick_lbls22
+        aspect= aspect1
+        stype = 'Ret=CMB/NS'
+        cbarlbl='g/m3'
+
+
     elif i==1:
-        y0 = 0.22
+        y0 = 0.48
+        y0 = 0.25
+        a2dat = ma.masked_less_equal(a2topprwatNS.T,0)
+
+        vmin, vmax = prmin, prmax
+        tick_locs, tick_lbls = tick_locs22, tick_lbls22
+        aspect= aspect1
+        stype = 'Top-Ranked Precip water(CMB/NS)'
+        cbarlbl='g/m3'
+
+    elif i==0:
+        y0 = 0.71
+        y0 = 0.02
         a2dat = ma.masked_less_equal(a2prwatgprof.T,0)
         vmin, vmax = prmin, prmax
         tick_locs, tick_lbls = tick_locs22, tick_lbls22
@@ -437,39 +466,9 @@ for i in range(5):
 
 
 
-    elif i==2:
-        y0 = 0.42
-        a2dat = ma.masked_less_equal(a2prwatNS.T,0)
-        vmin, vmax = prmin, prmax
-        tick_locs, tick_lbls = tick_locs22, tick_lbls22
-        aspect= aspect1
-        stype = 'Ret=CMB/NS'
-        cbarlbl='g/m3'
 
-
-    elif i==3:
-        y0 = 0.62
-        a2dat = ma.masked_less_equal(a2topprwatNS.T,0)
-
-        vmin, vmax = prmin, prmax
-        tick_locs, tick_lbls = tick_locs22, tick_lbls22
-        aspect= aspect1
-        stype = 'Top-Ranked Precip water(CMB/NS)'
-        cbarlbl='g/m3'
-
-    elif i==4:
-        y0 = 0.82
-        a2dat = ma.masked_less_equal(a2topprwatMS.T,0)
-        vmin, vmax = prmin, prmax
-        tick_locs, tick_lbls = tick_locs22, tick_lbls22
-        aspect= aspect1
-        stype = 'Top-Ranked Precip water (CMB/MS)'
-        cbarlbl='g/m3'
 
     a2dat = a2dat[::-1,:] # Tot to Bottom -> Bottom to Top
-
-    #print i, stype, a2dat.shape
-    #print a2dat[:,30]
 
     ax = fig.add_axes([x0, y0, w, h])
     cax= fig.add_axes([x0+w+0.01, y0, 0.03, h*0.9])
