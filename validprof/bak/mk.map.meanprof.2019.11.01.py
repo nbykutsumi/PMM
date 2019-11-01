@@ -21,8 +21,7 @@ else:
     sys.exit()
 #*******************************
 iYM  = [2014,6]
-#eYM  = [2015,2]
-eYM  = [2014,6]
+eYM  = [2015,2]
 lYM  = util.ret_lYM(iYM,eYM)
 lYM  = [ym for ym in lYM if ym[1] not in [9,10,11]]
 
@@ -43,8 +42,7 @@ lptype= ['all','conv','stra']
 lprrange=[[0.5,999],[1,3],[8,12]]
 #lprrange=[[0.5,999]]
 lprrange= map(tuple, lprrange)
-lph     = ['L','H','All']
-#lph     = ['A']
+
 lat0 = -60.
 lon0 = -180.
 dlatlon=1.0
@@ -66,11 +64,9 @@ for Year,Mon in lYM:
             eDTime = datetime(Year,Mon,eDay)
             lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
         
-            lkey = [(stype,ptype,ph,prrange)
-                            for stype in lstype
-                            for ptype in lptype
-                            for ph    in lph
-                            for prrange in lprrange]
+            lkey = [(stype,ptype,prrange) for stype in lstype
+                                          for ptype in lptype
+                                          for prrange in lprrange]
 
             #** Initialize **********
             d3ss  = {}
@@ -115,8 +111,6 @@ for Year,Mon in lYM:
         
                     a1stype= np.load(srcDir + '/surfaceTypeIndex.%06d.npy'%(oid))
                     a1ptype= np.load(srcDir + '/typePreciprad.%06d.npy'%(oid)) 
-                    a1ph   = np.load(srcDir + '/stoprad.%06d.npy'%(oid)) 
-                    a1freez= np.load(srcDir + '/zeroDegAltituderad.%06d.npy'%(oid)) 
 
                     #-- Screen invalid (nan) ----- 
                     a2var  = ma.masked_invalid(a2var).filled(miss_out) 
@@ -152,8 +146,6 @@ for Year,Mon in lYM:
                     a1prec = a1prec[a1flag]
                     a1stype= a1stype[a1flag]
                     a1ptype= a1ptype[a1flag]
-                    a1ph   = a1ph[a1flag]
-                    a1freez= a1freez[a1flag]
  
                     a2bit= ma.masked_greater_equal(a2var,0).mask.astype(int32) 
                     a2var= ma.masked_less(a2var,0).filled(0.0)
@@ -180,7 +172,8 @@ for Year,Mon in lYM:
                     a1flagconv = ma.masked_greater(a1conv,0.6).mask
                     a1flagstra = ma.masked_greater(a1stra,0.6).mask
                     for key in lkey:
-                        stype,ptype,ph,prrange = key
+                        stype,ptype,prrange = key
+
                         #-- Surface type ---
                         if stype == 'sea':
                             a1flagstype = a1flagsea
@@ -216,25 +209,12 @@ for Year,Mon in lYM:
                         if type(a1flagptype) is np.bool_:
                             a1flagptype = np.array([a1flagptype]*len(a1ptype))
 
-                        #-- Precipitation height ------------
-                        a1fpd = ma.masked_less(a1ph,0) - ma.masked_less(a1freez,0)  # freezing precipitation depth
-                        if ph =='L':
-                            a1flagph = ma.masked_less(a1fpd, 0).mask
-                        elif ph=='H':
-                            a1flagph = ma.masked_greater(a1fpd, 0).mask
-                        elif ph=='A':
-                            a1flagph = np.array([True]*len(a1fpd))
-                        
-                        else:
-                            print 'check ph',ph
-                            sys.exit()
-
                         #-- Precipitation range -------------
                         thpr0,thpr1 = prrange
                         a1flagp = ma.masked_inside(a1prec, thpr0, thpr1).mask
                         
                         #-- Screen --------------------------
-                        a1flag = a1flagstype * a1flagptype * a1flagph * a1flagp
+                        a1flag = a1flagstype * a1flagptype * a1flagp
 
                         if a1flag.sum()==0:
                             continue 
@@ -266,7 +246,7 @@ for Year,Mon in lYM:
  
             #-- Save ---
             for key in lkey:
-                stype,ptype, ph, prrange = key
+                stype,ptype,prrange = key
                 thpr0,thpr1 = prrange
                 a3sum = d3sum[key]
                 a3ss  = d3ss [key]
@@ -282,7 +262,7 @@ for Year,Mon in lYM:
                     sys.exit()
         
                 util.mk_dir(outDir)
-                stamp  = 's-%s.p-%s.ph-%s.pr-%.1f-%.1f.%04d%02d'%(stype,ptype,ph,thpr0,thpr1,Year,Mon)
+                stamp  = 's-%s.p-%s.pr-%.1f-%.1f.%04d%02d'%(stype,ptype,thpr0,thpr1,Year,Mon)
                 sumPath= outDir  + '/%s.sum.%s.sp.one.npy' %(var,stamp)
                 numPath= outDir  + '/%s.num.%s.sp.one.npy' %(var,stamp)
                 numprofPath= outDir  + '/%s.numprof.%s.sp.one.npy' %(var,stamp)

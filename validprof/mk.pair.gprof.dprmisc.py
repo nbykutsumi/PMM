@@ -28,7 +28,9 @@ thpr   = 0.1
 miss_out= -9999.
 
 #lvar = [['DPRGMI','NS/Input/zeroDegAltitude']]
-lvar = [['Ku','NS/CSF/typePrecip']]
+#lvar = [['Ku','NS/CSF/typePrecip']]
+#lvar = [['Ku','NS/CSF/typePrecip']]
+lvar = [['Ku','NS/PRE/heightStormTop']]
 #------------------------------------------------
 def ret_aprof(a4clusterProf, a2tIndex, a3profNum, a3profScale, lspecies=[0,2,3,4]):
     nh = 28
@@ -274,10 +276,19 @@ for DTime in lDTime:
         for [prod,varName] in lvar:
             avarorg = davarorg[prod,varName]
 
-            if (prod=='DPRGMI')and(varName in ['NS/Input/zeroDegAltitude']):
+            if (prod=='DPRGMI')and(varName in ['NS/Input/zeroDegAltitude'
+                                              ,'NS/Input/surfaceElevation']):
                 avar = ave_9grids_2d(avarorg, a1y, a1x, miss=-9999.9).filled(-9999.)
                 avar[a1mask] = -9999
-                davar[prod,varName] = avar[a1flag]
+                #davar[prod,varName] = avar[a1flag]
+                davar[prod,varName] = avar
+
+            elif varName in ['NS/PRE/heightStormTop']:
+                Dat0 = ma.masked_greater(avarorg,32767).filled(32767).astype('int16')  # miss is converted from -9999.9 --> -9999
+                Dat0 = ma.masked_less(Dat0,0)
+                davar[prod,varName] = ave_9grids_2d(Dat0, a1y, a1x, miss=-9999).filled(-9999).astype('int16')
+        
+                
 
             elif varName in ['NS/CSF/typePrecip']:
                 Dat0 = (davarorg[prod,varName]/10000000).astype('int16')
@@ -294,21 +305,29 @@ for DTime in lDTime:
                 sys.exit()
         #---------------------------------
         for [prod,varName] in lvar:
-            if len(varName.split('/'))>1:
+            if varName in ['NS/PRE/heightStormTop']:
+                outvarName = 'stoprad'
+
+            elif len(varName.split('/'))>1:
                 outvarName = varName.split('/')[-1]
 
             else:
                 outvarName = varName
 
-            if varName in ['NS/Input/zeroDegAltitude']:
+            if varName in ['NS/Input/zeroDegAltitude'
+                          ,'NS/Input/surfaceElevation']:
                 dtype='float32'
+
+            elif varName in ['NS/PRE/heightStormTop']:
+                dtype='int32'
+
             else:
                 dtype='float32'
 
+            #print davar[prod,varName].shape, a1flag.shape
             aout = davar[prod,varName][a1flag].astype(dtype)
             outDir     = tankbaseDir + '/utsumi/PMM/validprof/pair/gprof/%04d/%02d/%02d'%(Year,Mon,Day)
             util.mk_dir(outDir)
             outPath = outDir + '/%srad.%06d.npy'%(outvarName,oid)
             np.save(outPath, aout)
-
-            print outDir, oid
+            print outPath

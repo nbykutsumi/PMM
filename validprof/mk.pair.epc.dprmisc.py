@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import socket
 import EPCDB
 #*******************************
-iDTime = datetime(2014,12,1)
+iDTime = datetime(2014,8,31)
 eDTime = datetime(2015,2,28)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 lskipmon = [9,10,11]
@@ -38,7 +38,8 @@ thpr    = 0.1
 NLEV_PREC = 50
 miss_out= -9999.
 
-lvar = [['DPRGMI','NS/Input/zeroDegAltitude']]
+#lvar = [['DPRGMI','NS/Input/zeroDegAltitude']]
+lvar = [['DPRGMI','NS/Input/surfaceElevation']]
 db = EPCDB.EPCDB()
 #------------------------------------------------
 
@@ -160,7 +161,7 @@ def sum_9grids_2d(a2in, a1y, a1x, miss):
 #------------------------------------------------
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
-    if Mon in lskipmon: contnue
+    if Mon in lskipmon: continue
 
     pmwDir = epcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
     ssearch  = pmwDir + '/%s.??????.y-9999--9999.nrec%05d.npy'%('prwatprofNS',DB_MAXREC)
@@ -246,7 +247,8 @@ for DTime in lDTime:
         davar = {}
         for [prod,varName] in lvar:
             avarorg = davarorg[prod,varName]
-            if (prod=='DPRGMI')and(varName in ['NS/Input/zeroDegAltitude']):
+            if (prod=='DPRGMI')and(varName in ['NS/Input/zeroDegAltitude'
+                                              ,'NS/Input/surfaceElevation']):
                 avar = ave_9grids_2d(avarorg, a1y, a1x, miss=-9999.9).filled(-9999.)
                 avar[a1mask] = -9999
                 davar[prod,varName] = avar[a1flag]
@@ -259,7 +261,9 @@ for DTime in lDTime:
             else:
                 outvarName = varName
             
-            if varName in ['NS/Input/zeroDegAltitude']:
+            if varName in ['NS/Input/zeroDegAltitude'
+                          ,'NS/Input/surfaceElevation'
+                          ]:
                 dtype='float32'
             else: 
                 dtype='float32'

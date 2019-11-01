@@ -41,6 +41,7 @@ worg= 221  # GMI total angle bins
 #lvar = [['DPRGMI','NS/surfPrecipTotRate']]
 #lvar = [['DPRGMI','MS/surfPrecipTotRate']]
 #lvar = [['DPRGMI','NS/surfPrecipTotRate'],['DPRGMI','NS/precipTotWaterCont']]
+lvar = [['DPRGMI','NS/Input/zeroDegAltitude']]
 #lvar = [['Ku','NS/SLV/precipRate']]
 #lvar = [['Ku','NS/SLV/precipRateESurface']]
 #lvar = [['Ku','NS/SLV/precipRateNearSurface']]
@@ -48,7 +49,7 @@ worg= 221  # GMI total angle bins
 #lvar = [['Ku','NS/PRE/elevation'],['Ku','NS/CSF/typePrecip'],['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','NS/CSF/typePrecip'],['Ku','NS/PRE/heightStormTop']]
-lvar = [['Ku','NS/PRE/heightStormTop']]
+#lvar = [['Ku','NS/PRE/heightStormTop']]
 
 
 
@@ -67,6 +68,7 @@ dattype={
 ,'NS/PRE/elevation':        'int16'  # float32 --> int16
 ,'NS/CSF/typePrecip':       'int16'  # convert to int16 (-32768, 32767)
 ,'NS/PRE/heightStormTop':   'int16'  # save as int16 (-32768, 32767)
+,'NS/Input/zeroDegAltitude':'float32'
 
 ,'NS/SLV/precipRateNearSurface': 'float32'
 ,'MS/SLV/precipRateNearSurface': 'float32'
@@ -90,6 +92,7 @@ dnvect ={
 ,'NS/PRE/elevation':        1
 ,'NS/CSF/typePrecip':       1
 ,'NS/PRE/heightStormTop':   1
+,'NS/Input/zeroDegAltitude': 1
 
 ,'NS/precipTotWaterCont':  60
 ,'MS/precipTotWaterCont':  60
@@ -367,6 +370,13 @@ for Year,Mon in lYM:
                         Dat0 = h[var][:]
 
                     Dat     = ave_9grids_2d(Dat0, a1dpry, a1dprx, miss=-9999.9)
+
+                elif varName in ['zeroDegAltitude']:
+                    with h5py.File(srcPath) as h:
+                        Dat0 = ma.masked_less(h[var][:], 0)
+
+                    Dat     = ave_9grids_2d(Dat0, a1dpry, a1dprx, miss=-9999.9)
+
 
 
                 elif varName in ['elevation']:

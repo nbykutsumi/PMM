@@ -15,16 +15,20 @@ import pickle
 import string
 
 season = 'JJADJF'
-calcflag = True
-#calcflag = False
-#lrettype = ['epc']
+#season = 6
+#calcflag = True
+calcflag = False
 lrettype = ['epc','gprof']
+#lrettype = ['epc']
 #lrettype = ['gprof']
 DB_MAXREC = 10000
 DB_MINREC = 1000
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 #metric= 'rmse'
-metric= 'cc'
+#metric= 'cc'
+#metric = 'dwatNorm'
+#metric = 'dconvfrac'
+#metric = 'dstop'
 
 myhost = socket.gethostname()
 if myhost =='shui':
@@ -73,6 +77,33 @@ def calc_cc(x,y,axis):
     B  = ((x-xm)**2).sum(axis=axis)
     C  = ((y-ym)**2).sum(axis=axis)
     return A/( np.sqrt(B*C) )
+
+def calc_dwatNorm(a2ref, a2dat):
+    a1ref = ma.masked_less(a2ref,0).filled(0).sum(axis=1)
+    a1dat = ma.masked_less(a2dat,0).filled(0).sum(axis=1)
+    return ma.masked_where(a1ref==0, a1dat - a1ref)/a1ref
+
+def calc_ptypefrac(avar, ptype='conv'):
+    avar = ma.masked_less(avar,0).astype('int16')
+    strat = (avar %10).astype('int16')
+    conv  = (avar%100-strat).astype('int16')/10
+    other = (avar/100).astype('int16')
+    ntot  = (strat + conv + other).astype('float32')
+    
+    if ptype=='conv':
+        return conv / ntot
+    elif ptype=='strat':
+        return strat / ntot
+    elif ptype=='other':
+        return other / ntot
+    else:
+        print 'check',ptype
+        sys.exit()
+
+def calc_dptypefrac(a1ref, a1dat, ptype='conv'):
+    a1reffrac = calc_ptypefrac(a1ref,ptype=ptype)
+    a1datfrac = calc_ptypefrac(a1dat,ptype=ptype)
+    return ma.masked_less(a1datfrac,0) - ma.masked_less(a1reffrac,0)
 
 
 def ret_lmon(season):
@@ -126,7 +157,7 @@ for rettype in lrettype:
         eDTime = datetime(Year,Mon,eDay)
         dDTime = timedelta(days=1)
         lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
-        #lDTime = lDTime[:2]  # test 
+        #lDTime = lDTime[29:]  # test 
         for DTime in lDTime:
             Year,Mon,Day = DTime.timetuple()[:3]
     
@@ -150,14 +181,27 @@ for rettype in lrettype:
             for latPath in llatPath:
                 print latPath
                 oid = int(latPath.split('.')[-2])
+
+                #if oid !=1918: continue  # test
+
                 a1lat = np.load(pairDir + '/Latitude.%06d.npy'%(oid))
                 a1lon = np.load(pairDir + '/Longitude.%06d.npy'%(oid))
     
                 a1precradTmp= np.load(pairDir+ '/precrad.%06d.npy'%(oid))
                 a1precpmwTmp= np.load(pairDir+ '/precpmw.%06d.npy'%(oid))
-                a2profradTmp= np.load(pairDir+ '/profrad.%06d.npy'%(oid))[:,2:nz] 
-                a2profpmwTmp= np.load(pairDir+ '/profpmw.%06d.npy'%(oid))[:,2:nz]
+                a2profradTmp= np.load(pairDir+ '/profrad.%06d.npy'%(oid))[:,4:nz]  # bottom to top
+                a2profpmwTmp= np.load(pairDir+ '/profpmw.%06d.npy'%(oid))[:,4:nz]  # bottom to top
                 a1surftype= np.load(pairDir + '/surfaceTypeIndex.%06d.npy'%(oid))
+                a1elev    = np.load(pairDir + '/surfaceElevationrad.%06d.npy'%(oid))
+
+                if metric in ['dconvfrac']:
+                    a1ptyperadTmp=np.load(pairDir + '/typePreciprad.%06d.npy'%(oid))
+                    a1ptypepmwTmp=np.load(pairDir + '/top-typePrecippmw.%06d.npy'%(oid))
+
+                if metric in ['dstop']:
+                    a1stoppmwTmp=np.load(pairDir + '/top-stoppmw.%06d.npy'%(oid))
+                    a1stopradTmp=np.load(pairDir + '/stoprad.%06d.npy'%(oid))
+
                 if rettype == 'gprof':
                     a1qflag   = np.load(pairDir + '/qualityFlag.%06d.npy'%(oid))
 
@@ -166,32 +210,41 @@ for rettype in lrettype:
                     a1flagS = ma.masked_equal(a1flagS,14)
                     a1flagS = ~(a1flagS.mask)
 
-
-    
-                ##--- Check surface type --
-                #a1flagS1 = ma.masked_equal(a1surftype,1).mask   # Ocean
-                #a1flagS2 = ma.masked_inside(a1surftype,3,7).mask # Vegetation
-                #a1flagS3 = ma.masked_inside(a1surftype,12,13).mask # Standing water and rivers & Water/Coast boundary
-                #a1flagS  = a1flagS1 + a1flagS2 + a1flagS3
     
                 #--- Screen missing surface precipitation ---
                 a1flagP1 = ma.masked_greater_equal(a1precpmwTmp,0).mask
                 a1flagP2 = ma.masked_greater_equal(a1precradTmp,0).mask
                 a1flagP  = a1flagP1 * a1flagP2 
 
+                #--- Screen high mountains ------------------
+                a1flagE  = ma.masked_less(a1elev, 1000).mask
+
                 #--- Check quality flag --
                 if rettype == 'gprof':
                     a1flagQ = ma.masked_equal(a1qflag,0).mask   # Good quality (flag=0)
-                    a1flag  = a1flagS * a1flagP *a1flagQ
+                    a1flag  = a1flagS * a1flagP *a1flagQ * a1flagE
                 else:
-                    a1flag  = a1flagP 
+                    a1flag  = a1flagP * a1flagE
             
+
+                ##--- test ------------
+                #a1flaglat = ma.masked_inside(a1lat,-10,10).mask
+                #a1flaglon = ma.masked_inside(a1lon,-70,-50).mask
+                #a1flag    = a1flaglat * a1flaglon
+                ##---------------------
 
                 a1precpmwTmp = a1precpmwTmp[a1flag]
                 a1precradTmp = a1precradTmp[a1flag]
                 a2profpmwTmp = a2profpmwTmp[a1flag,:]
                 a2profradTmp = a2profradTmp[a1flag,:] 
-    
+
+                if metric in ['dconvfrac']:
+                    a1ptypepmwTmp= a1ptypepmwTmp[a1flag]
+                    a1ptyperadTmp= a1ptyperadTmp[a1flag]
+
+                if metric in ['dstop']:
+                    a1stoppmwTmp = a1stoppmwTmp[a1flag]
+                    a1stopradTmp = a1stopradTmp[a1flag]
                 #--- Mask missing data --
                 a2profpmwTmp = ma.masked_less(a2profpmwTmp,0)
                 a2profradTmp = ma.masked_less(a2profradTmp,0)
@@ -214,17 +267,47 @@ for rettype in lrettype:
                     a1prbiasTmp2 = a1prbiasTmp[a1flagP]
                     a2profpmwTmp2= a2profpmwTmp[a1flagP]
                     a2profradTmp2= a2profradTmp[a1flagP]
-    
+           
+                    if metric in ['dconvfrac']: 
+                        a1ptypepmwTmp2= a1ptypepmwTmp[a1flagP]    
+                        a1ptyperadTmp2= a1ptyperadTmp[a1flagP]    
+
+                    if metric in ['dstop']:
+                        a1stoppmwTmp2 = a1stoppmwTmp[a1flagP]
+                        a1stopradTmp2 = a1stopradTmp[a1flagP]
+
                     if metric=='rmse':
                         a1metricTmp2 = calc_rmse(a2profradTmp2, a2profpmwTmp2)
                     elif metric=='cc':
                         a1metricTmp2 = calc_cc(a2profradTmp2, a2profpmwTmp2, axis=1)
+                    elif metric=='dwatNorm':
+                        a1metricTmp2 = calc_dwatNorm(a2profradTmp2, a2profpmwTmp2)
+                        a1flagM = ~a1metricTmp2.mask
+                        a1metricTmp2 = a1metricTmp2[a1flagM].reshape(-1,)
+                        a1prbiasTmp2 = a1prbiasTmp2[a1flagM].reshape(-1,)
+
+                    elif metric=='dconvfrac':
+                        a1metricTmp2 = calc_dptypefrac(a1ptyperadTmp2, a1ptypepmwTmp2, ptype='conv')
+
+                        a1flagM = ~a1metricTmp2.mask
+                        a1metricTmp2 = a1metricTmp2[a1flagM].reshape(-1,)
+                        a1prbiasTmp2 = a1prbiasTmp2[a1flagM].reshape(-1,)
+
+                    elif metric=='dstop':
+                        a1metricTmp2 = (ma.masked_less_equal(a1stoppmwTmp2,0) - ma.masked_less_equal(a1stopradTmp2,0)) * 0.001  # [km]
+
+                        a1flagM = ~a1metricTmp2.mask
+                        a1metricTmp2 = a1metricTmp2[a1flagM].reshape(-1,)
+                        a1prbiasTmp2 = a1prbiasTmp2[a1flagM].reshape(-1,)
+
 
                     else:
                         print 'check metric',metric
                         sys.exit()
    
                     #-- Bin by bias --
+                    if a1prbiasTmp2.shape[0]==0: continue
+
                     bins = np.sort(lbias)
                     a1sum,a1bnd,_ = stats.binned_statistic(a1prbiasTmp2, a1metricTmp2, statistic='sum', bins=bins)
                     a1num,a1bnd,_ = stats.binned_statistic(a1prbiasTmp2, a1metricTmp2, statistic='count', bins=bins)
@@ -237,7 +320,7 @@ for rettype in lrettype:
                     da1sum [preclev] = da1sum [preclev] + a1sum
                     da1sum2[preclev] = da1sum2[preclev] + a1sum2
                     da1num [preclev] = da1num [preclev] + a1num
-       
+      
     #--- Save -----
     outDir  = tankbaseDir + '/utsumi/PMM/validprof/metrix.vs.prec/pickle'
     print outDir
@@ -279,7 +362,7 @@ for rettype in lrettype:
     # Plot
     #************************************
     fig = plt.figure(figsize=(6,6))
-    ax = fig.add_axes([0.2,0.15,0.7,0.7])
+    ax = fig.add_axes([0.25,0.15,0.7,0.7])
 
     a1x = (lbias[:-1] + lbias[1:])*0.5
     for preclev in dprecrange.keys():
@@ -291,13 +374,20 @@ for rettype in lrettype:
         mycolor = ['k','k','k'][preclev]
 
         a1y = ma.masked_invalid(da1sum[preclev] / da1num[preclev]) 
+
+        print a1y.min(), a1y.max()
+
         ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor, label=slabel)
 
     stitle = '%s'%(string.upper(rettype))
     plt.title(stitle, fontsize=20)
 
-    ylabel = 'Profile ' + {'rmse':'RMSE (g/m3)'
-                          ,'cc'  :'Correlation Coef.'}[metric]
+    ylabel = {'rmse':'Profile RMSE (g/m3)'
+             ,'cc'  :'Profile Correlation Coef.'
+             ,'dwatNorm' :'Total condensed water \n difference (Normed)'
+             ,'dconvfrac':'Convective fraction difference'
+             ,'dstop':'Storm top height difference [km]'
+                          }[metric]
     xlabel = 'Surface precip. bias (mm/h)'
     ax.set_ylabel(ylabel, fontsize=20)
     ax.set_xlabel(xlabel, fontsize=20)
@@ -305,6 +395,15 @@ for rettype in lrettype:
     ax.xaxis.set_tick_params(labelsize=16)
     ax.yaxis.set_tick_params(labelsize=16)
     ax.axvline(x=0, linestyle=':', color='gray', linewidth=2)
+    ax.axhline(y=0, linestyle=':', color='gray', linewidth=2)
+
+    if metric=='rmse':
+        ymin, ymax= 0, 0.7
+    elif metric=='dwatNorm':
+        ymin, ymax= -1.2, 5.5
+    else:
+        ymin, ymax= None,None
+    ax.set_ylim([ymin,ymax])
 
     figDir = '/home/utsumi/temp/ret'
     figPath = figDir + '/plot.%s.vs.bias.%s.%s.png'%(metric, rettype,season)

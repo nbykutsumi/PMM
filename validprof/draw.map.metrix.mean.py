@@ -1,5 +1,8 @@
 import matplotlib
 matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from mpl_toolkits.basemap import Basemap
+
 import numpy as np
 import os, sys
 import myfunc.util as util
@@ -7,8 +10,6 @@ from numpy import *
 import calendar, glob
 from datetime import datetime, timedelta
 import socket
-import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
 import string
 #*******************************
 myhost = socket.gethostname()
@@ -28,9 +29,10 @@ else:
     sys.exit()
 #*******************************
 #lseason=['JJA','DJF']
-#lseason=['JJA']
+lseason=['JJA']
 #lseason=['DJF']
-lseason=['JJADJF','JJA','DJF']
+#lseason=['JJADJF','JJA','DJF']
+#lseason = [6]
 DB_MAXREC = 10000
 DB_MINREC = 1000
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
@@ -38,20 +40,20 @@ expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 ny,nx = 120,360
 dvar = {}
 #lrettype = ['epc','gprof']
-#lrettype = ['gprof']
 lrettype = ['epc']
+#lrettype = ['epc']
 #lvar = ['profrad','profpmw','top-profpmw']
-lvar = ['profrad','profpmw']
+#lvar = ['profrad','profpmw']
 #lvar = ['stoprad','top-stoppmw']
 #lvar = ['precrad','precpmw']
 #lvar = ['convfreqrad','stratfreqrad','convfreqpmw','stratfreqpmw']
 #lvar = ['stoprad','top-stoppmw','convfreqrad','stratfreqrad','convfreqpmw','stratfreqpmw']
-#lvar = ['zeroDegAltituderad']
-#lthpr= [0.1, 10]
-lthpr = [0.5]
-#lthpr = [0.5,10]
-#lthpr = [10]
-#lthpr = [0.1,0.5]
+lvar = ['zeroDegAltituderad']
+#lstype= ['all']
+lstype= ['sea','snow']
+lptype= ['all']
+lprrange=[[0.5,999]]
+
 #*******************************
 def calc_cc(x,y,axis):
     ny,nx,nz = x.shape
@@ -98,7 +100,15 @@ a2orog = np.load(tankbaseDir + '/utsumi/PMM/validprof/const/orog.meter.sp.one.18
 a2orog = a2orog[30:30+120,:]
 
 #*******************************
-for thpr in lthpr:
+lkey = [(stype,ptype,prrange) for stype in lstype
+                              for ptype in lptype
+                              for prrange in lprrange]
+
+
+for key in lkey:
+    stype,ptype,prrange = key
+    thpr0,thpr1 = prrange
+
     for season in lseason:
         if   season=='JJADJF':
             lYM = util.ret_lYM([2014,6],[2014,8]) + util.ret_lYM([2014,12],[2015,2])
@@ -157,7 +167,7 @@ for thpr in lthpr:
         
                     util.mk_dir(outDir)
               
-                    stamp  = 'pr%.1f.%04d%02d'%(thpr,Year,Mon)
+                    stamp  = 's-%s.p-%s.pr-%.1f-%.1f.%04d%02d'%(stype,ptype,thpr0,thpr1,Year,Mon)
                     if var in ['profpmw','profrad','top-profpmw']: 
                         sumPath= outDir  + '/%s.sum.%s.sp.one.npy' %(var, stamp)
                         numPath= outDir  + '/%s.num.%s.sp.one.npy' %(var, stamp)
@@ -178,7 +188,6 @@ for thpr in lthpr:
             
                         a2sum = a2sum + a2sumTmp
                         a2num = a2num + a2numTmp
-                        print Mon,a2sum.max(), a2num.max() 
             
                 if var in ['profpmw','profrad','top-profpmw']: 
                     dvar[var] = a3sum / a2num.reshape(ny,nx,1)
@@ -186,7 +195,12 @@ for thpr in lthpr:
                     dvar[var] = a2sum / a2num.reshape(ny,nx)
     
                 dvar[var] = ma.masked_invalid(dvar[var])
-   
+ 
+            #******************************
+            # Draw figures
+            #------------------------------
+            stampfig = 's-%s.p-%s.pr-%.1f-%.1f'%(stype,ptype,thpr0,thpr1)
+ 
             ##*** Surface precipitation ***
             if 'zeroDegAltituderad' in lvar:
                 # DPR
@@ -194,7 +208,7 @@ for thpr in lthpr:
                 vmin,vmax= 0, 8
                 mycm  = 'rainbow'
                 stitle= 'Freezing level [km] %s\n(CMB)'%(season)
-                figPath= figDir + '/mmap.freezh.%s.pr%.1f.%s.png'%(rettype,thpr,season)
+                figPath= figDir + '/mmap.freezh.%s.%s.%s.png'%(rettype,stampfig,season)
                 draw_map(a2var)
         
 
@@ -206,7 +220,7 @@ for thpr in lthpr:
                 vmin,vmax= 0, 4
                 mycm  = 'rainbow'
                 stitle= 'Surface precip (conditional) [mm/h] %s\n(CMB)'%(season)
-                figPath= figDir + '/mmap.precrad.%s.pr%.1f.%s.png'%(rettype,thpr,season)
+                figPath= figDir + '/mmap.precrad.%s.%s.%s.png'%(rettype,stampfig,season)
                 draw_map(a2var)
         
                 # EPC
@@ -214,7 +228,7 @@ for thpr in lthpr:
                 vmin,vmax= 0, 4
                 mycm  = 'rainbow'
                 stitle= 'Surface precip (conditional) [mm/h] %s\n(%s)'%(season,string.upper(rettype))
-                figPath= figDir + '/mmap.precpmw.%s.pr%.1f.%s.png'%(rettype,thpr,season)
+                figPath= figDir + '/mmap.precpmw.%s.%s.%s.png'%(rettype,stampfig,season)
                 draw_map(a2var)
         
                 # Difference
@@ -222,7 +236,7 @@ for thpr in lthpr:
                 vmin,vmax= -1,1
                 mycm  = 'Spectral_r'
                 stitle= 'Surface precip difference [mm/h] %s\n(%s - CMB)'%(season,string.upper(rettype))
-                figPath= figDir + '/mmap.prec.dif.%s.pr%.1f.%s.png'%(rettype,thpr,season)
+                figPath= figDir + '/mmap.prec.dif.%s.%s.%s.png'%(rettype,stampfig,season)
                 draw_map(a2var)
         
         
@@ -233,24 +247,24 @@ for thpr in lthpr:
                 a2var = dvar['convfreqrad']
                 vmin,vmax= None,None
                 mycm  = 'rainbow'
-                stitle= 'Convective pixel fraction (>%.1f mm/h) %s\n(DPR-Ku)'%(thpr, season)
-                figPath= figDir + '/mmap.convpixelrad.pr%.1f.%s.png'%(thpr, season)
+                stitle= 'Convective pixel fraction (%.1f-%.1f mm/h) %s\n(DPR-Ku)'%(thpr0,thpr1, season)
+                figPath= figDir + '/mmap.convpixelrad.%s.%s.png'%(stampfig, season)
                 draw_map(a2var)
 
                 # DPR stratiform
                 a2var = dvar['stratfreqrad']
                 vmin,vmax= 0,1
                 mycm  = 'rainbow'
-                stitle= 'Stratiform pixel fraction (>%.1f mm/h) %s\n(DPR-Ku)'%(thpr, season)
-                figPath= figDir + '/mmap.stratpixelrad.pr%.1f.%s.png'%(thpr, season)
+                stitle= 'Stratiform pixel fraction (%.1f-%.1f mm/h) %s\n(DPR-Ku)'%(thpr0,thpr1, season)
+                figPath= figDir + '/mmap.stratpixelrad.%s.%s.png'%(stampfig, season)
                 draw_map(a2var)
 
                 # DPR convective
                 a2var = dvar['convfreqpmw']
                 vmin,vmax= 0,1
                 mycm  = 'rainbow'
-                stitle= 'Convective pixel fraction (>%.1f mm/h) %s\n(EPC top-ranked)'%(thpr, season)
-                figPath= figDir + '/mmap.convpixelpmw.pr%.1f.%s.png'%(thpr, season)
+                stitle= 'Convective pixel fraction (%.1f-%.1f mm/h) %s\n(EPC top-ranked)'%(thpr0,thpr1, season)
+                figPath= figDir + '/mmap.convpixelpmw.%s.%s.png'%(stampfig, season)
                 draw_map(a2var)
 
                 # DPR stratiform
@@ -258,7 +272,7 @@ for thpr in lthpr:
                 vmin,vmax= 0,1
                 mycm  = 'rainbow'
                 stitle= 'Stratiform pixel fraction (>%.1f mm/h) %s\n(EPC top-ranked)'%(thpr, season)
-                figPath= figDir + '/mmap.stratpixelpmw.pr%.1f.%s.png'%(thpr, season)
+                figPath= figDir + '/mmap.stratpixelpmw.%s.%s.png'%(stampfig, season)
                 draw_map(a2var)
 
                 # Difference convective
@@ -266,8 +280,8 @@ for thpr in lthpr:
                 a2var = ma.masked_invalid(a2var)
                 vmin,vmax= -0.2,0.2
                 mycm  = 'Spectral_r'
-                stitle= 'Difference of conv pixel fraction (>%.1f mm/h) %s\n(EPC - CMB)'%(thpr, season)
-                figPath= figDir + '/mmap.convpixel.diff.pr%.1f.%s.png'%(thpr, season)
+                stitle= 'Difference of conv pixel fraction (%.1f-%.1f mm/h) %s\n(EPC - CMB)'%(thpr0,thpr1, season)
+                figPath= figDir + '/mmap.convpixel.diff.%s.%s.png'%(stampfig, season)
                 draw_map(a2var)
 
                 # Difference stratiform
@@ -275,14 +289,11 @@ for thpr in lthpr:
                 a2var = ma.masked_invalid(a2var)
                 vmin,vmax= -0.2,0.2
                 mycm  = 'Spectral_r'
-                stitle= 'Difference of strat pixel fraction (>%.1f mm/h) %s\n(EPC - CMB)'%(thpr, season)
-                figPath= figDir + '/mmap.stratpixel.diff.pr%.1f.%s.png'%(thpr, season)
+                stitle= 'Difference of strat pixel fraction (%.1f-%.1f mm/h) %s\n(EPC - CMB)'%(thpr0, thpr1, season)
+                figPath= figDir + '/mmap.stratpixel.diff.%s.%s.png'%(stampfig, season)
                 draw_map(a2var)
 
            
-
- 
-                 
     
             #*** Storm top height ***
             if (rettype =='epc')and('stoprad' in lvar):
@@ -290,24 +301,24 @@ for thpr in lthpr:
                 a2var = dvar['stoprad']*0.001
                 vmin,vmax= 0, 10
                 mycm  = 'jet'
-                stitle= 'Precip top height [km] (>%.1f mm/h) %s\n(DPR-Ku)'%(thpr, season)
-                figPath= figDir + '/mmap.stoprad.pr%.1f.%s.png'%(thpr, season)
+                stitle= 'Precip top height [km] (%.1f-%.1f mm/h) %s\n(DPR-Ku)'%(thpr0,thpr1, season)
+                figPath= figDir + '/mmap.stoprad.%s.%s.png'%(stampfig, season)
                 draw_map(a2var)
         
                 # EPC Top-rank
                 a2var = dvar['top-stoppmw']*0.001
                 vmin,vmax= 0,10
                 mycm  = 'jet'
-                stitle= 'Precip top height [km] (>%.1f mm/h) %s\n(EPC (Top-ranked))'%(thpr, season)
-                figPath= figDir + '/mmap.stoppmw-top.pr%.1f.%s.png'%(thpr,season)
+                stitle= 'Precip top height [km] (%.1f-%.1f mm/h) %s\n(EPC (Top-ranked))'%(thpr0, thpr1, season)
+                figPath= figDir + '/mmap.stoppmw-top.%s.%s.png'%(stampfig,season)
                 draw_map(a2var)
         
                 # Storm top height difference
                 a2var = (dvar['top-stoppmw'] - dvar['stoprad'])*0.001
                 vmin,vmax= -2,2
                 mycm  = 'Spectral_r'
-                stitle= 'Precip top height difference [km] (>%.1f mm/h) %s\n(EPC(Top ranked)-DPR/Ku)'%(thpr, season)
-                figPath= figDir + '/mmap.stop.dif.pr%.1f.%s.png'%(thpr,season)
+                stitle= 'Precip top height difference [km] (%.1f-%.1f mm/h) %s\n(EPC(Top ranked)-DPR/Ku)'%(thpr0, thpr1, season)
+                figPath= figDir + '/mmap.stop.dif.%s.%s.png'%(stampfig,season)
                 draw_map(a2var)
     
     
@@ -318,14 +329,14 @@ for thpr in lthpr:
                 # DPR vs PMW
                 a2cc  = calc_cc(dvar['profrad'], dvar['profpmw'], axis=2)
                 stitle= 'Correlation of profles. %s\n(COMB & %s) %s'%(season, string.upper(rettype), expr)
-                figPath= figDir + '/mmap.cc.prof.%s.pr%.1f.%s.png'%(rettype,thpr,season)
+                figPath= figDir + '/mmap.cc.prof.%s.%s.%s.png'%(rettype,stampfig,season)
                 draw_map(a2cc)
         
                 # DPR vs PME top-ranked
                 if (rettype=='epc')and('top-profpmw' in dvar.keys()):
                     a2cc  = calc_cc(dvar['profrad'], dvar['top-profpmw'], axis=2)
                     stitle= 'Correlation of profles. %s\n(COMB & %s top-ranked) %s'%(season, string.upper(rettype), expr)
-                    figPath= figDir + '/mmap.cc.prof-top.%s.pr%.1f.%s.png'%(rettype,thpr,season)
+                    figPath= figDir + '/mmap.cc.prof-top.%s.%s.%s.png'%(rettype,stampfig,season)
                     draw_map(a2cc)
             
         
@@ -335,14 +346,14 @@ for thpr in lthpr:
                 mycm  = 'rainbow'
                 a2rmse = calc_rmse(dvar['profrad'], dvar['profpmw'], axis=2)
                 stitle= 'RMSE of prof. (g/m3) %s\n(COMB & %s)'%(season, string.upper(rettype))
-                figPath= figDir + '/mmap.rmse.prof.%s.pr%.1f.%s.png'%(rettype,thpr, season)
+                figPath= figDir + '/mmap.rmse.prof.%s.%s.%s.png'%(rettype,stampfig, season)
                 draw_map(a2rmse)
         
                 # Top-ranked
                 if (rettype=='epc')and('top-profpmw' in dvar.keys()):
                     a2rmse = calc_rmse(dvar['profrad'], dvar['top-profpmw'], axis=2)
                     stitle= 'RMSE of prof. (g/m3) %s\n(COMB & %s top-ranked)'%(season, string.upper(rettype))
-                    figPath= figDir + '/mmap.rmse.prof-top.%s.pr%.1f.%s.png'%(rettype,thpr,season)
+                    figPath= figDir + '/mmap.rmse.prof-top.%s.%s.%s.png'%(rettype,thpr,season)
                     draw_map(a2rmse)
          
                 
@@ -355,7 +366,7 @@ for thpr in lthpr:
                 a2mask= ma.masked_invalid( dvar['profrad'].max(axis=2) ).mask
                 a2ph = ma.masked_where(a2mask, a2ph)
                 stitle= 'Peak height (Above sea) (km) %s\n(COMB)'%(season)
-                figPath= figDir + '/mmap.peakh-asl.profrad.%s.pr%.1f.%s.png'%(rettype,thpr,season)
+                figPath= figDir + '/mmap.peakh-asl.profrad.%s.%s.%s.png'%(rettype,stampfig,season)
                 draw_map(a2ph)
                 
         
@@ -364,7 +375,7 @@ for thpr in lthpr:
                 a2mask= ma.masked_invalid( dvar['profpmw'].max(axis=2) ).mask
                 a2ph = ma.masked_where(a2mask, a2ph)
                 stitle= 'Peak height (Above sea) (km) %s\n(%s)'%(season, string.upper(rettype))
-                figPath= figDir + '/mmap.peakh-asl.profpmw.%s.pr%.1f.%s.png'%(rettype,thpr,season)
+                figPath= figDir + '/mmap.peakh-asl.profpmw.%s.%s.1f.%s.png'%(rettype,stampfig,season)
                 draw_map(a2ph)
                 
         
@@ -374,7 +385,7 @@ for thpr in lthpr:
                     a2mask= ma.masked_invalid( dvar['profpmw'].max(axis=2) ).mask
                     a2ph = ma.masked_where(a2mask, a2ph)
                     stitle= 'Peak height (Above sea) (km) %s\n(%s top-ranked)'%(season, string.upper(rettype))
-                    figPath= figDir + '/mmap.peakh-asl.profpmw-top.%s.pr%.1f.%s.png'%(rettype,thpr,season)
+                    figPath= figDir + '/mmap.peakh-asl.profpmw-top.%s.%s.%s.png'%(rettype,stampfig,season)
                     draw_map(a2ph)
              
 
@@ -387,7 +398,7 @@ for thpr in lthpr:
                 a2mask = a2mask1 + a2mask2
                 a2ph = ma.masked_where(a2mask, a2ph)
                 stitle= 'Peak height difference (km) %s\n(%s - CMB)'%(season,string.upper(rettype))
-                figPath= figDir + '/mmap.peakh-asl.dif.%s.pr%.1f.%s.png'%(rettype,thpr,season)
+                figPath= figDir + '/mmap.peakh-asl.dif.%s.%s.%s.png'%(rettype,stampfig,season)
                 draw_map(a2ph)
                        
  
@@ -414,33 +425,36 @@ for thpr in lthpr:
                 #    figPath= figDir + '/mmap.peakw.profpmw-top.%s.pr%.1f.%s.png'%(rettype, thpr, season)
                 #    draw_map(a2pw)
                 
-                
-                
-                
-                #*** Mean. precip. water ***
-                #vmin,vmax = None,None
-                vmin,vmax = 0,10
+                #*** Total condensed water ***
+                vmin,vmax = 0,1
+                #vmin,vmax = 0,10
                 mycm = 'rainbow'
-                textcbartop = ur'($\times10^{-2}$)'
+                textcbartop = ur'($kg/m^{2}$)'
                 # DPR
-                a2ptot = dvar['profrad'].mean(axis=2)*100
-                stitle= 'Mean prec. size hydrometeor (2-12km) (g/m3) %s\nCMB'%(season)
-                figPath= figDir + '/mmap.totwat.rad.%s.pr%.1f.%s.png'%(rettype,thpr,season)
+                a2ptot = dvar['profrad'].sum(axis=2)*500 / 1000.
+
+                #print dvar['profrad'][100,100]
+                #print dvar['profrad'][100,100].shape
+                #sys.exit()
+
+                stitle= 'Total prec. size hydrometeor (2-12km) (kg/m2) %s\nCMB'%(season)
+                figPath= figDir + '/mmap.totwat.rad.%s.%s.%s.png'%(rettype,stampfig,season)
                 draw_map(a2ptot,textcbartop=textcbartop)
                
                 # PMW
-                a2ptot = dvar['profpmw'].mean(axis=2)*100
-                stitle= 'Mean prec. size hydrometeor (2-12km) (g/m3) %s\n%s'%(season,string.upper(rettype))
-                figPath= figDir + '/mmap.totwat.pmw.%s.pr%.1f.%s.png'%(rettype,thpr,season)
+                a2ptot = dvar['profpmw'].sum(axis=2)*500 / 1000.
+                stitle= 'Total prec. size hydrometeor (2-12km) (kg/m2) %s\n%s'%(season,string.upper(rettype))
+                figPath= figDir + '/mmap.totwat.pmw.%s.%s.%s.png'%(rettype,stampfig,season)
                 draw_map(a2ptot)
                 draw_map(a2ptot,textcbartop=textcbartop)
                 
        
                 # Difference  
-                a2var = (dvar['profpmw'].mean(axis=2) - dvar['profrad'].mean(axis=2))*100
-                vmin,vmax= -5,5
+                a2var = (dvar['profpmw'].sum(axis=2) - dvar['profrad'].sum(axis=2))*500 / 1000.
+                #vmin,vmax= -5,5
+                vmin,vmax= -0.5,0.5
                 mycm  = 'Spectral_r'
-                stitle= 'Mean precip. size hydrometeor difference (g/m3) %s\n(%s - CMB)'%(season, string.upper(rettype))
-                figPath= figDir + '/mmap.totwat.dif.%s.pr%.1f.%s.png'%(rettype,thpr,season)
+                stitle= 'Mean precip. size hydrometeor difference (kg/m3) %s\n(%s - CMB)'%(season, string.upper(rettype))
+                figPath= figDir + '/mmap.totwat.dif.%s.%s.%s.png'%(rettype,stampfig,season)
                 draw_map(a2var,textcbartop=textcbartop)
  

@@ -20,11 +20,12 @@ else:
     print 'check myhost'
     sys.exit()
 #*******************************
-lseason=['JJA','DJF','JJADJF']
+#lseason=['JJA','DJF','JJADJF']
+lseason=['JJA','DJF']
 #lseason = [6,7]
 #lregion = ['AMZ','CUS','EUS','TIB','NETP','SETP','NTA','STA','WTP','ETI','WMP','WMA','TAF','NEA','SEC','NIN']
 #lregion = ['CUS','SEC','AMZ','TAF','WMP','WMA','WTP','NTA']
-lregion = ['TRO','MIDN']
+lregion = ['MIDN','TRO']
 #lstype= ['sea','land','veg','snow','coast','all']
 lstype = ['sea','veg','snow']
 lptype= ['conv','stra']
@@ -36,7 +37,8 @@ iy =30 # top
 ey = -30
 ix =10
 ex = -10
-lvar = ['prof','profstd','profnum']
+#lvar = ['prof','profstd','profnum']
+lvar = ['prof','profstd']
 #*** 3-panels ********
 for var in lvar:
     for prrange in lprrange:

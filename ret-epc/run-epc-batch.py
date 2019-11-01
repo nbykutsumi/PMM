@@ -8,8 +8,8 @@ import numpy.ma as ma
 import h5py
 import shutil
 
-iDTime = datetime(2014,11,1)
-eDTime = datetime(2014,11,10)
+iDTime = datetime(2015,5,16)
+eDTime = datetime(2015,5,31)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 
