@@ -19,8 +19,8 @@ else:
     print 'check myhost'
     sys.exit()
 #*******************************
-iDTime = datetime(2014,12,9)
-eDTime = datetime(2014,12,10)
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 thpr   = 0.1
@@ -50,8 +50,13 @@ def ret_aprof(a4clusterProf, a2tIndex, a3profNum, a3profScale, lspecies=[0,2,3,4
 def prof250mTo500m(a3prof, miss_out):
     ny,nx,nz = a3prof.shape
     #a3out = array([ma.masked_less(a3prof[:,:,i:i+2],0).mean(2) for i in range(0,nz,2)])
-    a3out = ((ma.masked_less(a3prof[:,:,0::2],0) + ma.masked_less(a3prof[:,:,1::2],0) )*0.5).filled(miss_out)
+    #a3out = ((ma.masked_less(a3prof[:,:,0::2],0) + ma.masked_less(a3prof[:,:,1::2],0) )*0.5).filled(miss_out)
     #a3out = ma.masked_less( concatenate([a3prof[:,:,0::2].reshape(ny,nx,-1,1), a3prof[:,:,1::2].reshape(ny,nx,-1,1)], axis=3), 0).mean(axis=3).filled(miss_out)
+
+    a4out = np.empty([2,ny,nx,nz/2])  # 2019/11/12
+    a4out[0]=a3prof[:,:,0::2]
+    a4out[1]=a3prof[:,:,1::2]
+    a3out = ma.masked_less(a4out ,0).mean(axis=0).filled(miss_out)
 
     return a3out
 
@@ -71,6 +76,9 @@ def ave_9grids_3d(a3in, a1y, a1x, miss):
     nl = len(a1y)=len(a1x)
     output: (nl, nz)
     '''
+
+    if ma.is_masked(a3in):
+        a3in = a3in.filled(miss)  # 2019/12/02
     #-- Average 9 grids (over Linearlized Z)--
     nydpr,nxdpr,nzdpr= a3in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
@@ -101,6 +109,9 @@ def ave_9grids_2d(a2in, a1y, a1x, miss):
     nl = len(a1y)=len(a1x)
     output: (nl)
     '''
+
+    if ma.is_masked(a2in):
+        a2in = a2in.filled(miss)   # 2019/12/02
     #-- Average 9 grids --
     nydpr,nxdpr = a2in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
@@ -256,6 +267,7 @@ for DTime in lDTime:
         a2profd    = a2profd[a1flag]   # Bottom to top
         a2profg    = a2profg[a1flag]   # Bottom to top
    
+        print oid, a1flag.sum(), a1sfcprecd.shape
         outDir     = tankbaseDir + '/utsumi/PMM/validprof/pair/gprof/%04d/%02d/%02d'%(Year,Mon,Day)
         util.mk_dir(outDir)
         np.save(outDir + '/profpmw.%06d.npy'%(oid), a2profg.astype('float32'))

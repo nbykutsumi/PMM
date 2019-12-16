@@ -17,15 +17,17 @@ eDTime = datetime(2014,10,14)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 #lvar = ['zmNS','prwatprofNS']
+#lvar = ['zmNS']
+#lvar = ['prwatprofNS']
 lvar = ['tbNS']
 
 
 #** Constants ******
 sensor  = 'GMI'
-#iscan = -9999
-#escan = -9999
-iscan = 917
-escan = 1117
+iscan = -9999
+escan = -9999
+#iscan = 917
+#escan = 1117
 #target_oid = None
 target_oid = 3556
 
@@ -36,6 +38,7 @@ NLEV_DPR = 50    # extract this number of layers
 NLEV_PRECIP = 50
 
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.v04.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 
 myhost  = socket.gethostname()

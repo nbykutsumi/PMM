@@ -2,7 +2,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
-#import matplotlib.cm as cm
+import matplotlib.cm as cm
 import numpy as np
 from numpy import *
 import h5py
@@ -12,26 +12,29 @@ import sys, os, glob, socket
 import myfunc.util as util
 import calendar
 import pickle
+import JPLDB
 
-#calcflag  = True
-calcflag  = False
-#coefflag  = 'nocoef'  # 'nocoef', 'wcoef'
-coefflag  = 'wcoef'  # 'nocoef', 'wcoef'
+calcflag  = True
+#calcflag  = False
+coefflag  = 'nocoef'  # 'nocoef', 'wcoef'
+#coefflag  = 'wcoef'  # 'nocoef', 'wcoef'
 DB_MAXREC = 10000
 DB_MINREC = 1000
 nsample   = 1000
-dbtype = 'my'
+#dbtype = 'my'
+dbtype = 'jpl'
+sensor = 'AMSR2'
 #lrettype = ['NS','MS','NScmb','MScmb']
 #lrettype = ['NS','MS','NScmb','MScmb','GPROF']
 #lrettype = ['GPROF']  
 #lrettype = ['MS','NS','NScmb','MScmb']
-lrettype = ['NScmb','GPROF']
+lrettype = ['NScmb']
 #prmin = 0.1
 #prmin = 0.01
 prmin = 0.0
-expr = 'org.smp%d'%(nsample)
+expr = 'org.%s.smp%d'%(sensor,nsample)
 lidx_db = range(29*29*29)[1:]
-#lidx_db = range(29*29*4)
+#lidx_db = range(2400,3157)
 #lidx_db = range(29*29*4,29*29*8)
 #lidx_db = range(29*29*8,29*29*12)
 #lidx_db = range(29*29*12,29*29*16)
@@ -41,9 +44,10 @@ lidx_db = range(29*29*29)[1:]
 #** Constants ******
 myhost = socket.gethostname()
 if myhost =='shui':
-    if dbtype=='JPL':
-        dbDir   = '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE_TEST29'
+    if dbtype=='jpl':
+        dbDir   = '/work/hk01/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE_TEST29'%(sensor)
         countDir= '/work/hk01/utsumi/PMM/EPCDB/list'
+        retbaseDir = '/tank/utsumi/PMM/retsynt/%s'%(expr)
 
     elif dbtype=='my':
         dbDir   = '/work/hk01/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
@@ -51,9 +55,10 @@ if myhost =='shui':
         retbaseDir = '/tank/utsumi/PMM/retsynt/%s'%(expr)
 
 elif myhost == 'well':
-    if dbtype=='JPL':
-        dbDir   = '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE_TEST29'
-        countDir= '/work/hk01/utsumi/PMM/EPCDB/list'
+    if dbtype=='jpl':
+        dbDir   = '/home/utsumi/mnt/lab_tank/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE_TEST29'%(sensor)
+        countDir= '/home/utsumi/mnt/lab_tank/utsumi/PMM/EPCDB/list'
+        retbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retsynt/%s'%(expr)
         figDir   = '/home/utsumi/temp/ret'
     elif dbtype=='my':
         dbDir   = '/media/disk2/share/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
@@ -113,6 +118,9 @@ else:
     sys.exit()
 
 #--------------------------------------
+if dbtype=='jpl':
+    db = JPLDB.JPLDB(sensor)
+
 dvnummax = {}
 for rettype in lrettype:
 
@@ -130,6 +138,14 @@ for rettype in lrettype:
     for idx_db in lidx_db:
         if calcflag ==False:
             continue
+
+        if dbtype=='jpl':
+            dbPath = dbDir + '/db_%05d.bin'%(idx_db)
+            
+            if not os.path.exists(dbPath):
+                continue
+
+            db.set_file(dbPath)
 
         if rettype != 'GPROF':
             print 'idx_db=',idx_db
@@ -166,7 +182,11 @@ for rettype in lrettype:
         #***************************
         # Use irec to read EPC database
         #---------------------------
-        a1surftype = np.load(dbDir + '/surfaceTypeIndex/%05d.npy'%(idx_db))[a1irec]
+        if   dbtype=='jpl':
+            a1surftype = db.get_var('sfc_class')[a1irec]
+
+        elif dbtype=='my':
+            a1surftype = np.load(dbDir + '/surfaceTypeIndex/%05d.npy'%(idx_db))[a1irec]
 
         #---------------------------
         for surftype in lsurftype:
@@ -230,14 +250,25 @@ for rettype in lrettype:
     for surftype in lsurftype:
         H   = d2freq[surftype]
         X,Y = np.meshgrid(bins,bins) 
+
         #-- Figure density plot ----
         if rettype == lrettype[0]:
-            dvnummax[surftype] = np.percentile(H,95)
-         
-    
+            vpercentile = np.percentile(H,95)
+
+            if vpercentile !=0:
+                dvnummax[surftype] = vpercentile
+            else:
+                dvnummax[surftype] = H.max()
+            
+        
         fig = plt.figure(figsize=[6,6])
         ax  = fig.add_axes([0.15,0.13,0.68,0.68])
         im  = ax.pcolormesh(X,Y,H, norm=matplotlib.colors.LogNorm(), cmap='jet', vmin=1, vmax=dvnummax[surftype])
+
+        print X.shape, Y.shape
+        print H
+        print surftype, H.min(), H.max()
+ 
     
         #-- plot 1:1 line
         ax.plot(array([logvmin,logvmax]),array([logvmin,logvmax]),'-',color='k',linewidth=0.5)

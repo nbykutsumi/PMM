@@ -143,7 +143,7 @@ for case in lcase:
         dargv['NPCHIST'] = 29
         dargv['NLEV_DPR'] = 50    # extract this number of layers
         dargv['NLEV_PRECIP'] = 50
-        dargv['thwtmin'] = 0.1
+        dargv['thwtmin'] = 0.2
         dargv['miss'] = -9999.
         dargv['miss_int32'] = np.int32(-9999)  
         #------------

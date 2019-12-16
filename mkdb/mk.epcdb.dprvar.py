@@ -37,11 +37,6 @@ worg= 221  # GMI total angle bins
 #lvar = [['Ku','NS/PRE/zFactorMeasured']]
 #lvar = [['Ka','MS/PRE/zFactorMeasured']]
 #lvar = [['Ku','NS/PRE/zFactorMeasured']]
-#lvar = [['DPRGMI','NS/precipTotWaterCont']]
-#lvar = [['DPRGMI','NS/surfPrecipTotRate']]
-#lvar = [['DPRGMI','MS/surfPrecipTotRate']]
-#lvar = [['DPRGMI','NS/surfPrecipTotRate'],['DPRGMI','NS/precipTotWaterCont']]
-lvar = [['DPRGMI','NS/Input/zeroDegAltitude']]
 #lvar = [['Ku','NS/SLV/precipRate']]
 #lvar = [['Ku','NS/SLV/precipRateESurface']]
 #lvar = [['Ku','NS/SLV/precipRateNearSurface']]
@@ -50,7 +45,12 @@ lvar = [['DPRGMI','NS/Input/zeroDegAltitude']]
 #lvar = [['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','NS/CSF/typePrecip'],['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','NS/PRE/heightStormTop']]
-
+#lvar = [['DPRGMI','NS/precipTotWaterCont']]
+#lvar = [['DPRGMI','NS/surfPrecipTotRate']]
+#lvar = [['DPRGMI','MS/surfPrecipTotRate']]
+#lvar = [['DPRGMI','NS/surfPrecipTotRate'],['DPRGMI','NS/precipTotWaterCont']]
+#lvar = [['DPRGMI','NS/Input/zeroDegAltitude']]
+lvar = [['DPRGMI','NS/vfracConv']]
 
 
 '''
@@ -77,6 +77,7 @@ dattype={
 ,'MS/precipTotWaterCont':   'float32'  # original:250m
 ,'MS/surfPrecipTotRate' :   'float32' # DPRGMI
 ,'NS/surfPrecipTotRate' :   'float32' # DPRGMI
+,'NS/vfracConv'         :   'float32' # calculate from DPRGMI
 
 }
 
@@ -98,6 +99,7 @@ dnvect ={
 ,'MS/precipTotWaterCont':  60
 ,'MS/surfPrecipTotRate' :  1
 ,'NS/surfPrecipTotRate' :  1
+,'NS/vfracConv'         :  1
 }
 
 #---------------------
@@ -166,6 +168,9 @@ def ave_9grids_3d(a3in, a1y, a1x, miss):
     nl = len(a1y)=len(a1x)
     output: (nl, nz)
     '''
+
+    if ma.is_masked(a3in):
+        a3in = a3in.filled(miss)  # 2019/12/02
     #-- Average 9 grids (over Linearlized Z)--
     nydpr,nxdpr,nzdpr= a3in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
@@ -196,6 +201,9 @@ def ave_9grids_2d(a2in, a1y, a1x, miss):
     nl = len(a1y)=len(a1x)
     output: (nl)
     '''
+
+    if ma.is_masked(a2in):
+        a2in = a2in.filled(miss)   # 2019/12/02
     #-- Average 9 grids (over Linearlized Z)--
     nydpr,nxdpr = a2in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
@@ -225,6 +233,9 @@ def sum_9grids_2d(a2in, a1y, a1x, miss):
     nl = len(a1y)=len(a1x)
     output: (nl)
     '''
+
+    if ma.is_masked(a2in):
+        a2in = a2in.filled(miss)   # 2019/12/02
     #-- Average 9 grids (over Linearlized Z)--
     nydpr,nxdpr = a2in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
@@ -403,6 +414,18 @@ for Year,Mon in lYM:
                     DatConv  = sum_9grids_2d(DatConv,  a1dpry, a1dprx, miss=0).filled(0)
                     DatOther = sum_9grids_2d(DatOther, a1dpry, a1dprx, miss=0).filled(0)
                     Dat = (DatStrat + DatConv*10 + DatOther*100)
+
+                elif varName in ['vfracConv']:
+                    with h5py.File(srcPath) as h:
+                        Dat0 = (h['NS/Input/precipitationType'][:]/10000000).astype('int32')
+                        prec = ma.masked_less(h['NS/surfPrecipTotRate'][:],0).filled(0.0)
+
+                    pconv= ma.masked_where(Dat0 !=2, prec).filled(0.0)
+
+                    prec = sum_9grids_2d(prec,  a1dpry, a1dprx, miss=0).filled(0)
+                    pconv= sum_9grids_2d(pconv, a1dpry, a1dprx, miss=0).filled(0)
+
+                    Dat = (ma.masked_where(prec==0, pconv)/prec).filled(0.0)
 
 
                 elif varName =='heightStormTop':

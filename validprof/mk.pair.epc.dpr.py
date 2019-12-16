@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 import socket
 import EPCDB
 #*******************************
-iDTime = datetime(2015,2,1)
-eDTime = datetime(2015,2,28)
+iDTime = datetime(2014,12,1)
+eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 DB_MAXREC = 10000
 DB_MINREC = 1000
@@ -43,9 +43,15 @@ db = EPCDB.EPCDB()
 def prof250mTo500m(a3prof, miss_out):
     ny,nx,nz = a3prof.shape
     #a3out = array([ma.masked_less(a3prof[:,:,i:i+2],0).mean(2) for i in range(0,nz,2)])
-    a3out = ((ma.masked_less(a3prof[:,:,0::2],0) + ma.masked_less(a3prof[:,:,1::2],0) )*0.5).filled(miss_out)
+    #a3out = ((ma.masked_less(a3prof[:,:,0::2],0) + ma.masked_less(a3prof[:,:,1::2],0) )*0.5).filled(miss_out)
     #a3out = ma.masked_less( concatenate([a3prof[:,:,0::2].reshape(ny,nx,-1,1), a3prof[:,:,1::2].reshape(ny,nx,-1,1)], axis=3), 0).mean(axis=3).filled(miss_out)
-    
+
+    a4out = np.empty([2,ny,nx,nz/2])  # 2019/11/12
+    a4out[0]=a3prof[:,:,0::2]
+    a4out[1]=a3prof[:,:,1::2]
+    a3out = ma.masked_less(a4out ,0).mean(axis=0).filled(miss_out)
+
+ 
     return a3out
 
 def average_2ranges_3d(a3in,miss=None,dtype=float32, fill=True):
@@ -72,6 +78,9 @@ def ave_9grids_3d(a3in, a1y, a1x, miss):
     nl = len(a1y)=len(a1x)
     output: (nl, nz)
     '''
+
+    if ma.is_masked(a3in):
+        a3in = a3in.filled(miss)  # 2019/12/02
     #-- Average 9 grids (over Linearlized Z)--
     nydpr,nxdpr,nzdpr= a3in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
@@ -102,6 +111,9 @@ def ave_9grids_2d(a2in, a1y, a1x, miss):
     nl = len(a1y)=len(a1x)
     output: (nl)
     '''
+
+    if ma.is_masked(a2in):
+        a2in = a2in.filled(miss)   # 2019/12/02
     #-- Average 9 grids --
     nydpr,nxdpr = a2in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
@@ -133,6 +145,9 @@ def sum_9grids_2d(a2in, a1y, a1x, miss):
     nl = len(a1y)=len(a1x)
     output: (nl)
     '''
+
+    if ma.is_masked(a2in):
+        a2in = a2in.filled(miss)   # 2019/12/02
     #-- Average 9 grids (over Linearlized Z)--
     nydpr,nxdpr = a2in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
@@ -213,7 +228,6 @@ for DTime in lDTime:
             continue
 
         with h5py.File(dprPath, 'r') as h:
-            a2stopd = h['NS/PRE/heightStormTop'][:]
             a2prtyped0= h['NS/CSF/typePrecip'][:]
 
         #-- Read GMI-DPR matching index file ----------------------
@@ -236,10 +250,6 @@ for DTime in lDTime:
         a2sfcprecd = ma.masked_less(a2sfcprecd,0)  
         a1sfcprecd = ave_9grids_2d(a2sfcprecd, a1y, a1x, miss=-9999.).filled(-9999.)
 
-        #*** Storm top height *****
-        a2stopd = ma.masked_greater(a2stopd,32767).filled(32767).astype('int16')  # miss is converted from -9999.9 --> -9999 
-        a2stopd = ma.masked_less(a2stopd,0)  
-        a1stopd    = ave_9grids_2d(a2stopd, a1y, a1x, miss=-9999).filled(-9999).astype('int16')
 
         #*** Precipitation type *****
         a2prtyped0 = (a2prtyped0/10000000).astype('int16')
@@ -256,7 +266,6 @@ for DTime in lDTime:
         a2profd    = ave_9grids_3d(a3profd, a1y, a1x, miss=-9999.).filled(-9999.)  # use a1y and a1x, not a1yTmp and a1xTmp.
 
         a1sfcprecd[a1mask] = miss_out
-        a1stopd[a1mask]    = -9999
         a2profd[a1mask,:] = miss_out
 
         #--------------------
@@ -277,7 +286,6 @@ for DTime in lDTime:
         a1sfcprecd = a1sfcprecd[a1flag] 
         a1sfcprecp = a1sfcprecp[a1flag] 
 
-        a1stopd    = a1stopd[a1flag]
         a1prtyped  = a1prtyped[a1flag]
 
         a2profd    = a2profd[a1flag]   # Bottom to top
@@ -294,7 +302,6 @@ for DTime in lDTime:
         a1y = np.arange(ny).astype('int32')
 
         a1topprtypep=np.ones(ny,int16)*-9999
-        a1topstopp= np.ones(ny, int16)*-9999
         a2topprofp= np.ones([ny,NLEV_PREC],float32)*-9999.
     
         for idx_db in lidx_db:
@@ -306,11 +313,9 @@ for DTime in lDTime:
 
             if len(a1yTmp)<10:
                 a1topprtypep[a1yTmp]=db.get_var('type_precip_NS', idx=a1irecTmp)
-                a1topstopp[a1yTmp]  =db.get_var('storm_height_ku', idx=a1irecTmp)
                 a2topprofp[a1yTmp]  =db.get_var('precip_water_prof_NS', idx=a1irecTmp)[:,-NLEV_PREC:]
             else:
                 a1topprtypep[a1yTmp]=db.get_var('type_precip_NS')[a1irecTmp]
-                a1topstopp[a1yTmp]= db.get_var('storm_height_ku')[a1irecTmp]
                 a2topprofp[a1yTmp]= db.get_var('precip_water_prof_NS')[a1irecTmp][:,-NLEV_PREC:]
     
         a2topprofp = prof250mTo500m(a2topprofp.reshape(1,-1,NLEV_PREC),miss_out=-9999.).reshape(-1,int(NLEV_PREC/2))
@@ -324,10 +329,8 @@ for DTime in lDTime:
         np.save(outDir + '/precpmw.%06d.npy'%(oid), a1sfcprecp.astype('float32'))    
         np.save(outDir + '/precrad.%06d.npy'%(oid), a1sfcprecd.astype('float32'))
 
-        np.save(outDir + '/stoprad.%06d.npy'%(oid), a1stopd.astype('int16'))
         np.save(outDir + '/typePreciprad.%06d.npy'%(oid), a1prtyped.astype('int16'))
         np.save(outDir + '/top-profpmw.%06d.npy'%(oid), a2topprofp.astype('float32'))
-        np.save(outDir + '/top-stoppmw.%06d.npy'%(oid), a1topstopp.astype('int16'))
         np.save(outDir + '/top-typePrecippmw.%06d.npy'%(oid), a1topprtypep.astype('int16'))
         np.save(outDir + '/top-idxdb.%06d.npy'%(oid), a1topidxdb.astype('int32'))
         np.save(outDir + '/top-irec.%06d.npy'%(oid), a1topirec.astype('int32'))

@@ -133,6 +133,7 @@ class EPCDB(object):
 
             ('precip_water_prof_NS',    ['DPRGMI_NS_precipTotWaterCont', '%if'%NLEV_PRECIP]),  # precipitation water content profile from Comb product
             ('storm_height_ku',   ['Ku_NS_heightStormTop', 'h']),    # heightStormTop from L2-DPR-Ku (m) int16
+            ('vfracConv',   ['DPRGMI_NS_vfracConv', 'f']),    # heightStormTop from L2-DPR-Ku (m) int16
 
             ))
 

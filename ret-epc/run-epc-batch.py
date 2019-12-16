@@ -8,8 +8,8 @@ import numpy.ma as ma
 import h5py
 import shutil
 
-iDTime = datetime(2015,5,16)
-eDTime = datetime(2015,5,31)
+iDTime = datetime(2015,4,21)
+eDTime = datetime(2015,4,30)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 
@@ -306,6 +306,6 @@ for DTime in lDTime:
         os.rmdir(outDirTmp)
         print ''
 
-os.remove(progcopy)
-print 'remove progcopy',progcopy
+#os.remove(progcopy)
+#print 'remove progcopy',progcopy
 

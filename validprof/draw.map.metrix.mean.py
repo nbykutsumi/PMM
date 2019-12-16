@@ -29,9 +29,10 @@ else:
     sys.exit()
 #*******************************
 #lseason=['JJA','DJF']
-lseason=['JJA']
+#lseason=['JJA']
 #lseason=['DJF']
 #lseason=['JJADJF','JJA','DJF']
+lseason=['ALL']
 #lseason = [6]
 DB_MAXREC = 10000
 DB_MINREC = 1000
@@ -39,21 +40,21 @@ expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 ny,nx = 120,360
 dvar = {}
-#lrettype = ['epc','gprof']
-lrettype = ['epc']
+lrettype = ['epc','gprof']
+#lrettype = ['epc']
 #lrettype = ['epc']
 #lvar = ['profrad','profpmw','top-profpmw']
-#lvar = ['profrad','profpmw']
+lvar = ['profrad','profpmw']
 #lvar = ['stoprad','top-stoppmw']
 #lvar = ['precrad','precpmw']
 #lvar = ['convfreqrad','stratfreqrad','convfreqpmw','stratfreqpmw']
 #lvar = ['stoprad','top-stoppmw','convfreqrad','stratfreqrad','convfreqpmw','stratfreqpmw']
-lvar = ['zeroDegAltituderad']
-#lstype= ['all']
-lstype= ['sea','snow']
+#lvar = ['zeroDegAltituderad']
+lstype= ['all']
+#lstype= ['sea','snow']
 lptype= ['all']
 lprrange=[[0.5,999]]
-
+ph = 'A'
 #*******************************
 def calc_cc(x,y,axis):
     ny,nx,nz = x.shape
@@ -69,14 +70,32 @@ def calc_rmse(x,y,axis):
     return np.sqrt(((x-y)**2).sum(axis=axis)/nz)
 
 #*******************************
-def draw_map(a2dat, textcbartop=None):
+def draw_map(a2dat, textcbartop=None, bounds=None, extend=None, mincolor=None, maxcolor=None):
     fig = plt.figure(figsize=(8,4))
     ax  = fig.add_axes([0.08,0.1,0.8,0.8])
     a1lat = np.arange(-59.5,59.5+0.01,1.0)
     a1lon = np.arange(-179.5,179.5+0.01,1.0)
     X,Y = np.meshgrid(a1lon,a1lat)
     M = Basemap(resolution='l', llcrnrlat=-60, llcrnrlon=-180, urcrnrlat=60, urcrnrlon=180, ax=ax)
-    im  = M.pcolormesh(X, Y, a2dat, vmin=vmin, vmax=vmax, cmap=mycm)
+
+    #-- Discrete colormap ---
+    if bounds is not None:
+        cmap = plt.cm.get_cmap(mycm, len(bounds)+1)  # define the colormap
+        cmaplist = [cmap(i) for i in range(cmap.N)]
+        if mincolor is not None:
+            cmaplist[0] = mincolor # grey 
+        if maxcolor is not None:
+            cmaplist[1] = maxcolor # grey 
+
+        cmap = matplotlib.colors.ListedColormap(cmaplist)
+
+        norm = matplotlib.colors.BoundaryNorm(bounds, ncolors=cmap.N, clip=False)  # normalize
+    else:
+        cmap = mycm
+        norm = None
+    #------------------------
+
+    im  = M.pcolormesh(X, Y, a2dat, vmin=vmin, vmax=vmax, cmap=cmap, norm=norm)
 
     plt.title(stitle, fontsize=15)
     M.drawcoastlines(linewidth=1)
@@ -86,6 +105,10 @@ def draw_map(a2dat, textcbartop=None):
 
     cax = fig.add_axes([0.89,0.21,0.02,0.55])
     cbar= plt.colorbar(im, orientation='vertical', cax=cax)
+    if extend=='both':
+        cbar.ax.set_yticklabels([''] + list(bounds[1:-1]) + [''])
+
+
     cax.tick_params(labelsize=13)
 
     if textcbartop is not None:
@@ -110,7 +133,9 @@ for key in lkey:
     thpr0,thpr1 = prrange
 
     for season in lseason:
-        if   season=='JJADJF':
+        if season == 'ALL':
+            lYM = util.ret_lYM([2014,6],[2015,5]) 
+        elif season=='JJADJF':
             lYM = util.ret_lYM([2014,6],[2014,8]) + util.ret_lYM([2014,12],[2015,2])
         elif season=='JJA':
             lYM = util.ret_lYM([2014,6],[2014,8])
@@ -167,7 +192,7 @@ for key in lkey:
         
                     util.mk_dir(outDir)
               
-                    stamp  = 's-%s.p-%s.pr-%.1f-%.1f.%04d%02d'%(stype,ptype,thpr0,thpr1,Year,Mon)
+                    stamp  = 's-%s.p-%s.ph-%s.pr-%.1f-%.1f.%04d%02d'%(stype,ptype,ph,thpr0,thpr1,Year,Mon)
                     if var in ['profpmw','profrad','top-profpmw']: 
                         sumPath= outDir  + '/%s.sum.%s.sp.one.npy' %(var, stamp)
                         numPath= outDir  + '/%s.num.%s.sp.one.npy' %(var, stamp)
@@ -199,7 +224,7 @@ for key in lkey:
             #******************************
             # Draw figures
             #------------------------------
-            stampfig = 's-%s.p-%s.pr-%.1f-%.1f'%(stype,ptype,thpr0,thpr1)
+            stampfig = 's-%s.p-%s.ph-%s.pr-%.1f-%.1f'%(stype,ptype,ph,thpr0,thpr1)
  
             ##*** Surface precipitation ***
             if 'zeroDegAltituderad' in lvar:
@@ -361,13 +386,18 @@ for key in lkey:
                 #*** Peak height ******
                 vmin,vmax=0,8
                 mycm  = 'rainbow'
+                #bounds=np.array([0,2,3,4,5,12])
+                bounds=np.array([0,2,3,4,5,10])
+                #mincolor = (0.5, 0.5, 0.5, 1) # grey
+                mincolor = (0.8, 0.8, 0.8, 1) # grey
+
                 # DPR
                 a2ph = dvar['profrad'].argmax(axis=2) * 0.5
                 a2mask= ma.masked_invalid( dvar['profrad'].max(axis=2) ).mask
                 a2ph = ma.masked_where(a2mask, a2ph)
                 stitle= 'Peak height (Above sea) (km) %s\n(COMB)'%(season)
                 figPath= figDir + '/mmap.peakh-asl.profrad.%s.%s.%s.png'%(rettype,stampfig,season)
-                draw_map(a2ph)
+                draw_map(a2ph, bounds=bounds, extend='both', mincolor=mincolor)
                 
         
                 # PMW
@@ -376,7 +406,7 @@ for key in lkey:
                 a2ph = ma.masked_where(a2mask, a2ph)
                 stitle= 'Peak height (Above sea) (km) %s\n(%s)'%(season, string.upper(rettype))
                 figPath= figDir + '/mmap.peakh-asl.profpmw.%s.%s.1f.%s.png'%(rettype,stampfig,season)
-                draw_map(a2ph)
+                draw_map(a2ph, bounds=bounds, extend='both', mincolor=mincolor)
                 
         
                 # Top PMW
@@ -386,12 +416,14 @@ for key in lkey:
                     a2ph = ma.masked_where(a2mask, a2ph)
                     stitle= 'Peak height (Above sea) (km) %s\n(%s top-ranked)'%(season, string.upper(rettype))
                     figPath= figDir + '/mmap.peakh-asl.profpmw-top.%s.%s.%s.png'%(rettype,stampfig,season)
-                    draw_map(a2ph)
+                    draw_map(a2ph, bounds=bounds, extend='both', mincolor=mincolor)
              
 
                 # PMW
                 vmin,vmax=-4,4
                 mycm  = 'Spectral_r'
+                bounds=np.array([-10,-3,-2,-1,1,2,3,10])
+
                 a2ph = dvar['profpmw'].argmax(axis=2) * 0.5 - dvar['profrad'].argmax(axis=2) * 0.5
                 a2mask1= ma.masked_invalid( dvar['profpmw'].max(axis=2) ).mask
                 a2mask2= ma.masked_invalid( dvar['profrad'].max(axis=2) ).mask
@@ -399,9 +431,8 @@ for key in lkey:
                 a2ph = ma.masked_where(a2mask, a2ph)
                 stitle= 'Peak height difference (km) %s\n(%s - CMB)'%(season,string.upper(rettype))
                 figPath= figDir + '/mmap.peakh-asl.dif.%s.%s.%s.png'%(rettype,stampfig,season)
-                draw_map(a2ph)
+                draw_map(a2ph, bounds=bounds, extend='both')
                        
- 
                 
                 ##*** Peak water content ***
                 #vmin,vmax = 0,0.2

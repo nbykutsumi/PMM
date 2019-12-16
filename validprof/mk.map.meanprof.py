@@ -5,7 +5,7 @@ from numpy import *
 import calendar, glob
 from datetime import datetime, timedelta
 import socket
-
+import sys
 #*******************************
 myhost = socket.gethostname()
 if myhost =='shui':
@@ -21,10 +21,9 @@ else:
     sys.exit()
 #*******************************
 iYM  = [2014,6]
-#eYM  = [2015,2]
-eYM  = [2014,6]
+eYM  = [2015,5]
 lYM  = util.ret_lYM(iYM,eYM)
-lYM  = [ym for ym in lYM if ym[1] not in [9,10,11]]
+lskipdates = [[2014,6,4],[2014,10,22],[2014,10,23],[2014,10,24],[2014,12,9],[2014,12,10],[2014,11,25]]
 
 DB_MAXREC = 10000
 DB_MINREC = 1000
@@ -34,22 +33,31 @@ miss_out= -9999.
 lrettype = ['gprof']
 #lrettype = ['epc']
 #lrettype = ['epc','gprof']
-lvar = ['profpmw','profrad']
+lvar = ['profrad','profpmw']
 #lvar = ['profrad']
 #lvar = ['profpmw','profrad','top-profpmw']
 #lvar = ['top-profpmw']
 lstype= ['all','sea','land','veg','snow','coast']
 lptype= ['all','conv','stra']
-lprrange=[[0.5,999],[1,3],[8,12]]
-#lprrange=[[0.5,999]]
+#lprrange=[[0.5,999],[1,3],[8,12]]
+lprrange=[[0.5,999]]
 lprrange= map(tuple, lprrange)
-lph     = ['L','H','All']
+lph     = ['L','H','A']
+#lph     = ['L','H']
+#lph     = ['L']
 #lph     = ['A']
 lat0 = -60.
 lon0 = -180.
 dlatlon=1.0
 ny,nx = 120,360
-lskipdates = [[2014,12,9],[2014,12,10]]
+thwat = 0.01  # g/m3 for defining stop
+##********************************
+#def mk_stop(a2prof, thwat):
+#    a2bin  = np.ones(a2prof.shape).astype(int16) * np.arange(36).astype(int16)
+#    a2bin  = ma.masked_where(a2prof <=thwat, a2bin).argmax(axis=1)
+#    return  ma.masked_less_equal(a2bin,0) * 0.5 + 0.25
+    
+#********************************
 for Year,Mon in lYM:
     for rettype in lrettype:
         for var in lvar:
@@ -115,8 +123,15 @@ for Year,Mon in lYM:
         
                     a1stype= np.load(srcDir + '/surfaceTypeIndex.%06d.npy'%(oid))
                     a1ptype= np.load(srcDir + '/typePreciprad.%06d.npy'%(oid)) 
-                    a1ph   = np.load(srcDir + '/stoprad.%06d.npy'%(oid)) 
+                    #a1ph   = np.load(srcDir + '/stoprad.%06d.npy'%(oid)) 
+                    #a1ph   = np.load(srcDir + '/heightStormToprad.%06d.npy'%(oid))
+                    a1ph   = np.load(srcDir + '/stop-profrad.%06d.npy'%(oid))
                     a1freez= np.load(srcDir + '/zeroDegAltituderad.%06d.npy'%(oid)) 
+                    a1dprx = np.load(srcDir + '/dprx.%06d.npy'%(oid)) 
+
+
+                    #-- Calculate storm top ----------
+                    #print a2var.shape[0], a1lat.shape, a1lon.shape, a1prec.shape, a1stype.shape, a1ptype.shape, a1ph.shape, a1freez.shape, a1dprx.shape
 
                     #-- Screen invalid (nan) ----- 
                     a2var  = ma.masked_invalid(a2var).filled(miss_out) 
@@ -139,10 +154,17 @@ for Year,Mon in lYM:
         
                     else:
                         a1flag = True
+
+                    #-- DPR angle bin --
+                    a1flagdprx = ma.masked_inside(a1dprx, 14, 34).mask # nadir=24
+                    a1flag  = a1flag * a1flagdprx
+
                     #---------- 
                     a1flagy = ma.masked_inside(a1y,0,ny-1).mask
                     a1flag  = a1flag * a1flagy
                     #----------
+                    #print oid,a1flag.shape, a1y.shape, a2var.shape, a1lat.shape, a1prec.shape, a1stype.shape, a1ptype.shape, a1ph.shape, a1freez.shape
+
             
                     a1y = a1y[a1flag]
                     a1x = a1x[a1flag]
@@ -217,17 +239,19 @@ for Year,Mon in lYM:
                             a1flagptype = np.array([a1flagptype]*len(a1ptype))
 
                         #-- Precipitation height ------------
-                        a1fpd = ma.masked_less(a1ph,0) - ma.masked_less(a1freez,0)  # freezing precipitation depth
                         if ph =='L':
-                            a1flagph = ma.masked_less(a1fpd, 0).mask
+                            a1flagph = a1ph < a1freez - 500
                         elif ph=='H':
-                            a1flagph = ma.masked_greater(a1fpd, 0).mask
+                            a1flagph = a1ph > a1freez + 500
                         elif ph=='A':
-                            a1flagph = np.array([True]*len(a1fpd))
+                            a1flagph = np.array([True]*len(a1ph))
                         
                         else:
                             print 'check ph',ph
                             sys.exit()
+
+                        a1flagph = a1flagph * ma.masked_not_equal(a1ph, -9999).mask
+                        a1flagph = a1flagph * ma.masked_not_equal(a1freez, -9999).mask
 
                         #-- Precipitation range -------------
                         thpr0,thpr1 = prrange

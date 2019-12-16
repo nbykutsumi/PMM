@@ -28,10 +28,11 @@ else:
     sys.exit()
 #*******************************
 #lseason=['JJADJF','DJF','JJA']
-lseason=['DJF','JJA']
-#lseason = ['JJA']
+lseason=['ALL','DJF','JJA']
+#lseason=['JJA']
+#lseason=['DJF']
 #lseason=['JJADJF']
-#lseason = [6,7]
+#lseason = [6]
 DB_MAXREC = 10000
 DB_MINREC = 1000
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
@@ -40,24 +41,31 @@ ny,nx = 120,360
 nz    = 25 
 latmin= -60
 lonmin= -180
-#lrettype = ['epc','gprof']
-lrettype = ['epc']
+lrettype = ['epc','gprof']
+#lrettype = ['epc']
+thorog = 500
+
 #lvar = ['profpmw','profrad','top-profpmw']
 lvar = ['profpmw','profrad']
 #lstype= ['sea','land','veg','snow','coast','all']
-#lstype = ['sea','veg','snow']
-lstype = ['veg']
-#lptype= ['conv','stra']
-lptype= ['stra']
-lph   = ['L','H']
+lstype = ['veg','sea','snow','coast']
+#lstype = ['coast']
+#lstype = ['veg']
+lptype= ['conv','stra']
+#lptype= ['stra']
+lph   = ['L','H','A']
+#lph   = ['A']
+#lph   = ['L']
 #lprrange=[[0.5,999],[1,3],[8,12]]
 #lprrange=[[1,3],[8,12]]
-lprrange=[[1,3]]
-#lprrange=[[0.5,999]]
+lprrange=[[0.5,999]]
+#lprrange=[[8,12]]
+#lprrange=[[1,3]]
 lprrange = map(tuple, lprrange)
 #lregion = ['TRO','SUBN','MIDN']
-#lregion = ['TRO','MIDN']
-lregion = ['MIDN']
+lregion = ['TRO','MIDN']
+#lregion = ['MIDN']
+#lregion = ['TRO']
 #lregion = ['AMZ','CUS','EUS','TIB','NETP','SETP','NTA','STA','WTP','ETI','WMP','WMA','TAF','NEA','SEC','NIN']
 dBBox = {
          'TRO':  [[-15,-180],[15,180]]
@@ -134,6 +142,8 @@ def calc_rmse(x,y,axis):
 def ret_lYM(season):
     if season=='JJADJF':
         lYM = util.ret_lYM([2014,6],[2014,8]) + util.ret_lYM([2014,12],[2015,2])
+    elif season=='ALL':
+        lYM = util.ret_lYM([2014,6],[2015,5])
     elif season=='JJA':
         lYM = util.ret_lYM([2014,6],[2014,8])
     elif season=='SON':
@@ -161,36 +171,38 @@ a2orog = np.load(tankbaseDir + '/utsumi/PMM/validprof/const/orog.meter.sp.one.18
 a2orog = a2orog[30:30+120,:]
 
 #-- Freezing level ---
-ltype = [(stype,ptype,prrange) for stype in lstype
-                              for ptype in lptype
-                              for prrange in lprrange]
+ltype = [(stype,ptype,ph,prrange)
+            for stype in lstype
+            for ptype in lptype
+            for ph    in lph
+            for prrange in lprrange]
 
 d2freez = {}
-for  (stype,ptype,prrange) in ltype:
+for  (stype,ptype,ph,prrange) in ltype:
     thpr0, thpr1 = prrange
     srcDir = tankbaseDir + '/utsumi/PMM/validprof/map.pair/epc.%s'%(expr)
     
     dsumtmp = {}
     dnumtmp = {}
    
-    for season in ['JJADJF','JJA','DJF']:
+    for season in lseason:
         lYMTmp = ret_lYM(season)
 
         for (Year,Mon) in lYMTmp:
-            stamp  = 's-%s.p-%s.pr-%.1f-%.1f.%04d%02d'%(stype,ptype,thpr0,thpr1,Year,Mon)
+            stamp  = 's-%s.p-%s.ph-%s.pr-%.1f-%.1f.%04d%02d'%(stype,ptype,ph,thpr0,thpr1,Year,Mon)
             dsumtmp[Year,Mon]= np.load(srcDir + '/zeroDegAltituderad.sum.%s.sp.one.npy'%(stamp))
             dnumtmp[Year,Mon]= np.load(srcDir + '/zeroDegAltituderad.num.%s.sp.one.npy'%(stamp))
  
-
         asumtmp = np.array([dsumtmp[Year,Mon] for (Year,Mon) in lYMTmp])
         anumtmp = np.array([dnumtmp[Year,Mon] for (Year,Mon) in lYMTmp])
         asumtmp = ma.masked_less(asumtmp,0).sum(axis=0)
         anumtmp = ma.masked_less(anumtmp,0).sum(axis=0)
 
-        key = (stype,ptype,prrange,season)
+        key = (stype,ptype,ph,prrange,season)
 
         d2freez[key] = (ma.masked_where(anumtmp==0, asumtmp)/anumtmp) * 0.001 # [km]
 
+print d2freez.keys()
 #*** Draw region map *******************
 draw_map(a2dat=None, lregion=lregion, trans=True)
 
@@ -198,12 +210,16 @@ draw_map(a2dat=None, lregion=lregion, trans=True)
 for season in lseason:
     lYM = ret_lYM(season)
 
-    ltype = [(stype,ptype,prrange) for stype in lstype
-                                  for ptype in lptype
-                                  for prrange in lprrange]
+    ltype = [(stype,ptype,ph,prrange)
+                for stype in lstype
+                for ptype in lptype
+                for ph    in lph
+                for prrange in lprrange]
     
-    for (stype,ptype,prrange) in ltype:
+    for (stype,ptype,ph,prrange) in ltype:
         thpr0,thpr1 = prrange
+
+        #** Read profiles ***********
         dvar = {}
         dstd = {}
         dnum = {}
@@ -238,9 +254,7 @@ for season in lseason:
         
                     util.mk_dir(outDir)
 
-                    #stamp  = 'pr%.1f.%04d%02d'%(thpr,Year,Mon)
-
-                    stamp  = 's-%s.p-%s.pr-%.1f-%.1f.%04d%02d'%(stype,ptype,thpr0,thpr1,Year,Mon)
+                    stamp  = 's-%s.p-%s.ph-%s.pr-%.1f-%.1f.%04d%02d'%(stype,ptype,ph,thpr0,thpr1,Year,Mon)
 
      
                     sumPath= outDir  + '/%s.sum.%s.sp.one.npy' %(var,stamp)
@@ -258,7 +272,6 @@ for season in lseason:
                     a3ss  = a3ss  + a3ssTmp
                     a3numprof= a3numprof + a3numprofTmp
 
-
     
                 dvar[key] = a3sum / a2num.reshape(ny,nx,1)
                 dvar[key] = ma.masked_invalid(dvar[key])
@@ -266,9 +279,64 @@ for season in lseason:
                 dstd[key] = np.sqrt( ma.masked_invalid( (a3ss - (a3sum**2)/a3numprof)/a3numprof )) 
                 dnum[key] = a2num
                 dnumprof[key] = a3numprof 
+
+
+        #** Read surface precip *****
+        dprec = {}
+        for rettype in lrettype:
+            for var in ['precpmw','precrad']:
+                key = (rettype,var)
+
+                if (rettype=='gprof')and(var=='precrad'): continue
+
+    
+                #** Initialize ******
+                a2sum = zeros([ny,nx],float32)
+                a2num = zeros([ny,nx], int32)
+    
+                for Year,Mon in lYM:
+                    if rettype =='epc': 
+                        outDir = tankbaseDir + '/utsumi/PMM/validprof/map.pair/epc.%s'%(expr)
+        
+                    elif rettype =='gprof':
+                        outDir = tankbaseDir + '/utsumi/PMM/validprof/map.pair/gprof'
+        
+                    else:
+                        print 'check retype',rettype
+        
+                    util.mk_dir(outDir)
+
+                    stamp  = 's-%s.p-%s.ph-%s.pr-%.1f-%.1f.%04d%02d'%(stype,ptype,ph,thpr0,thpr1,Year,Mon)
+
+     
+                    sumPath= outDir  + '/%s.sum.%s.sp.one.npy' %(var,stamp)
+                    numPath= outDir  + '/%s.num.%s.sp.one.npy' %(var,stamp)
+                
+                    a2sumTmp = np.load(sumPath)
+                    a2numTmp = np.load(numPath)
+    
+                    a2sum = a2sum + a2sumTmp
+                    a2num = a2num + a2numTmp
+    
+                dprec[key] = a2sum / a2num.reshape(ny,nx)
+                dprec[key] = ma.masked_invalid(dprec[key])
+   
         #*** Draw *******************
-        stampOut  = 's-%s.p-%s.pr-%.1f-%.1f.%s'%(stype,ptype,thpr0,thpr1,season)
+
+        a2mask = ma.masked_greater_equal(a2orog, thorog).mask
+        a3mask = np.empty([ny,nx,nz])
+        for i in range(nz):
+            a3mask[:,:,i] = a2mask
+ 
+        ymin,ymax = 2,12
+        #ymin,ymax = 0,12
+        stampOut  = 's-%s.p-%s.ph-%s.pr-%.1f-%.1f.%s'%(stype,ptype,ph,thpr0,thpr1,season)
         for region in lregion:
+            if region == 'TRO':
+                if season not in ['JJADJF','ALL']: continue
+            if region == 'MIDN':
+                if season in ['JJADJF','ALL']: continue
+
             [[lat0,lon0],[lat1,lon1]] = dBBox[region]
             y0 = int(floor(lat0 - latmin))
             y1 = int(floor(lat1 - latmin))
@@ -277,59 +345,87 @@ for season in lseason:
 
             #-------------------
             n = dnum['epc','profrad'][y0:y1+1,x0:x1+1].sum() 
+            #********************************************** 
             #-- mean profile ---             
-            fig = plt.figure(figsize=(2.5,5))
+            #********************************************** 
+            #xmin=0
+            #if ptype=='conv':
+            #    xmax=1.2
+            #elif ptype=='strat':
+            #    xmax=0.7
+            #else:
+            #    xmax=1.0
+            fig = plt.figure(figsize=(2.5,3.2))
             ax  = fig.add_axes([0.25,0.15,0.65,0.7])
     
             a1y = 0.25 + np.arange(nz) * 0.5 # [km]
-            a1rad = dvar['epc',  'profrad'][y0:y1+1,x0:x1+1].mean(axis=(0,1))
-            a1pmw = dvar['epc',  'profpmw'][y0:y1+1,x0:x1+1].mean(axis=(0,1))
-            a1gpr = dvar['gprof','profpmw'][y0:y1+1,x0:x1+1].mean(axis=(0,1))
+            a1rad = ma.masked_where(a3mask, dvar['epc',  'profrad'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
+            a1pmw = ma.masked_where(a3mask, dvar['epc',  'profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
+            a1gpr = ma.masked_where(a3mask, dvar['gprof','profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
+            #a1top = ma.masked_where(a3mask, dvar['epc',  'top-profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
             
             ax.plot( a1rad, a1y, '-', c='k', linewidth=2, label='CMB') 
             ax.plot( a1pmw, a1y, '-', c='k', linewidth=1, label='EPC')
             ax.plot( a1gpr, a1y, '--', c='k', linewidth=1.3, label='GPROF')
+            #ax.plot( a1top, a1y, '-', c='b', linewidth=1.3, label='TOP-EPC')
 
-            freez = d2freez[(stype,ptype,prrange,season)][y0:y1+1,x0:x1+1].mean()
+            freez = d2freez[(stype,ptype,ph,prrange,season)][y0:y1+1,x0:x1+1].mean()
             ax.axhline(y=freez, linestyle=':',c='gray',linewidth=2)
 
-            print stype,ptype,season,region,freez
+            #ax.set_xlim([xmin,xmax])
+            ax.set_ylim([ymin,ymax])
+            ax.set_xlim([0,None])
     
-            stitle = '%s %s %s %s'%(region, stype, ptype, season)
+            stitle = '%s %s %s %s %s'%(region, stype, ptype, ph, season)
             stitle = stitle + '\n'+'%.1f-%.1fmm/h N=%d'%(thpr0,thpr1, n)
-            plt.title(stitle)
-            plt.legend()   
+            plt.title(stitle, fontsize=9)
+            #plt.legend()   
+
+            #-- Show surface precipitation ---
+            prad = ma.masked_where(a2mask, dprec['epc','precrad'])[y0:y1+1,x0:x1+1].mean()
+            pepc = ma.masked_where(a2mask, dprec['epc','precpmw'])[y0:y1+1,x0:x1+1].mean()
+            pgpr = ma.masked_where(a2mask, dprec['gprof','precpmw'])[y0:y1+1,x0:x1+1].mean()
+
+            ax.text(0.15,0.93, 'CMB  =%.1fmm/h'%(prad),family='monospace',transform=ax.transAxes, fontsize=11)
+            ax.text(0.15,0.86, 'EPC  =%.1fmm/h'%(pepc),family='monospace',transform=ax.transAxes, fontsize=11)
+            ax.text(0.15,0.79, 'GPROF=%.1fmm/h'%(pgpr),family='monospace',transform=ax.transAxes, fontsize=11)
+            #---------------------------------
 
             plt.xlabel('precipitation water (g/m3)')
             plt.ylabel('hight (above sea level) (km)')
             figPath = figDir + '/prof.%s.%s.png'%(stampOut,region)
             plt.savefig(figPath)
             print figPath
-    
+   
+            #********************************************** 
             #-- Standard deviation---             
-            fig = plt.figure(figsize=(2.5,6))
+            #********************************************** 
+            fig = plt.figure(figsize=(2.5,3.2))
             ax  = fig.add_axes([0.25,0.15,0.65,0.7])
     
             a1y = 0.25 + np.arange(nz) * 0.5 # [km]
-            a1rad = dstd['epc',  'profrad'][y0:y1+1,x0:x1+1].mean(axis=(0,1))
-            a1pmw = dstd['epc',  'profpmw'][y0:y1+1,x0:x1+1].mean(axis=(0,1))
-            a1gpr = dstd['gprof','profpmw'][y0:y1+1,x0:x1+1].mean(axis=(0,1))
-            #    a1top = dstd['top-profpmw'][y0:y1+1,x0:x1+1].mean(axis=(0,1))
+            a1rad = ma.masked_where(a3mask, dstd['epc',  'profrad'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
+            a1pmw = ma.masked_where(a3mask, dstd['epc',  'profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
+            a1gpr = ma.masked_where(a3mask, dstd['gprof','profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
+            #a1top = ma.masked_where(a3mask, dstd['epc','top-profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
             
             ax.plot( a1rad, a1y, '-', c='k', linewidth=2, label='CMB') 
             ax.plot( a1pmw, a1y, '-', c='k', linewidth=1, label='EPC')
             ax.plot( a1gpr, a1y, '--', c='k', linewidth=1.3, label='GPROF')
+            #ax.plot( a1top, a1y, '-', c='b', linewidth=1.3, label='TOP-EPC')
 
+            ax.set_ylim([ymin,ymax])
+            ax.set_xlim([0,None])
             #    ax.plot( a1top, a1y, '--', c='k', linewidth=1, label='PMW 1st')
-            freez = d2freez[(stype,ptype,prrange,season)][y0:y1+1,x0:x1+1].mean()
+            freez = d2freez[(stype,ptype,ph,prrange,season)][y0:y1+1,x0:x1+1].mean()
             ax.axhline(y=freez, linestyle=':',c='gray',linewidth=2)
 
     
-            stitle = '%s %s %s %s'%(region, stype, ptype, season)
+            stitle = '%s %s %s %s %s'%(region, stype, ptype, ph, season)
             stitle = stitle + '\n'+'%.1f-%.1fmm/h N=%d'%(thpr0,thpr1, n)
 
-            plt.title(stitle)
-            plt.legend()   
+            plt.title(stitle,fontsize=9)
+            #plt.legend()   
 
             plt.xlabel('Standard deviation (g/m3)', fontsize=12)
             plt.ylabel('hight (above sea level) (km)', fontsize=12)
@@ -339,13 +435,13 @@ for season in lseason:
 
 
             ##-- count profile --- 
-            #fig = plt.figure(figsize=(2.5,6))
+            #fig = plt.figure(figsize=(2.5,3.2))
             #ax  = fig.add_axes([0.25,0.15,0.65,0.7])
     
             #a1y = 0.25 + np.arange(nz) * 0.5 # [km]
-            #a1rad = dnumprof['epc',  'profrad'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
-            #a1pmw = dnumprof['epc',  'profpmw'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
-            #a1gpr = dnumprof['gprof','profpmw'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            #a1rad = ma.masked_where(a3mask, dnumprof['epc',  'profrad'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            #a1pmw = ma.masked_where(a3mask, dnumprof['epc',  'profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            #a1gpr = ma.masked_where(a3mask, dnumprof['gprof','profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
             ##if rettype=='epc':
             ##    a1top = dstd['top-profpmw'][y0:y1+1,x0:x1+1].mean(axis=(0,1))
             #
@@ -355,7 +451,10 @@ for season in lseason:
             ##if rettype=='epc':
             ##    ax.plot( a1top, a1y, '--', c='k', linewidth=1, label='PMW 1st')
     
-            #stitle = '%s %s %s %s'%(region, stype, ptype, season)
+            #ax.set_ylim([ymin,ymax])
+            #ax.set_xlim([0,None])
+
+            #stitle = '%s %s %s %s %s'%(region, stype, ptype, ph, season)
             #stitle = stitle + '\n'+'%.1f-%.1fmm/h N=%d'%(thpr0,thpr1, n)
 
             #plt.title(stitle)

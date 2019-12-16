@@ -11,7 +11,9 @@ lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 #lvar = ['Latitude','Longitude']
 #lvar = ['convfrac','stratfrac','otherfrac','Latitude','Longitude']
 #lvar = ['landSurfaceType']
-lvar = ['heightStormTop']
+#lvar = ['heightStormTop']
+#lvar = ['cvfrac','svfrac']
+lvar = ['cvfrac','svfrac']
 
 noscreen = False
 dprver = 'V06'
@@ -104,6 +106,31 @@ for DTimeDay in lDTime:
                     a2sumbit = sum_9grids(a2bit)
                     a2sumwet = sum_9grids(a2wet)
                     a2var = (ma.masked_where(a2sumwet==0, a2sumbit) / a2sumwet)
+
+                elif var in ['svfrac','cvfrac','ovfrac']:
+                    ''' volumetric fractions '''
+
+                    hdfvar = '/NS/CSF/typePrecip'
+                    a2type = h5[hdfvar][:]
+                    a2type = (a2type/10000000).astype(int32)
+                    ny,nx  = a2type.shape
+
+                    if   var=='svfrac':
+                        a2bit = ma.masked_where(a2type !=1, np.ones([ny,nx],float32)).filled(0.0)
+
+                    elif var=='cvfrac':
+                        a2bit = ma.masked_where(a2type !=2, np.ones([ny,nx],float32)).filled(0.0)
+
+                    elif var=='ovfrac':
+                        a2bit = ma.masked_where(a2type !=3, np.ones([ny,nx],float32)).filled(0.0)
+
+
+                    a2typeprec= a2bit * ma.masked_less(a2prec,0).filled(0.0)
+                    a2sumtype = sum_9grids(a2typeprec)
+                    a2sumall  = sum_9grids(ma.masked_less(a2prec,0).filled(0.0))
+                    a2var = (ma.masked_where(a2sumall==0, a2sumtype) / a2sumall).filled(0.0)
+                    
+
                 
                 else:
                     print 'check var',var

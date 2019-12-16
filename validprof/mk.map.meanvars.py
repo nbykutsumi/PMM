@@ -20,35 +20,40 @@ else:
     print 'check myhost'
     sys.exit()
 #*******************************
-iYM  = [2014,6]
+iYM  = [2014,12]
 eYM  = [2015,2]
 lYM  = util.ret_lYM(iYM,eYM)
-lYM  = [ym for ym in lYM if ym[1] not in [9,10,11]]
 
 DB_MAXREC = 10000
 DB_MINREC = 1000
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 miss_out= -9999.
-lrettype = ['epc']
+#lrettype = ['epc']
+lrettype = ['gprof']
 #lvar= ['stoprad','top-stoppmw']
 #lvar= ['stoprad','top-stoppmw']
-#lvar = ['precrad','precpmw']
+#lvar = ['precrad','precpmw','zeroDegAltituderad']
+lvar = ['precpmw']
 #lvar = ['convfreqrad','stratfreqrad','convfreqpmw','stratfreqpmw']
 #lvar = ['precrad','precpmw','stoprad','top-stoppmw','convfreqrad','stratfreqrad','convfreqpmw','stratfreqpmw']
 #lvar = ['convfreqpmw','stratfreqpmw']
-lvar = ['zeroDegAltituderad']
+#lvar = ['zeroDegAltituderad']
 
 lat0 = -60.
 lon0 = -180.
 dlatlon=1.0
 ny,nx = 120,360
-lskipdates = [[2014,12,9],[2014,12,10]]
+lskipdates = [[2014,10,22],[2014,10,23],[2014,10,24],[2014,12,9],[2014,12,10],[2014,11,25]]
 
-lstype= ['all','sea','land','veg','snow','coast']
+
+#lstype= ['all','sea','land','veg','snow','coast']
+lstype= ['all','sea','veg','snow','coast']
+#lstype= ['coast']
 lptype= ['all','conv','stra']
-lprrange=[[0.5,999],[1,3],[8,12]]
-#lprrange=[[0.5,999]]
+lph   = ['H','L','A']
+#lprrange=[[0.5,999],[1,3],[8,12]]
+lprrange=[[0.5,999]]
 lprrange= map(tuple, lprrange)
 #-----------------
 def ret_var_filename(var):
@@ -73,9 +78,11 @@ for Year,Mon in lYM:
             lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
             #lDTime = lDTime[:1]  # test
 
-            lkey = [(stype,ptype,prrange) for stype in lstype
-                                          for ptype in lptype
-                                          for prrange in lprrange]
+            lkey = [(stype,ptype,ph,prrange)
+                    for stype   in lstype
+                    for ptype   in lptype
+                    for ph      in lph
+                    for prrange in lprrange]
 
             #** Initialize **********
             d2ss  = {}
@@ -88,7 +95,7 @@ for Year,Mon in lYM:
          
 
             for DTime in lDTime:
-                print var,DTime
+                print rettype,var,DTime
                 Year,Mon,Day = DTime.timetuple()[:3]
                 if [Year,Mon,Day] in lskipdates: continue
         
@@ -112,6 +119,9 @@ for Year,Mon in lYM:
 
                     a1stype= np.load(srcDir + '/surfaceTypeIndex.%06d.npy'%(oid))
                     a1ptype= np.load(srcDir + '/typePreciprad.%06d.npy'%(oid))
+                    #a1ph   = np.load(srcDir + '/stoprad.%06d.npy'%(oid))
+                    a1ph   = np.load(srcDir + '/stop-profrad.%06d.npy'%(oid))
+                    a1freez= np.load(srcDir + '/zeroDegAltituderad.%06d.npy'%(oid))
 
                     if var[-3:] =='rad':
                         a1prec = np.load(srcDir + '/precrad.%06d.npy'%(oid))
@@ -171,7 +181,9 @@ for Year,Mon in lYM:
                     a1prec = a1prec[a1flag]
                     a1stype= a1stype[a1flag]
                     a1ptype= a1ptype[a1flag]
-            
+                    a1ph   = a1ph   [a1flag]
+                    a1freez= a1freez[a1flag]
+ 
                     avar= ma.masked_less(avar,0).filled(0.0)
 
                     #-- Precip type ----------
@@ -194,7 +206,7 @@ for Year,Mon in lYM:
                     a1flagstra = ma.masked_greater(a1stra,0.6).mask
 
                     for key in lkey:
-                        stype,ptype,prrange = key
+                        stype,ptype,ph,prrange = key
 
                         #-- Surface type ---
                         if stype == 'sea':
@@ -231,12 +243,32 @@ for Year,Mon in lYM:
                         if type(a1flagptype) is np.bool_:
                             a1flagptype = np.array([a1flagptype]*len(a1ptype))
 
+
+                        #-- Precipitation height ------------
+                        if ph =='L':
+                            a1flagph = a1ph < a1freez - 500
+                        elif ph=='H':
+                            a1flagph = a1ph > a1freez + 500
+                        elif ph=='A':
+                            a1flagph = np.array([True]*len(a1ph))
+
+                        else:
+                            print 'check ph',ph
+                            sys.exit()
+
+                        a1flagph = a1flagph * ma.masked_not_equal(a1ph, -9999).mask
+                        a1flagph = a1flagph * ma.masked_not_equal(a1freez, -9999).mask
+
+
                         #-- Precipitation range -------------
+                        if a1prec.shape[0]==0:
+                            continue
+
                         thpr0,thpr1 = prrange
                         a1flagp = ma.masked_inside(a1prec, thpr0, thpr1).mask
 
                         #-- Screen --------------------------
-                        a1flag = a1flagstype * a1flagptype * a1flagp
+                        a1flag = a1flagstype * a1flagptype * a1flagph * a1flagp
 
                         if a1flag.sum()==0:
                             continue
@@ -264,7 +296,7 @@ for Year,Mon in lYM:
        
             #-- Save ---
             for key in lkey:
-                stype,ptype,prrange = key
+                stype,ptype,ph,prrange = key
                 thpr0,thpr1 = prrange
                 a2sum = d2sum[key]
                 a2ss  = d2ss [key]
@@ -278,7 +310,7 @@ for Year,Mon in lYM:
                     print 'check var (in outDir)',var
                     sys.exit()
         
-                stamp  = 's-%s.p-%s.pr-%.1f-%.1f.%04d%02d'%(stype,ptype,thpr0,thpr1,Year,Mon)
+                stamp  = 's-%s.p-%s.ph-%s.pr-%.1f-%.1f.%04d%02d'%(stype,ptype,ph,thpr0,thpr1,Year,Mon)
                 sumPath= outDir  + '/%s.sum.%s.sp.one.npy' %(var,stamp)
                 numPath= outDir  + '/%s.num.%s.sp.one.npy' %(var,stamp)
                 sum2Path= outDir + '/%s.sum2.%s.sp.one.npy'%(var,stamp)

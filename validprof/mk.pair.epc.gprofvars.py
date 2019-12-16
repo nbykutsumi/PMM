@@ -21,8 +21,8 @@ else:
     sys.exit()
 #*******************************
 
-iDTime = datetime(2015,2,1)
-eDTime = datetime(2015,2,28)
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 DB_MAXREC = 10000
 DB_MINREC = 1000
@@ -31,7 +31,6 @@ expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 thpr = 0.1
 miss_out= -9999.
 #lvar  = ['S1/Latitude', 'S1/Longitude'] 
-#lvar  = ['S1/Latitude', 'S1/Longitude']+ ['S1/qualityFlag','S1/surfaceTypeIndex'] 
 lvar  = ['S1/Latitude', 'S1/Longitude','S1/surfaceTypeIndex'] 
 
 
@@ -43,6 +42,9 @@ def ave_9grids_2d(a2in, a1y, a1x, miss):
     nl = len(a1y)=len(a1x)
     output: (nl)
     '''
+
+    if ma.is_masked(a2in):
+        a2in = a2in.filled(miss)   # 2019/12/02
     #-- Average 9 grids --
     nydpr,nxdpr = a2in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]

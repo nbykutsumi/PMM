@@ -8,10 +8,10 @@ from datetime import datetime, timedelta
 import socket
 import EPCDB
 #*******************************
-iDTime = datetime(2014,8,31)
-eDTime = datetime(2015,2,28)
+iDTime = datetime(2014,7,1)
+eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
-lskipmon = [9,10,11]
+lskipdates = [[2014,12,9],[2014,12,10]]
 
 DB_MAXREC = 10000
 DB_MINREC = 1000
@@ -39,17 +39,14 @@ NLEV_PREC = 50
 miss_out= -9999.
 
 #lvar = [['DPRGMI','NS/Input/zeroDegAltitude']]
-lvar = [['DPRGMI','NS/Input/surfaceElevation']]
+#lvar = [['DPRGMI','NS/Input/surfaceElevation'],['DPRGMI','NS/Input/zeroDegAltitude'],['Ku','NS/PRE/heightStormTop'],['Ku','dprx']]
+#lvar = [['Ku','NS/PRE/heightStormTop']]
+#lvar = [['Ku','dpry'],['Ku','dprx']]
+lvar = [['DPRGMI','NS/vfracConv']] 
+
 db = EPCDB.EPCDB()
 #------------------------------------------------
 
-def prof250mTo500m(a3prof, miss_out):
-    ny,nx,nz = a3prof.shape
-    #a3out = array([ma.masked_less(a3prof[:,:,i:i+2],0).mean(2) for i in range(0,nz,2)])
-    a3out = ((ma.masked_less(a3prof[:,:,0::2],0) + ma.masked_less(a3prof[:,:,1::2],0) )*0.5).filled(miss_out)
-    #a3out = ma.masked_less( concatenate([a3prof[:,:,0::2].reshape(ny,nx,-1,1), a3prof[:,:,1::2].reshape(ny,nx,-1,1)], axis=3), 0).mean(axis=3).filled(miss_out)
-    
-    return a3out
 
 def average_2ranges_3d(a3in,miss=None,dtype=float32, fill=True):
     '''
@@ -75,6 +72,9 @@ def ave_9grids_3d(a3in, a1y, a1x, miss):
     nl = len(a1y)=len(a1x)
     output: (nl, nz)
     '''
+   
+    if ma.is_masked(a3in): 
+        a3in = a3in.filled(miss)  # 2019/12/02
     #-- Average 9 grids (over Linearlized Z)--
     nydpr,nxdpr,nzdpr= a3in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
@@ -105,6 +105,9 @@ def ave_9grids_2d(a2in, a1y, a1x, miss):
     nl = len(a1y)=len(a1x)
     output: (nl)
     '''
+
+    if ma.is_masked(a2in):
+        a2in = a2in.filled(miss)   # 2019/12/02
     #-- Average 9 grids --
     nydpr,nxdpr = a2in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
@@ -136,6 +139,9 @@ def sum_9grids_2d(a2in, a1y, a1x, miss):
     nl = len(a1y)=len(a1x)
     output: (nl)
     '''
+
+    if ma.is_masked(a2in):
+        a2in = a2in.filled(miss)   # 2019/12/02
     #-- Average 9 grids (over Linearlized Z)--
     nydpr,nxdpr = a2in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
@@ -161,7 +167,8 @@ def sum_9grids_2d(a2in, a1y, a1x, miss):
 #------------------------------------------------
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
-    if Mon in lskipmon: continue
+    if [Year,Mon,Day] in lskipdates:
+        continue
 
     pmwDir = epcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
     ssearch  = pmwDir + '/%s.??????.y-9999--9999.nrec%05d.npy'%('prwatprofNS',DB_MAXREC)
@@ -200,17 +207,33 @@ for DTime in lDTime:
         #- Read target variables --------------------- 
         davarorg = {}
         for [prod,varName] in lvar:
-            #-- Read DPR-Ku  ----------------------------------------
+            if varName in ['dpry','dprx']: continue
+
+            #-- Read ----------------------------------------
             if prod=='DPRGMI':
                 dprbaseDir = workbaseDir + '/hk01/PMM/NASA/GPM.DPRGMI/2B/V06'
                 dprDir     = dprbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
                 ssearch = dprDir + '/2B.GPM.DPRGMI.*.%06d.V???.HDF5'%(oid)
-                try:
-                    dprPath = glob.glob(ssearch)[0]
-                except:
-                    print 'No DPR file for oid=',oid
-                    continue
-       
+            #-- Read DPR-Ku  ----------------------------------------
+            elif prod=='Ku':
+                dprbaseDir = tankbaseDir + '/utsumi/data/PMM/NASA/GPM.Ku/2A/V06'
+                dprDir     = dprbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
+                ssearch = dprDir + '/2A.GPM.Ku.*.%06d.V06A.HDF5'%(oid)
+
+
+            try:
+                dprPath = glob.glob(ssearch)[0]
+            except:
+                print 'No DPR file for oid=',oid
+                continue
+      
+
+            if varName=='NS/vfracConv':
+                with h5py.File(dprPath, 'r') as h:
+                    davarorg[prod,varName] = h['/NS/Input/precipitationType'][:]
+                    aprec = h['NS/surfPrecipTotRate'][:]
+
+            else: 
                 with h5py.File(dprPath, 'r') as h:
                     davarorg[prod,varName] = h[varName][:]
     
@@ -223,7 +246,14 @@ for DTime in lDTime:
             continue    
         a1x = np.load(xPath).flatten()
         a1y = np.load(yPath).flatten()
-    
+
+
+        for [prod,varName] in lvar:
+            if varName =='dpry':
+                davarorg[prod,varName] = a1y
+            elif varName == 'dprx': 
+                davarorg[prod,varName] = a1x
+
         #-- Extract matching pixels from DPR array ---------------- 
         a1mask1 = ma.masked_less(a1x,0).mask
         a1mask2 = ma.masked_less(a1y,0).mask
@@ -253,24 +283,56 @@ for DTime in lDTime:
                 avar[a1mask] = -9999
                 davar[prod,varName] = avar[a1flag]
 
+            elif (varName =='NS/vfracConv'):
+                avar0= ma.masked_less(aprec,0).filled(0)
+                avar1= (avarorg/10000000).astype('int32')
+
+                avar1= ma.masked_where(avar1 !=2, aprec).filled(0.0)
+
+                avar0= sum_9grids_2d(avar0, a1y, a1x, miss=0).filled(0)
+                avar1= sum_9grids_2d(avar1, a1y, a1x, miss=0).filled(0)
+                avar = (ma.masked_where(avar0==0, avar1)/avar0).filled(0.0)
+
+                avar[a1mask] = -9999.
+                davar[prod,varName] = avar[a1flag]
+
+
+            elif (varName in ['NS/PRE/heightStormTop']):
+                avar = ma.masked_greater(avarorg,32767).filled(32767).astype('int16')  # miss is converted from -9999.9 --> -9999
+                #a2stopd = ma.masked_less(a2stopd,0)
+                avar = ma.masked_less_equal(avar,0) # mask zero and less
+                avar = ave_9grids_2d(avar, a1y, a1x, miss=-9999).filled(-9999).astype('int16')
+                avar[a1mask] = -9999
+                davar[prod,varName] = avar[a1flag]
+
+            else:
+                avarorg[a1mask] = -9999
+                davar[prod,varName] = avarorg[a1flag]
         #--------------------------------- 
         for [prod,varName] in lvar:
             if len(varName.split('/'))>1:
-                outvarName = varName.split('/')[-1]
+                outvarName = varName.split('/')[-1] + 'rad'
+
+            elif varName in ['dprx','dpry']:
+                outvarName = varName
 
             else:
-                outvarName = varName
+                outvarName = varName + 'rad'
             
             if varName in ['NS/Input/zeroDegAltitude'
                           ,'NS/Input/surfaceElevation'
                           ]:
                 dtype='float32'
+
+            elif varName in ['dpry','dprx']:
+                dtype='int16'
+
             else: 
                 dtype='float32'
  
             outDir     = tankbaseDir + '/utsumi/PMM/validprof/pair/epc.%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
             util.mk_dir(outDir)
-            outPath = outDir + '/%srad.%06d.npy'%(outvarName,oid)
+            outPath = outDir + '/%s.%06d.npy'%(outvarName,oid)
             np.save(outPath, davar[prod,varName].astype(dtype)) 
 
-            print outDir, oid
+            print oid, outPath

@@ -53,8 +53,9 @@ calcflag= True
 obstype= 'cmb'
 #region = 'US'
 region = 'GLB'
-lseason = ['JJADJF']
+#lseason = ['JJADJF']
 #lseason = ['JJA']
+lseason = ['ALL']
 DB_MAXREC = 10000
 DB_MINREC = 1000
 
@@ -95,7 +96,8 @@ def read_orbitlist_glob(Year,Mon):
 def ret_lym(season):
     if season=='JJADJF':
         lYM = util.ret_lYM([2014,6],[2014,8]) + util.ret_lYM([2014,12],[2015,2])
-
+    if season=='ALL':
+        lYM = util.ret_lYM([2014,6],[2015,5])
     elif season=='JJA':
         lYM = util.ret_lYM([2014,6],[2014,8])
     elif season=='SON':
@@ -126,6 +128,9 @@ def ave_9grids_2d(a2in, a1y, a1x, miss):
     nl = len(a1y)=len(a1x)
     output: (nl)
     '''
+
+    if ma.is_masked(a2in):
+        a2in = a2in.filled(miss)   # 2019/12/02
     #-- Average 9 grids --
     nydpr,nxdpr = a2in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
@@ -211,7 +216,9 @@ for season in lseason:
                     #-- Read MRSM over the orbit ------
                     if obstype=='mrms':
                         ssearch = mrmsDir + '/GMI.MRMS.130W_55W_20N_55N.????????.%06d.?????-?????.npy'%(oid)
-                        mrmsPath= glob.glob(ssearch)[0]
+                        lmrmsPath= glob.glob(ssearch)
+                        if len(lmrmsPath)==0: continue
+                        mrmsPath= lmrmsPath[0]
                         a2obs  = np.load(mrmsPath)
                         a2obs  = ma.masked_less(a2obs,0).filled(0) 
 

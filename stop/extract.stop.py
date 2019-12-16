@@ -8,13 +8,29 @@ import calendar
 import h5py
 from collections import deque
 import myfunc.util as util
+import socket
+
+#outDir= '/work/hk01/utsumi/PMM/TPCDB/PC_COEF'
+#outDir= '/work/hk01/utsumi/PMM/stop/data'
+
+hostname = socket.gethostname()
+if hostname == 'shui':
+    tankDir= '/tank'
+    workDir= '/work'
+elif hostname == 'well':
+    tankDir= '/home/utsumi/mnt/lab_tank'
+    workDir= '/home/utsumi/mnt/lab_work'
+
+else:
+    print 'check hostname',hostname
+    sys.exit()
 
 varName = 'nltb'
 iYM = [2017,1]
 eYM = [2017,1]
 lYM = util.ret_lYM(iYM,eYM)
-#outDir= '/work/hk01/utsumi/PMM/TPCDB/PC_COEF'
-outDir= '/work/hk01/utsumi/PMM/stop/data'
+
+
 verGMI = '05'
 subverGMI = 'A'
 fullverGMI = '%s%s'%(verGMI,subverGMI)
@@ -49,9 +65,11 @@ for (dy,dx) in ldydx:
     
         dDTime = timedelta(days=1)
         lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
-        matchBaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A'
+        #matchBaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A'
+        matchBaseDir = tankDir + '/utsumi/PMM/MATCH.GMI.V05A'
         #-- Read list -----
-        listDir  = '/work/hk01/utsumi/PMM/TPCDB/list'
+        #listDir  = '/work/hk01/utsumi/PMM/TPCDB/list'
+        listDir  = workDir + '/hk01/utsumi/PMM/TPCDB/list'
         listPath = listDir + '/list.1C.V05.%04d%02d.csv'%(Year,Mon)
         f=open(listPath,'r'); lines = f.readlines(); f.close()
         dlorbit = {}
@@ -119,7 +137,8 @@ for (dy,dx) in ldydx:
             for isurf in range(1,15+1):
                 aout = array(dastop[isurf])
                 Year,Mon,Day = DTime.timetuple()[:3]
-                outDir = '/work/hk01/utsumi/PMM/stop/data/stop/%04d/%02d/%02d'%(Year,Mon,Day)
+                #outDir = '/work/hk01/utsumi/PMM/stop/data/stop/%04d/%02d/%02d'%(Year,Mon,Day)
+                outDir = tankDir + '/utsumi/PMM/stop/data/stop/%04d/%02d/%02d'%(Year,Mon,Day)
                 outPath= outDir + '/stop.%ddy.%ddx.%02dsurf.npy'%(dy,dx,isurf)
                 util.mk_dir(outDir)
                 np.save(outPath, aout)

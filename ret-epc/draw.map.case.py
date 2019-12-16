@@ -37,6 +37,20 @@ reftype = 'dpr'
 #reftype = 'mrms'
 
 
+# Illinois (RNS)
+oid = 1456
+Year,Mon,Day = 2014,6,1
+iy, ey = -9999,-9999
+#iy,ey = 1311, 1351
+clat    = 28.3
+clon    = 133.0
+DB_MAXREC = 10000
+DB_MINREC = 1000
+#expr = 'glb.v03.minrec1000.maxrec10000'
+expr = 'glb.v04.minrec1000.maxrec10000'
+
+
+
 ## Amazon (Underestimation)
 #oid = 1732
 #Year,Mon,Day = 2014,6,18
@@ -187,16 +201,16 @@ reftype = 'dpr'
 #DB_MINREC = 1000
 #expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
-# SE.US case, oid=003556, 2014/10/14
-oid = 3556
-Year,Mon,Day = 2014,10,14
-#iy, ey = 987, 1047
-iy, ey = 917,1117
-clat    = 34    # SE.US case. oid = 003556
-clon    = -86   # 2014/10/14  05:42:03 UTC
-DB_MINREC = 1000
-DB_MAXREC = 10000
-expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+## SE.US case, oid=003556, 2014/10/14
+#oid = 3556
+#Year,Mon,Day = 2014,10,14
+##iy, ey = 987, 1047
+#iy, ey = 917,1117
+#clat    = 34    # SE.US case. oid = 003556
+#clon    = -86   # 2014/10/14  05:42:03 UTC
+#DB_MINREC = 1000
+#DB_MAXREC = 10000
+#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 ## SW.Japan typhoon case, oid=019015, 2017/07/03
 #oid = 19015
@@ -246,10 +260,10 @@ expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 #clon    = -94 # -180 - +180
 #DB_MAXREC = 20000
 
-thpr = 0.5  # Minimum threshold for EPC
+#thpr = 0.5  # Minimum threshold for EPC
 #thpr = 0.1  # Minimum threshold for EPC
 #thpr = 0.01  # Minimum threshold for EPC
-#thpr = 0.  # Minimum threshold for EPC
+thpr = 0.  # Minimum threshold for EPC
 
 if clat !=-9999.:
     #dlatlon = 20

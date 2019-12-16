@@ -85,7 +85,7 @@ elif dbtype=='my':
 #N2MAX = 200
 N2MAX = -9999
 #thwtmin = 0.5 # test
-thwtmin = 0.1
+thwtmin = 0.2
 
 miss    = -9999.
 
@@ -294,7 +294,8 @@ for idx_db in lidx_db:
         #a2prprofNSTmp   = db.get_var('precip_prof_NS')[:,-NLEV_PRECIP:]  # test
         #a2prprofNScmbTmp= ma.masked_less(db.get_var('precip_prof_NS_cmb'), 0).filled(0.0)[:,-NLEV_PRECIP:]
 
-        a2prwatprofNSTmp = db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]
+        #a2prwatprofNSTmp = db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]
+        a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.)  # 2019/11/12
 
 
         #a1tsdbTmp  = db.get_var('ts') 
@@ -376,7 +377,8 @@ for idx_db in lidx_db:
     a1nsurfMSObs    = db.get_var('precip_nsfc_MS')
     a1nsurfNSObs    = db.get_var('precip_nsfc_NS')
     
-    a2prwatprofNSObs = db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]
+    #a2prwatprofNSObs = db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]
+    a2prwatprofNSObs = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.) # 2019/11/12
     
     
     #a1tsdbTmp  = db.get_var('ts') 
@@ -506,7 +508,7 @@ for idx_db in lidx_db:
 
         a1wt   = np.exp(-0.5*np.square(a1rmsd/rmsd_min))
         a1wt   = ma.masked_less(a1wt, thwtmin)
-        a1wt[irectop] = 1.0
+        a1wt[irectop] = 0.607
 
         #**********************************
         # Top-ranked entry info

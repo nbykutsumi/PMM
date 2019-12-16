@@ -10,6 +10,7 @@ import epcfunc
 import sys, os, glob, socket
 
 myhost = socket.gethostname()
+
 if myhost == 'shui':
     workbaseDir= '/work'
     tankbaseDur= '/tank'
@@ -64,15 +65,18 @@ elif len(argv)==1:
     # SE.US case, oid=003556, 2014/10/14
     oid = 3556
     Year,Mon,Day = 2014,10,14
-    #iy, ey = -9999,-9999
+    iy, ey = -9999,-9999
     #iy, ey = 987, 1047
-    iy,ey = 917,1117
-    clat    = 34    # SE.US case. oid = 003556
+    #iy,ey = 917,1117
+    #clat    = 34    # SE.US case. oid = 003556
+    clat    = 31    # SE.US case. oid = 003556
     clon    = -86   # 2014/10/14  05:42:03 UTC
     DB_MAXREC = 10000
     DB_MINREC = 1000
-    expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+    #expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+    expr = 'glb.v04.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
     xpos    = 100  # x-position for cross section
+    #xpos    = 107  # x-position for cross section
 
 
     ## Europe just to check batch-version
@@ -160,6 +164,9 @@ def ave_9grids_3d(a3in, a1y, a1x, miss):
     nl = len(a1y)=len(a1x)
     output: (nl, nz)
     '''
+
+    if ma.is_masked(a3in):
+        a3in = a3in.filled(miss)  # 2019/12/02
     #-- Average 9 grids (over Linearlized Z)--
     nydpr,nxdpr,nzdpr= a3in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
@@ -328,13 +335,14 @@ a1lonMy  = a2latMy[:,xpos]
 #--- Find iyTmp & eyTmp for drawing if iy==ey==-9999 ---
 if ((iy<0) or (ey<0)):
     cy = ret_domain_cy(a2latMy, a2lonMy, clat, clon, dlatlon)    
-    dscan = 90
+    #dscan = 90
+    dscan = 50
 
     print a2latMy.shape[0],cy,dscan
     iyTmp = max(0, cy-dscan)
     eyTmp = min(a2latMy.shape[0], cy+dscan)
     iyMy  = iyTmp
-    eyMy  = ixTmp
+    eyMy  = eyTmp
  
 else:
     iyTmp = iy
@@ -402,7 +410,8 @@ nx    = a2prwatNS.shape[0]
 nbin  = a2prwatNS.shape[1]
 aspect1 = 0.16*nx/nbin
 aspect2 = aspect1*5
-prmin, prmax = 0, 2.0
+#prmin, prmax = 0, 2.0
+prmin, prmax = 0, 1.5
 tick_locs22 = [0,8,16,24,32, 40, 48]
 tick_lbls22 = [0,2,4, 6, 8, 10, 12]
 

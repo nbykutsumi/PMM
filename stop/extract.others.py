@@ -8,13 +8,23 @@ import calendar
 import h5py
 from collections import deque
 import myfunc.util as util
+import socket
 
-varName = 'nltb'
-iYM = [2017,2]
-eYM = [2017,12]
+hostname = socket.gethostname()
+if hostname == 'shui':
+    tankDir= '/tank'
+elif hostname == 'well':
+    tankDir= '/home/utsumi/mnt/lab_tank'
+
+else:
+    print 'check hostname',hostname
+    sys.exit()
+
+
+
+iYM = [2017,1]
+eYM = [2017,1]
 lYM = util.ret_lYM(iYM,eYM)
-#outDir= '/work/hk01/utsumi/PMM/TPCDB/PC_COEF'
-outDir= '/work/hk01/utsumi/PMM/stop/data'
 verGMI = '05'
 subverGMI = 'A'
 fullverGMI = '%s%s'%(verGMI,subverGMI)
@@ -23,7 +33,11 @@ ldy   = [0]
 ldx   = [0]
 Shape = [len(ldy),len(ldx)]
 ldydx = [[dy,dx] for dy in ldy for dx in ldx]
-varNameFull= 'S1.ABp103-117.GMI.Latitude'
+#varNameFull= 'S1.ABp103-117.GMI.Latitude'
+varNameFull= 'S1.ABp000-220.MERRA2.t2m'
+#varNameFull= 'S1.ABp000-220.MERRA2.tqv'
+#varNameFull= 'S1.ABp000-220.gtopo'
+
 varName = varNameFull.split('.')[-1]
 #**** Function *****************
 def shift_array(ain=None, dy=None,dx=None,miss=-9999):
@@ -48,9 +62,11 @@ for (dy,dx) in ldydx:
     
         dDTime = timedelta(days=1)
         lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
-        matchBaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A'
+        #matchBaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A'
+        matchBaseDir = tankDir + '/utsumi/PMM/MATCH.GMI.V05A'
         #-- Read list -----
-        listDir  = '/work/hk01/utsumi/PMM/TPCDB/list'
+        #listDir  = '/work/hk01/utsumi/PMM/TPCDB/list'
+        listDir  = tankDir + '/utsumi/PMM/TPCDB/list'
         listPath = listDir + '/list.1C.V05.%04d%02d.csv'%(Year,Mon)
         f=open(listPath,'r'); lines = f.readlines(); f.close()
         dlorbit = {}
@@ -93,6 +109,17 @@ for (dy,dx) in ldydx:
                 varDir  = matchBaseDir + '/%s/%04d/%02d/%02d'%(varNameFull,Year,Mon,Day)
                 datPath = varDir + '/%s.%06d.npy'%(varName, oid)
                 a2dat   = np.load(datPath) 
+
+                #--- Trim ---------------
+                xwidth=varNameFull.split('.')[1]
+                if xwidth=='ABp103-117':
+                    pass
+                elif xwidth=='ABp000-220':
+                    a2dat = a2dat[:,103:117+1]
+                else:
+                    print 'check xwidth',xwidth
+                    sys.exit() 
+
                 #--- shift --------------
                 nytmp,nxtmp = a2dat.shape 
                 a2shift = shift_array(a2dat.reshape(nytmp,nxtmp,1),dy,dx,-9999.).reshape(nytmp,nxtmp)
@@ -123,7 +150,8 @@ for (dy,dx) in ldydx:
             for isurf in range(1,15+1):
                 aout = array(dastop[isurf])
                 Year,Mon,Day = DTime.timetuple()[:3]
-                outDir = '/work/hk01/utsumi/PMM/stop/data/%s/%04d/%02d/%02d'%(varName,Year,Mon,Day)
+                #outDir = '/work/hk01/utsumi/PMM/stop/data/%s/%04d/%02d/%02d'%(varName,Year,Mon,Day)
+                outDir = tankDir + '/utsumi/PMM/stop/data/%s/%04d/%02d/%02d'%(varName,Year,Mon,Day)
                 outPath= outDir + '/%s.%ddy.%ddx.%02dsurf.npy'%(varName,dy,dx,isurf)
                 util.mk_dir(outDir)
                 np.save(outPath, aout)

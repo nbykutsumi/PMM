@@ -187,5 +187,5 @@ for DTime in lDTime:
 
 
 
-os.remove(progcopy)
-print 'remove progcopy',progcopy
+#os.remove(progcopy)
+#print 'remove progcopy',progcopy
