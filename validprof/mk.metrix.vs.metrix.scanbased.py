@@ -1,6 +1,7 @@
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 import numpy as np
 import os, sys
 from numpy import ma
@@ -15,11 +16,12 @@ import pickle
 import string
 
 season = 'ALL'
+#season = 'JJADJF'
 #season = 6
 calcflag = True
 #calcflag = False
-#lrettype = ['epc','gprof']
-lrettype = ['epc']
+lrettype = ['epc','gprof']
+#lrettype = ['epc']
 #lrettype = ['gprof']
 DB_MAXREC = 10000
 DB_MINREC = 1000
@@ -30,13 +32,26 @@ nsample = 4 # sampling orbits per day
 lskipdates = [[2014,6,4],[2014,6,6],[2014,10,22],[2014,10,23],[2014,10,24],[2014,12,9],[2014,12,10],[2014,11,25]]
 
 
+#xymetric = ['dvfracConv','ndprec']
+#xymetric = ['dwatNorm','ndprec']
+#xymetric = ['cc','ndprec']
+#xymetric = ['dstop-prof','ndprec']
+#xymetric = ['dstop','ndprec']
+
+#xymetric = ['ndprec','cc']
+#xymetric = ['ndprec','dwatNorm']
+#xymetric = ['ndprec','dstop-prof']
+#xymetric = ['ndprec','dvfracConv']
+xymetric = ['ndprec','rmse']
+
+
 #xymetric = ['dtqv','dwatNorm']
 #xymetric = ['dwatNorm','dprec']
 #xymetric = ['dconvfrac','dwatNorm']
 #xymetric = ['dstop','dprec']
 #xymetric = ['dstop','dwatNorm']
 #xymetric = ['dvfracConv','dwatNorm']
-xymetric = ['dvfracConv','dprec']
+#xymetric = ['dvfracConv','dprec']
 #xymetric = ['dprec','dstop']
 #xymetric = ['dprec','dvfracConv']
 #xymetric = ['dprec','dwatNorm']
@@ -66,21 +81,42 @@ else:
 
 #lprec = arange(0.25, 20+0.01, 0.5)
 #lbiaslev = [0,1,2,3]
-dprecrange = {0:[1,3], 1:[5,7], 2:[10,12]}
+dprecrange = {-1:[0.5, 999],0:[1,3], 1:[5,7], 2:[10,12]}
 #dprecrange = {2:[10,12]}
 aprecrange = dprecrange.values()
 #lbias = np.arange(0.,20+0.1, 1.0)
-dxbnd = {'dprec':np.arange(-20,20+0.1, 1.0)
+dxbnd = {
+         'dprec':np.arange(-10,10+0.01,0.5)
+        ,'ndprec':np.arange(-3,3,0.1)
         ,'dwatNorm':np.arange(-1,5+0.01,0.2)
         ,'dtqv': np.arange(-20,20+0.1, 2.0)  # kg/m2
         ,'dconvfrac': np.arange(-1,1+0.01, 0.1)  # kg/m2
         ,'dstop':np.arange(-4-0.25, 4+0.25, 0.5) # km
+        ,'dstop-prof':np.arange(-4-0.25, 4+0.25, 0.5) # km
         ,'dvfracConv':np.arange(-1-0.05, 1+0.05, 0.1) # km
-        ,'cc':np.arange(-0.2-0.05, 1+0.05, 0.1) # km
+        #,'cc':np.arange(-0.2-0.05, 1+0.05, 0.05) # km
+        ,'cc':np.arange(-0.2, 1+0.01, 0.05) # km
         ,'rmse':np.arange(0, 1.0+0.01, 0.05) # km
         }
 #lbias = np.arange(-10,10+0.1,1.0)
 nz    = 25
+
+
+dminmax = {
+         'dprec':[-10,10]
+        ,'ndprec':[-1,2]
+        ,'dwatNorm':[-1,5]
+        ,'dtqv': [None,None]
+        ,'dconvfrac': [None,None]
+        ,'dstop':[None,None]
+        ,'dstop-prof':[None,None]
+        ,'dvfracConv': [-1,1]
+        ,'cc': [0, 1]
+        ,'rmse':[-1,1]
+        }
+
+
+
 #*****************************************
 def calc_rmse(a2ref, a2dat):
     a2ref = ma.masked_less(a2ref,0)
@@ -163,6 +199,11 @@ def ret_lmon(season):
     return lYM
 
 
+def get_mycm(cmap=plt.cm.jet):
+    cm = cmap
+    cm_list = cm(np.arange(cm.N))[:-20]
+    return ListedColormap(cm_list)
+
 #*****************************************
 lYM = ret_lmon(season)
 xmetric, ymetric = xymetric
@@ -172,12 +213,15 @@ for rettype in lrettype:
     da1sum = {}
     da1sum2= {}
     da1num = {}
+    da2hist= {}
     lxbnd = dxbnd[xmetric]
+    lybnd = dxbnd[ymetric]
     for surf in lsurf:
         for preclev in dprecrange.keys():
             da1sum [surf,preclev]= np.zeros(len(lxbnd)-1, float32)
             da1sum2[surf,preclev]= np.zeros(len(lxbnd)-1, float32)
             da1num [surf,preclev]= np.zeros(len(lxbnd)-1, int32)
+            da2hist[surf,preclev]= np.zeros([len(lybnd)-1, len(lxbnd)-1], float32)
     #--------------------
 
     for Year,Mon in lYM:
@@ -212,9 +256,9 @@ for rettype in lrettype:
             #------------------------
             
             for latPath in llatPath:
-                print latPath
+                #print latPath
                 oid = int(latPath.split('.')[-2])
-
+                print rettype, xymetric , DTime
                 #if oid !=1918: continue  # test
 
                 a1lat = np.load(pairDir + '/Latitude.%06d.npy'%(oid))
@@ -231,6 +275,12 @@ for rettype in lrettype:
                     if metric=='dprec':
                         a1metric = ma.masked_less(a1precpmw,0) - ma.masked_less(a1precrad,0)
                         a1flagM = ~ma.masked_invalid(a1metric).mask
+
+                    elif metric=='ndprec':
+                        a1metric = ma.masked_less(a1precpmw,0) - ma.masked_less(a1precrad,0)
+                        a1metric = ma.masked_where(a1precrad==0, a1metric)/a1precrad
+                        a1flagM = ~ma.masked_invalid(a1metric).mask
+
                     elif metric=='rmse':
                         a2rad = np.load(pairDir+ '/profrad.%06d.npy'%(oid))[:,4:nz]  # bottom to top
                         a2pmw = np.load(pairDir+ '/profpmw.%06d.npy'%(oid))[:,4:nz]  # bottom to top
@@ -256,15 +306,26 @@ for rettype in lrettype:
 
 
                     elif metric=='dvfracConv':
-                        a1pmw=np.load(pairDir + '/top-vfracConvpmw.%06d.npy'%(oid))
+                        if rettype=='epc':
+                            a1pmw=np.load(pairDir + '/top-vfracConvpmw.%06d.npy'%(oid))
+                        elif rettype=='gprof':
+                            a1pmw=np.load(pairDir + '/vfracConvpmw.%06d.npy'%(oid))
+
                         a1rad=np.load(pairDir + '/vfracConvrad.%06d.npy'%(oid))
                         a1metric = ma.masked_less(a1pmw,0) - ma.masked_less(a1rad,0)
 
-                    elif metric=='dstop':
+                    elif metric=='dstop-prof':
                         a1pmw = np.load(pairDir + '/stop-profpmw.%06d.npy'%(oid))
                         a1rad = np.load(pairDir + '/stop-profrad.%06d.npy'%(oid))
 
                         a1metric = (ma.masked_less_equal(a1pmw,0) - ma.masked_less_equal(a1rad,0)) * 0.001  # [km]
+
+                    elif metric=='dstop':
+                        a1pmw = np.load(pairDir + '/top-heightStormToppmw.%06d.npy'%(oid))
+                        a1rad = np.load(pairDir + '/heightStormToprad.%06d.npy'%(oid))
+
+                        a1metric = (ma.masked_less_equal(a1pmw,0) - ma.masked_less_equal(a1rad,0)) * 0.001  # [km]
+
 
 
                     elif metric=='dtqv':
@@ -307,7 +368,7 @@ for rettype in lrettype:
                     a1flagQ = ma.masked_equal(a1qflag,0).mask   # Good quality (flag=0)
 
 
-                    print a1flagM.shape, a1flagS.shape, a1flagP.shape, a1flagQ.shape, a1flagE.shape
+                    #print a1flagM.shape, a1flagS.shape, a1flagP.shape, a1flagQ.shape, a1flagE.shape
                     a1flag  = a1flagM * a1flagS * a1flagP *a1flagQ * a1flagE
                 else:
                     a1flag  = a1flagM * a1flagP * a1flagE
@@ -359,6 +420,11 @@ for rettype in lrettype:
                         da1sum [surf,preclev] = da1sum [surf,preclev] + a1sum
                         da1sum2[surf,preclev] = da1sum2[surf,preclev] + a1sum2
                         da1num [surf,preclev] = da1num [surf,preclev] + a1num
+
+                        H,xedges,yedges = np.histogram2d(a1xmetricTmp, a1ymetricTmp, bins = [lxbnd,lybnd])
+                        H = H.T
+                        da2hist[surf,preclev] = da2hist[surf,preclev] + H
+
       
     #--- Save -----
     xmetric,ymetrci = xymetric
@@ -371,6 +437,10 @@ for rettype in lrettype:
     precrangePath = outDir + '/precrange.%s.%s.%s.%s.bfile'%(xmetric,ymetric,rettype,season)
     xbndPath= outDir + '/xbnd.%s.%s.%s.%s.npy'%(xmetric,ymetric,rettype,season) 
 
+    histPath= outDir + '/hist.%s.%s.%s.%s.binned.bfile'%(xmetric,ymetric,rettype,season)
+
+
+
     if calcflag == True:
         with open(sumPath, 'wb') as f:
             pickle.dump(da1sum, f)
@@ -380,6 +450,9 @@ for rettype in lrettype:
             pickle.dump(da1sum2, f) 
         with open(precrangePath, 'wb') as f:
             pickle.dump(dprecrange, f)
+        with open(histPath, 'wb') as f:
+            pickle.dump(da2hist, f)
+
 
         lxbnd.tofile(xbndPath)
         print sumPath
@@ -395,6 +468,8 @@ for rettype in lrettype:
         da1sum2 = pickle.load(f) 
     with open(precrangePath, 'rb') as f:
         dprecrange = pickle.load(f)
+    with open(histPath, 'rb') as f:
+        da2hist = pickle.load(f)
 
     lxbnd = np.fromfile(xbndPath)
 
@@ -402,10 +477,12 @@ for rettype in lrettype:
     # Plot (xmetric vs ymetric)
     #************************************
     dlabel = {'dprec':'Surface precipitation error (mm/h)'
+             ,'ndprec':'Norm. surf. precip. error'
              ,'rmse':'Profile RMSE (g/m3)'
              ,'cc'  :'Profile Correlation Coef.'
              ,'dwatNorm' :'Total condensed water \n difference (Normed)'
              ,'dconvfrac':'Convective fraction difference'
+             ,'dstop-prof':'Storm top height difference (km)'
              ,'dstop':'Storm top height difference (km)'
              ,'dtqv' :'Total water vapor error (kg/m2)'
              ,'dvfracConv' :'convective fraction error'
@@ -417,6 +494,8 @@ for rettype in lrettype:
     
         a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
         for preclev in dprecrange.keys():
+            if preclev ==-1: continue
+
             iprec,eprec = dprecrange[preclev]
             slabel = '%d-%dmm/h'%(iprec,eprec)
             linestyle= ['-', '--', '-'][preclev]
@@ -424,7 +503,8 @@ for rettype in lrettype:
             #mycolor = ['darkblue','orange','crimson'][preclev]
             mycolor = ['k','k','k'][preclev]
     
-            a1y = ma.masked_invalid(da1sum[surf,preclev] / da1num[surf,preclev]) 
+            #a1y = ma.masked_invalid(da1sum[surf,preclev] / da1num[surf,preclev])
+            a1y = ma.masked_where(da1num[surf,preclev] <100, da1sum[surf,preclev]) / da1num[surf,preclev]
 
             ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor, label=slabel)
     
@@ -455,17 +535,22 @@ for rettype in lrettype:
         figPath = figDir + '/plot.%s.vs.%s.%s.%s.%s.png'%(xmetric,ymetric, rettype,surf,season)
         plt.savefig(figPath)
         plt.clf()
+        plt.close()
         print figPath
     
     #************************************
     # Plot (xmetric vs num)
     #************************************
+    '''
     for surf in lsurf:
         fig = plt.figure(figsize=(6,6))
         ax = fig.add_axes([0.25,0.20,0.7,0.7])
     
         a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
         for preclev in dprecrange.keys():
+
+            if preclev ==-1: continue
+
             iprec,eprec = dprecrange[preclev]
             slabel = '%d-%dmm/h'%(iprec,eprec)
             linestyle= ['-', '--', '-'][preclev]
@@ -505,5 +590,158 @@ for rettype in lrettype:
         figPath = figDir + '/plot.num-%s.vs.%s.%s.%s.%s.png'%(xmetric,ymetric, rettype,surf,season)
         plt.savefig(figPath)
         plt.clf()
+        plt.close()
+        print figPath
+    '''
+    #************************************
+    # Plot scatterplot (all range) + lines
+    #************************************
+    for surf in lsurf:
+        H  = da2hist[surf,-1]
+        X,Y= np.meshgrid(lxbnd, lybnd)
+
+        fig = plt.figure(figsize=(6,6))
+        ax = fig.add_axes([0.25,0.20,0.53,0.53])
+       
+        vmax= H.max()
+        im = ax.pcolormesh(X,Y,H, norm=matplotlib.colors.LogNorm(), cmap='jet', vmin=10, vmax=vmax)
+
+        #--- Lines ---
+        for preclev in dprecrange.keys():
+            if preclev ==-1: continue
+
+            iprec,eprec = dprecrange[preclev]
+            slabel = '%d-%dmm/h'%(iprec,eprec)
+            linestyle= ['-', '--', '-'][preclev]
+            linewidth= [1, 2, 2][preclev]
+            #mycolor = ['darkblue','orange','crimson'][preclev]
+            mycolor = ['k','k','k'][preclev]
+    
+            a1y = ma.masked_where(da1num[surf,preclev] <100, da1sum[surf,preclev]) / da1num[surf,preclev]
+
+            ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor, label=slabel)
+        #------------
+
+        iprec,eprec = dprecrange[preclev]
+ 
+        stitle = '%s %s'%(string.upper(rettype), surf)
+        plt.title(stitle, fontsize=20)
+
+        
+        xlabel = dlabel[xmetric]
+        ylabel = dlabel[ymetric]
+        
+        ymin,ymax = dminmax[ymetric]
+        xmin,xmax = dminmax[xmetric]
+ 
+        ax.set_ylim([ymin,ymax])
+        ax.set_xlim([xmin,xmax])
+ 
+        ax.set_ylabel(ylabel, fontsize=20)
+        ax.set_xlabel(xlabel, fontsize=20)
+
+        ax.xaxis.set_tick_params(labelsize=16)
+        ax.yaxis.set_tick_params(labelsize=16)
+        ax.axvline(x=0, linestyle=':', color='gray', linewidth=2)
+        ax.axhline(y=0, linestyle=':', color='gray', linewidth=2)
+
+        #--- Separate legend -----
+        figleg = plt.figure(figsize=(6,2)) 
+        axleg  = figleg.add_axes([0.1,0.1,0.8,0.8])
+        axleg.legend(*ax.get_legend_handles_labels(), loc='center',fontsize=20)
+        axleg.xaxis.set_visible(False)
+        axleg.yaxis.set_visible(False)
+        #-------------------------
+
+        if xmetric=='rmse':
+            xmin, xmax= 0, 0.7
+        elif xmetric=='dwatNorm':
+            xmin, xmax= -1.2, 5.5
+        else:
+            xmin, xmax= None,None
+        ax.set_xlim([xmin,xmax])
+
+        #-- colorbar ---
+        cax = fig.add_axes([0.82,0.15,0.02, 0.6])
+        cbar=plt.colorbar(im, orientation='vertical', cax=cax)
+        cbar.ax.tick_params(labelsize=16)
+        #---------------
+        figDir = '/home/utsumi/temp/ret'
+        figPath = figDir + '/plot.scatter.%s.vs.%s.%s.%s.%s.png'%(xmetric,ymetric, rettype,surf,season)
+        fig.savefig(figPath)
+
+        legPath = figDir + '/legend.plot.%s.vs.%s.%s.%s.%s.png'%(xmetric,ymetric, rettype,surf,season)
+        figleg.savefig(legPath)
+
+
+        plt.clf()
+        plt.close()
         print figPath
 
+
+    '''
+    #************************************
+    # Plot scatterplot (each prec-range)
+    #************************************
+    for surf in lsurf:
+        for preclev in dprecrange.keys():
+
+            H  = da2hist[surf,preclev]
+            X,Y= np.meshgrid(lxbnd, lybnd)
+
+            fig = plt.figure(figsize=(6,6))
+            ax = fig.add_axes([0.25,0.20,0.55,0.55])
+       
+            vmax= H.max()
+            im = ax.pcolormesh(X,Y,H, norm=matplotlib.colors.LogNorm(), cmap='jet', vmin=1, vmax=vmax)
+
+
+            a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
+            iprec,eprec = dprecrange[preclev]
+            slabel = '%d-%dmm/h'%(iprec,eprec)
+            #mycolor = ['darkblue','orange','crimson'][preclev]
+            a1y = ma.masked_where(da1num[surf,preclev] <100, da1sum[surf,preclev]) / da1num[surf,preclev]
+            ax.plot(a1x, a1y, linestyle='-', linewidth=2, color='k')
+
+
+            iprec,eprec = dprecrange[preclev]
+ 
+            stitle = '%s %s %d-%dmm/h'%(string.upper(rettype),surf, iprec, eprec)
+
+            plt.title(stitle, fontsize=20)
+        
+            xlabel = dlabel[xmetric]
+            ylabel = dlabel[ymetric]
+        
+        
+            ax.set_ylabel(ylabel, fontsize=20)
+            ax.set_xlabel(xlabel, fontsize=20)
+
+            ax.xaxis.set_tick_params(labelsize=16)
+            ax.yaxis.set_tick_params(labelsize=16)
+            ax.axvline(x=0, linestyle=':', color='gray', linewidth=2)
+            ax.axhline(y=0, linestyle=':', color='gray', linewidth=2)
+        
+            if xmetric=='rmse':
+                xmin, xmax= 0, 0.7
+            elif xmetric=='dwatNorm':
+                xmin, xmax= -1.2, 5.5
+            else:
+                xmin, xmax= None,None
+            ax.set_xlim([xmin,xmax])
+
+            #-- colorbar ---
+            cax = fig.add_axes([0.82,0.15,0.02, 0.6])
+            cbar=plt.colorbar(im, orientation='vertical', cax=cax)
+            cbar.ax.tick_params(labelsize=16)
+            #---------------
+
+        
+            figDir = '/home/utsumi/temp/ret'
+            figPath = figDir + '/scatter.%s.vs.%s.%s.%s.%s.%d-%dmmh.png'%(xmetric,ymetric, rettype,surf,season,iprec,eprec)
+            plt.savefig(figPath)
+            plt.clf()
+            plt.close()
+            print figPath
+
+    '''

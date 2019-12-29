@@ -30,8 +30,8 @@ DB_MINREC = 1000
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 miss_out= -9999.
-lrettype = ['gprof']
-#lrettype = ['epc']
+#lrettype = ['gprof']
+lrettype = ['epc']
 #lrettype = ['epc','gprof']
 lvar = ['profrad','profpmw']
 #lvar = ['profrad']

@@ -22,10 +22,11 @@ else:
 #*******************************
 #iDTime = datetime(2014,7,1)
 #eDTime = datetime(2014,8,31)
-iDTime = datetime(2014,12,1)
-eDTime = datetime(2015,2,28)
+iDTime = datetime(2014,9,1)
+eDTime = datetime(2015,5,31)
 
 lDTime= util.ret_lDTime(iDTime, eDTime, timedelta(days=1))
+lYM_skip = [[2014,12],[2015,1],[2015,2]]
 
 miss_out= -9999.
 lat0 = -60
@@ -39,6 +40,8 @@ for DTime in lDTime:
     a2ss= np.zeros([ny,nx],float32)
     #-----------
     Year,Mon,Day = DTime.timetuple()[:3]
+    if [Year,Mon] in lYM_skip: continue
+
     srcDir = workbaseDir+ '/hk01/PMM/NASA/GPM.GMI/2A/V05/%04d/%02d/%02d'%(Year,Mon,Day)
     ssearch  = srcDir + '/2A.GPM.GMI.GPROF*.V05A.HDF5'
     lsrcPath = sort(glob.glob(ssearch))

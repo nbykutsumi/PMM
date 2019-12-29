@@ -33,19 +33,19 @@ else:
 #lseason=['DJF']
 #lseason=['JJADJF','JJA','DJF']
 lseason=['ALL']
-#lseason = [6]
 DB_MAXREC = 10000
 DB_MINREC = 1000
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 ny,nx = 120,360
 dvar = {}
-lrettype = ['epc','gprof']
-#lrettype = ['epc']
-#lrettype = ['epc']
+#lrettype = ['epc','gprof']
+lrettype = ['epc']
+#lrettype = ['gprof']
 #lvar = ['profrad','profpmw','top-profpmw']
-lvar = ['profrad','profpmw']
-#lvar = ['stoprad','top-stoppmw']
+#lvar = ['profrad','profpmw']
+lvar = ['stoprad','top-stoppmw']
+#lvar = ['stop-profrad','stop-profpmw']
 #lvar = ['precrad','precpmw']
 #lvar = ['convfreqrad','stratfreqrad','convfreqpmw','stratfreqpmw']
 #lvar = ['stoprad','top-stoppmw','convfreqrad','stratfreqrad','convfreqpmw','stratfreqpmw']
@@ -55,6 +55,7 @@ lstype= ['all']
 lptype= ['all']
 lprrange=[[0.5,999]]
 ph = 'A'
+thq = 0.033
 #*******************************
 def calc_cc(x,y,axis):
     ny,nx,nz = x.shape
@@ -97,13 +98,13 @@ def draw_map(a2dat, textcbartop=None, bounds=None, extend=None, mincolor=None, m
 
     im  = M.pcolormesh(X, Y, a2dat, vmin=vmin, vmax=vmax, cmap=cmap, norm=norm)
 
-    plt.title(stitle, fontsize=15)
+    plt.title(stitle, fontsize=15, pad=15)
     M.drawcoastlines(linewidth=1)
 
     M.drawmeridians(np.arange(-180,180+1,30), labels=[0,0,0,1], fontsize=10, linewidth=0.5, fmt='%d',rotation=50)
     M.drawparallels(np.arange(-60,60+1,30), labels=[1,0,0,0], fontsize=10, linewidth=0.5, fmt='%d')
 
-    cax = fig.add_axes([0.89,0.21,0.02,0.55])
+    cax = fig.add_axes([0.89,0.25,0.02,0.50])
     cbar= plt.colorbar(im, orientation='vertical', cax=cax)
     if extend=='both':
         cbar.ax.set_yticklabels([''] + list(bounds[1:-1]) + [''])
@@ -203,7 +204,20 @@ for key in lkey:
     
                         a3sum = a3sum + a3sumTmp
                         a2num = a2num + a2numTmp
+
+                    elif var in ['stop-profrad','stop-profpmw']:
+                        sumPath= outDir  + '/%s.th%05.3fq.sum.%s.sp.one.npy' %(var,thq,stamp)
+                        numPath= outDir  + '/%s.th%05.3fq.num.%s.sp.one.npy' %(var,thq,stamp)
+                        sum2Path= outDir + '/%s.th%05.3fq.sum2.%s.sp.one.npy'%(var,thq,stamp)
+                
+                        a2sumTmp = np.load(sumPath)
+                        a2numTmp = np.load(numPath)
+            
+                        a2sum = a2sum + a2sumTmp
+                        a2num = a2num + a2numTmp
+
                     else:
+                            
                         sumPath= outDir  + '/%s.sum.%s.sp.one.npy' %(var,stamp)
                         numPath= outDir  + '/%s.num.%s.sp.one.npy' %(var,stamp)
                         sum2Path= outDir + '/%s.sum2.%s.sp.one.npy'%(var,stamp)
@@ -327,7 +341,7 @@ for key in lkey:
                 vmin,vmax= 0, 10
                 mycm  = 'jet'
                 stitle= 'Precip top height [km] (%.1f-%.1f mm/h) %s\n(DPR-Ku)'%(thpr0,thpr1, season)
-                figPath= figDir + '/mmap.stoprad.%s.%s.png'%(stampfig, season)
+                figPath= figDir + '/mmap.stoprad.%s.%s.%s.png'%(rettype,stampfig, season)
                 draw_map(a2var)
         
                 # EPC Top-rank
@@ -335,7 +349,7 @@ for key in lkey:
                 vmin,vmax= 0,10
                 mycm  = 'jet'
                 stitle= 'Precip top height [km] (%.1f-%.1f mm/h) %s\n(EPC (Top-ranked))'%(thpr0, thpr1, season)
-                figPath= figDir + '/mmap.stoppmw-top.%s.%s.png'%(stampfig,season)
+                figPath= figDir + '/mmap.stoppmw-top.%s.%s.%s.png'%(rettype,stampfig,season)
                 draw_map(a2var)
         
                 # Storm top height difference
@@ -343,8 +357,34 @@ for key in lkey:
                 vmin,vmax= -2,2
                 mycm  = 'Spectral_r'
                 stitle= 'Precip top height difference [km] (%.1f-%.1f mm/h) %s\n(EPC(Top ranked)-DPR/Ku)'%(thpr0, thpr1, season)
-                figPath= figDir + '/mmap.stop.dif.%s.%s.png'%(stampfig,season)
+                figPath= figDir + '/mmap.stop.dif.%s.%s.%s.png'%(rettype,stampfig,season)
                 draw_map(a2var)
+
+            if ('stop-profrad' in lvar)or('stop-profpmw' in lvar):
+                # DPR
+                a2var = dvar['stop-profrad']*0.001
+                vmin,vmax= 0, 10
+                mycm  = 'jet'
+                stitle= 'Precip top height [km] (%.1f-%.1f mm/h) %s\n(DPR-Ku (profile-based) thq=%5.3fg/m3)'%(thpr0,thpr1, season, thq)
+                figPath= figDir + '/mmap.stop-profrad.th%05.3fq.%s.%s.%s.png'%(thq,rettype,stampfig, season)
+                draw_map(a2var)
+        
+                # EPC
+                a2var = dvar['stop-profpmw']*0.001
+                vmin,vmax= 0,10
+                mycm  = 'jet'
+                stitle= 'Precip top height [km] (%.1f-%.1f mm/h) %s\n(%s (profile-based) thq=%5.3fg/m3)'%(thpr0, thpr1, season, rettype, thq)
+                figPath= figDir + '/mmap.stop-profpmw.th%05.3fq.%s.%s.%s.png'%(thq,rettype,stampfig,season)
+                draw_map(a2var)
+        
+                # Storm top height difference
+                a2var = (dvar['stop-profpmw'] - dvar['stop-profrad'])*0.001
+                vmin,vmax= -2,2
+                mycm  = 'Spectral_r'
+                stitle= 'Precip top height difference [km] (%.1f-%.1f mm/h) %s\n(%s-DPR/Ku  : profile-based) thq=%5.3fg/m3'%(thpr0, thpr1, season, rettype, thq)
+                figPath= figDir + '/mmap.stop-prof.dif.th%05.3fq.%s.%s.%s.png'%(thq,rettype,stampfig,season)
+                draw_map(a2var)
+
     
     
             if 'profpmw' in lvar:
@@ -366,38 +406,45 @@ for key in lkey:
             
         
                 
-                #*** RMSE ******
-                vmin,vmax=0,0.1
+                #*** Normilized RMSE ******
+                #vmin,vmax=0,0.1
+                vmin,vmax=0, 2
                 mycm  = 'rainbow'
-                a2rmse = calc_rmse(dvar['profrad'], dvar['profpmw'], axis=2)
-                stitle= 'RMSE of prof. (g/m3) %s\n(COMB & %s)'%(season, string.upper(rettype))
-                figPath= figDir + '/mmap.rmse.prof.%s.%s.%s.png'%(rettype,stampfig, season)
-                draw_map(a2rmse)
+                #a2rmse = calc_rmse(dvar['profrad'], dvar['profpmw'], axis=2)
+                a2nrmse = calc_rmse(dvar['profrad'], dvar['profpmw'], axis=2) / dvar['profrad'].mean(axis=2)
+
+                stitle= 'Normalized RMSE of prof. (g/m3) %s\n(COMB & %s)'%(season, string.upper(rettype))
+                figPath= figDir + '/mmap.nrmse.prof.%s.%s.%s.png'%(rettype,stampfig, season)
+                #draw_map(a2rmse)
+                draw_map(a2nrmse)
         
                 # Top-ranked
                 if (rettype=='epc')and('top-profpmw' in dvar.keys()):
-                    a2rmse = calc_rmse(dvar['profrad'], dvar['top-profpmw'], axis=2)
-                    stitle= 'RMSE of prof. (g/m3) %s\n(COMB & %s top-ranked)'%(season, string.upper(rettype))
-                    figPath= figDir + '/mmap.rmse.prof-top.%s.%s.%s.png'%(rettype,thpr,season)
-                    draw_map(a2rmse)
+                    #a2rmse = calc_rmse(dvar['profrad'], dvar['top-profpmw'], axis=2)
+                    a2nrmse = calc_rmse(dvar['profrad'], dvar['top-profpmw'], axis=2) / dvar['top-profrad'].mean(axis=2)
+
+                    stitle= 'Normalized RMSE of prof. (g/m3) %s\n(COMB & %s top-ranked)'%(season, string.upper(rettype))
+                    figPath= figDir + '/mmap.nrmse.prof-top.%s.%s.%s.png'%(rettype,thpr,season)
+                    #draw_map(a2rmse)
+                    draw_map(a2nrmse)
          
                 
                 
-                #*** Peak height ******
-                vmin,vmax=0,8
-                mycm  = 'rainbow'
-                #bounds=np.array([0,2,3,4,5,12])
-                bounds=np.array([0,2,3,4,5,10])
-                #mincolor = (0.5, 0.5, 0.5, 1) # grey
-                mincolor = (0.8, 0.8, 0.8, 1) # grey
+                ##*** Peak height ******
+                #vmin,vmax=0,8
+                #mycm  = 'rainbow'
+                ##bounds=np.array([0,2,3,4,5,12])
+                #bounds=np.array([0,2,3,4,5,10])
+                ##mincolor = (0.5, 0.5, 0.5, 1) # grey
+                #mincolor = (0.8, 0.8, 0.8, 1) # grey
 
-                # DPR
-                a2ph = dvar['profrad'].argmax(axis=2) * 0.5
-                a2mask= ma.masked_invalid( dvar['profrad'].max(axis=2) ).mask
-                a2ph = ma.masked_where(a2mask, a2ph)
-                stitle= 'Peak height (Above sea) (km) %s\n(COMB)'%(season)
-                figPath= figDir + '/mmap.peakh-asl.profrad.%s.%s.%s.png'%(rettype,stampfig,season)
-                draw_map(a2ph, bounds=bounds, extend='both', mincolor=mincolor)
+                ## DPR
+                #a2ph = dvar['profrad'].argmax(axis=2) * 0.5
+                #a2mask= ma.masked_invalid( dvar['profrad'].max(axis=2) ).mask
+                #a2ph = ma.masked_where(a2mask, a2ph)
+                #stitle= 'Peak height (Above sea) (km) %s\n(COMB)'%(season)
+                #figPath= figDir + '/mmap.peakh-asl.profrad.%s.%s.%s.png'%(rettype,stampfig,season)
+                #draw_map(a2ph, bounds=bounds, extend='both', mincolor=mincolor)
                 
         
                 # PMW

@@ -10,6 +10,8 @@ from glob import glob
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+import optuna
+from optuna.integration import KerasPruningCallback
 
 import numpy.ma as ma
 import sys,os
@@ -134,8 +136,26 @@ def split2batchs(a,bsize):
 #    return model 
 
 
+def build_model_2d_opt(trial):
 
-def build_model_2d(ncol):
+    nlayers = trial.suggest_int('nlayers', 1,2,3)
+
+    model = keras.Sequential()
+    for i in range(nlayers):
+        model.add( Deense(64, activateion='relu') )
+    ])
+    model.add(Dense(1))
+    optimizer = tf.keras.optimizers.RMSprop(0.001)
+
+    model.compile(loss='mse'
+                  ,optimizer=optimizer
+                  ,metrics=['mae', 'mse']
+                 )
+    return model 
+
+
+
+def build_model_2d():
     model = keras.Sequential([
          layers.Dense(64, activation='relu', input_shape=[ncol])
         ,layers.Dense(64, activation='relu')
@@ -387,7 +407,6 @@ def read_var_collect(varName=None, lDTime=None, ldydx=None, isurf=None, samplera
             a2varTmp = np.array(a2varTmp)
         #**********************
         a2var.extend(a2varTmp)
-
     return np.array(a2var)
 
 def read_pc_coef(isurf):
@@ -604,6 +623,100 @@ def load_data_4d(lDTime):
     #print trainTc.shape        
 
     return trainTc, trainStop
+
+
+
+
+
+def objective(trial):
+    keras.backend.clear_session()
+
+    ncol  = dncol[act]  
+    model = build_model_2d_opt(trial)
+    
+    if savemodel==1:
+        modelPath = cpDir + '/model.json'
+        json_string = model.to_json()
+        with open(modelPath, 'w') as f:
+            f.write(json_string)
+
+    if restmodel ==1: 
+        latest = tf.train.latest_checkpoint(cpDir)
+    
+        if latest is not None:
+            print 'Load weights'
+            model.load_weights(latest)
+
+
+    #************************
+    if   season == 0:
+        lDTime = util.ret_lDTime(datetime(Year,1,1), datetime(Year,12,31),timedelta(days=1))
+    
+    else:
+        Mon  = season
+        eDay = calendar.monthrange(Year,Mon)[1]
+        lDTime = util.ret_lDTime(datetime(Year,Mon,1), datetime(Year,Mon,eDay), timedelta(days=1))
+
+
+    lDTime = [x for x in lDTime if not x in lDTimeSkip]
+    np.random.shuffle(lDTime)
+    #************************
+
+
+    if isurf==1:
+        bsize = 10
+    else:
+        bsize = 80
+    llDTime = split2batchs(lDTime,bsize)
+
+
+    for klDTime,lDTime in enumerate(llDTime):
+    
+        lDTime_train, lDTime_test = train_test_split(lDTime, train_size=0.8, test_size=0.2)
+    
+        trainX, trainY = load_data_2d(lDTime_train)
+
+        print ''
+        print 'isurf=',isurf,'shapes train',trainX.shape    
+        #****************************************************
+        # Training
+        #****************************************************
+        # Set test data aside
+    
+        #cpPath= cpDir + '/cp-s%02d-{epoch:04d}.ckpt'%(isurf)
+        #cpPath= cpDir + '/cp-s%02d-{val_loss:.2f}.ckpt'%(isurf)
+        cpPath= cpDir + '/cp-s%02d.ckpt'%(isurf)
+        cp_callback = tf.keras.callbacks.ModelCheckpoint(cpPath, save_weights_only=True, verbose=1, monitor='val_loss', save_best_only=True, mode='min')
+    
+        early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
+    
+   
+    
+        if isurf ==1: 
+            EPOCHS = 3
+        elif isurf==3:
+            EPOCHS = 10
+        else:
+            EPOCHS = 10
+
+        history = model.fit(
+            x=trainX, y=trainY,
+            batch_size=128,
+            epochs=EPOCHS, validation_split=0.2,
+            #callbacks = [cp_callback, early_stop],
+            callbacks = [cp_callback],
+            verbose=1)
+            
+
+        histPath = cpDir + '/hist-%s-%s-s%02d.pickle'%(expr,act, isurf)
+        if restmodel ==0:
+            if (klDTime==0)and(os.path.exists(histPath)):
+                
+                os.remove(histPath)
+
+        append_history(history, histPath)
+
+
 
 
 

@@ -22,8 +22,8 @@ radar = 'Ku'
 #eDTime = datetime(2018,1,1)
 #iDTime = datetime(2017,1,1)
 #eDTime = datetime(2018,1,1)
-iDTime = datetime(2017,1,1)
-eDTime = datetime(2017,1,31)
+iDTime = datetime(2017,7,7)
+eDTime = datetime(2017,12,31)
 
 
 #-- exclude missing files --
@@ -111,7 +111,7 @@ def ave_9grids_2d(a2in, a1y, a1x, imiss, omiss, omiss_nomatch):
     '''
 
     if ma.is_masked(a2in):
-        a2in = a2in.filled(miss)   # 2019/12/02
+        a2in = a2in.filled(imiss)   # 2019/12/02
     #-- Average 9 grids (over Linearlized Z)--
     nydpr,nxdpr = a2in.shape
     ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
@@ -162,6 +162,7 @@ for DTime in lDTime:
         a2y  = Y[:,cx-w-ix0:cx+w+1-ix0]
         nygmi, nxgmi = a2x.shape
         for var in lvar:
+            varName = var.split('/')[-1]
             #DatDPR = dpr.load_var_granule(srcPathDPR, var)
             hdpr   = h5py.File(srcPathDPR)
             DatDPR = hdpr[var][:]
@@ -181,8 +182,11 @@ for DTime in lDTime:
                 omiss_nomatch = -9999
 
             if var=='NS/PRE/heightStormTop':
-                DatDPR = ma.masked_less(DatDPR,0).filled(0.0) 
-
+                DatDPR = ma.masked_greater(DatDPR,32767).filled(32767)  # miss is converted from -9999.9 --> -9999
+                DatDPR = ma.masked_less_equal(DatDPR,0) # mask zero and less
+                imiss = -9999
+                omiss = -9999
+                datatype= 'int16'
             if   len(DatDPR.shape)==2:
                 datout = ave_9grids_2d(DatDPR, a2y.flatten(), a2x.flatten(), imiss, omiss, omiss_nomatch)
                 datout = datout.reshape(nygmi,nxgmi)
@@ -191,11 +195,12 @@ for DTime in lDTime:
                 datout = ave_9grids_3d(DatDPR, a2y.flatten(), a2x.flatten(), miss)
                 datout = datout.reshape(nygmi,nxgmi,-1)
 
-            if var.split('/')[-1] in ['precipRate']:
+            if varName in ['precipRate']:
                 datatype = 'int16'
                 miss     = -9999
                 datout   = (ma.masked_less(datout,0)*100).astype(datatype)
                 datout   = ma.masked_less(datout,0).filled(miss)
+
             else:
                 datout     = datout.astype(datatype)
 
@@ -210,7 +215,6 @@ for DTime in lDTime:
             outbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.9ave.%s'%(fullverGMI, mwscan, cx-w, cx+w, radar, fullverDPR, varName)
             outDir     = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
             outPath    = outDir + '/%s.%s.npy'%(varName, oid)
-
 
             util.mk_dir(outDir)
             np.save(outPath, datout)

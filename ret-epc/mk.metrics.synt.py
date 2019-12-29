@@ -1,8 +1,3 @@
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
-import matplotlib.cm as cm
 import numpy as np
 from numpy import *
 import h5py
@@ -33,13 +28,11 @@ sensor = 'GMI'
 #lrettype = ['GPROF']  
 #lrettype = ['MS','NS','NScmb','MScmb']
 lrettype = ['NScmb']
-#prmin = 0.1
-#prmin = 0.01
-prmin = 0.0
+thpr = 0.2
 expr = 'org.%s.smp%d'%(sensor,nsample)
 lidx_db = range(29*29*29)[1:]
-#lidx_db = range(810,812)
-#lidx_db = range(6000,7000)
+#lidx_db = range(5829,5850)
+#lidx_db = range(6000,6100)
 #lidx_db = range(29*29*4,29*29*8)
 #lidx_db = range(29*29*8,29*29*12)
 #lidx_db = range(29*29*12,29*29*16)
@@ -53,25 +46,22 @@ if myhost =='shui':
         dbDir   = '/tank/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE_TEST29'%(sensor)
         countDir= '/tank/utsumi/PMM/JPLDB/list'
         retbaseDir = '/tank/utsumi/PMM/retsynt/%s'%(expr)
-        figDir   = '/home/utsumi/temp/ret'
 
     elif dbtype=='my':
         dbDir   = '/work/hk01/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
         countDir= '/work/hk01/utsumi/PMM/EPCDB/list'
         retbaseDir = '/tank/utsumi/PMM/retsynt/%s'%(expr)
-        figDir   = '/home/utsumi/temp/ret'
 
 elif myhost == 'well':
     if dbtype=='jpl':
         dbDir   = '/home/utsumi/mnt/lab_tank/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE_TEST29'%(sensor)
         countDir= '/home/utsumi/mnt/lab_tank/utsumi/PMM/JPLDB/list'
         retbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retsynt/%s'%(expr)
-        figDir   = '/home/utsumi/temp/ret'
     elif dbtype=='my':
         dbDir   = '/media/disk2/share/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
         countDir= '/media/disk2/share/PMM/EPCDB/list'
         retbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retsynt/%s'%(expr)
-        figDir   = '/home/utsumi/temp/ret'
+
 
 else:
     print 'check hostname',myhost
@@ -81,7 +71,7 @@ else:
 lsurftype = ['all','ocean','vegetation','coast','snow']
 #lsurftype = ['ocean']
 
-dsurflabel={ 'all': 'All surface' 
+dsurflabel={ 'all'  :'All surface'
             ,'ocean':'Class1 (Ocean)'
             ,'vegetation':'Classes 3-7 (Vegetation)'
             ,'snow':'Classes 8-11 (Snow)'
@@ -90,7 +80,7 @@ dsurflabel={ 'all': 'All surface'
 
 dlsatid = {'GMI':[1],'AMSR2':[30], 'SSMIS':[16,17,18,19], 'ATMS':[100,101], 'MHS':[201,202,318,319]}
 
-dsatname = {999:'ALLSATE',0:'TRMM',1:'GMI',16:'F16',17:'F17',18:'F18',19:'F19',30:'GCOMW',100:'NPP',101:'NOAA20',201:'METOP-A',202:'METOP-B',318:'NOAA18',319:'NOAA19', 400:'SAPHIR'}
+dsatname = {999:'ALL',0:'TRMM',1:'GPM',16:'F16',17:'F17',18:'F18',19:'F19',30:'GCOMW',100:'NPP',101:'NOAA20',201:'METOP-A',202:'METOP-B',318:'NOAA18',319:'NOAA19', 400:'SAPHIR'}
 #**************************************
 # Functions
 #--------------------------------------
@@ -107,20 +97,14 @@ def read_orbitlist(Year,Mon):
 if dbtype=='jpl':
     db = JPLDB.JPLDB(sensor)
 
-dvnummax = {}
+
+lsatid = dlsatid[sensor]
 for rettype in lrettype:
 
-    #***************************
-    # Initialize histogram
-    #---------------------------
-    logvmin, logvmax = -1.2, 2
-    bins   = np.arange(-2,logvmax+0.001,0.025)
-    nbins  = len(bins)
-    d2freq = {}
+    if calcflag is not True:
+        continue
 
-    lsatid = dlsatid[sensor]
-
-    #** Read histogram of EPC DB records **
+    #** Read count file of DB records **
     if coefflag == 'wcoef':
         d1coef = {}
         for satid in [999] + lsatid:
@@ -131,6 +115,7 @@ for rettype in lrettype:
             else:
                 print 'check dbtype,sensor',dbtype,sensor
                 sys.exit()
+
 
             f=open(countPath,'r'); lines=f.readlines(); f.close()
             ncol = len(lines[0].strip().split(',')) - 1
@@ -145,25 +130,29 @@ for rettype in lrettype:
                 else:
                     coef = float(nall)/nsample
                 d1coef[satid][epcid] = coef
-
-
- 
+        
     elif coefflag =='nocoef':
         d1coef[satid] = np.ones(29*29*29, float32)
     else:
         print 'check coefflag', coefflag
         sys.exit()
-    
-    #--------------------------------------
+
+    #***************************
+    # Initialize
+    #---------------------------
+    h,m,f,c = {}, {}, {}, {}
+    un, uy, ux, uyy, uxx, uxy = {}, {}, {}, {}, {}, {}
+    cn, cy, cx, cyy, cxx, cxy = {}, {}, {}, {}, {}, {}
+
     for satid in [999] + lsatid:
         for surftype in lsurftype:
-            d2freq[satid,surftype] = np.zeros([nbins-1,nbins-1],float64)  # x:obs  y:ret
-
+            key = satid,surftype
+            h[key], m[key], f[key], c[key] = 0, 0, 0, 0
+            un[key], uy[key], ux[key], uyy[key], uxx[key], uxy[key] = 0, 0, 0, 0, 0, 0
+            cn[key], cy[key], cx[key], cyy[key], cxx[key], cxy[key] = 0, 0, 0, 0, 0, 0
+            
     #---------------------------
     for idx_db in lidx_db:
-        if calcflag ==False:
-            continue
-
         if dbtype=='jpl':
             dbPath = dbDir + '/db_%05d.bin'%(idx_db)
             
@@ -186,8 +175,6 @@ for rettype in lrettype:
 
             if sensor in ['SSMIS','ATMS','MHS']:
                 a1satid = np.load(retbaseDir + '/%05d/satid.obs.%05d.npy'%(idx_db,idx_db))
-
-
     
         elif rettype =='GPROF':
             if dbtype =='my':
@@ -201,9 +188,6 @@ for rettype in lrettype:
                 a1obs = np.load(retbaseDir + '/%05d/nsurf%s.obs.%05d.npy'%(idx_db,'NScmb',idx_db))
     
                 a1ret = np.load(dbDir + '/surfacePrecipitation/%05d.npy'%(idx_db))[a1irec]
-                #print 'No GPROF DB'
-                #print dbDir + '/surfacePrecipitation/%05d.npy'%(idx_db)
-                #    continue
 
             elif dbtype == 'jpl':
                 irecPath = retbaseDir + '/%05d/%s.obs.%05d.npy'%(idx_db,'irec',idx_db)
@@ -221,8 +205,10 @@ for rettype in lrettype:
             print 'check rettype',rettype
             sys.exit()
 
+
+
         #***************************
-        # Use irec to read EPC database
+        # Use irec to read database
         #---------------------------
         if   dbtype=='jpl':
             a1surftype = db.get_var('sfc_class')[a1irec]
@@ -231,15 +217,14 @@ for rettype in lrettype:
             a1surftype = np.load(dbDir + '/surfaceTypeIndex/%05d.npy'%(idx_db))[a1irec]
 
 
-
         #---------------------------
+
         for satid in [999] + lsatid:
-            if sensor in ['GMI','AMSR2']:
-                if satid ==999: continue
-                else: a1masksat = np.array([False])
+            if satid == 999:
+                a1masksat = np.array([False])
 
             else:
-                if satid ==999:
+                if sensor in ['GMI','AMSR2']:
                     a1masksat = np.array([False])
                 else:
                     a1masksat = ma.masked_not_equal(a1satid, satid).mask
@@ -261,11 +246,11 @@ for rettype in lrettype:
                     sys.exit() 
     
                 #-- Screeen no-precip cases for both datasets--
-                a1mask1 = ma.masked_less_equal(a1ret, 0).mask
-                a1mask2 = ma.masked_less_equal(a1obs, 0).mask
+                a1mask1 = ma.masked_less(a1ret, 0).mask
+                a1mask2 = ma.masked_less(a1obs, 0).mask
                 a1mask  = a1mask1 * a1mask2
                 a1mask  = a1mask + a1masksurf + a1masksat
- 
+  
 
                 if a1mask.sum() == 0:
                     a1retTmp = a1ret
@@ -275,22 +260,66 @@ for rettype in lrettype:
                     a1retTmp = ma.masked_where(a1mask, a1ret).compressed()
                     a1obsTmp = ma.masked_where(a1mask, a1obs).compressed()
 
-                if a1retTmp.shape[0]==0:
-                    #print 'a1retTmp.shape[0]=0: Skip',satid,surftype
-                    continue
+                if a1retTmp.shape[0]==0: continue
+
+                #************************************
+                # Metrics
+                #------------------------------------
+                key = satid,surftype
+                coef = d1coef[satid][idx_db]
+
+                h[key] = h[key] + ((a1retTmp >= thpr)&(a1obsTmp >= thpr)).sum() *coef
+                m[key] = m[key] + ((a1retTmp <  thpr)&(a1obsTmp >= thpr)).sum() *coef
+                f[key] = f[key] + ((a1retTmp >= thpr)&(a1obsTmp < thpr)).sum()  *coef
+                c[key] = c[key] + ((a1retTmp < thpr )&(a1obsTmp < thpr)).sum()  *coef
+
+                a1maskprec1 = ma.masked_less(a1retTmp, thpr).mask
+                a1maskprec2 = ma.masked_less(a1obsTmp, thpr).mask
+                a1maskprec  = a1maskprec1 + a1maskprec2
+
+                a1retCond   = ma.masked_where(a1maskprec, a1retTmp).compressed()
+                a1obsCond   = ma.masked_where(a1maskprec, a1obsTmp).compressed()
+
+                un [key]= un  [key]+ a1retTmp.shape[0] * coef
+                uy [key]= uy  [key]+ a1retTmp.sum() * coef
+                ux [key]= ux  [key]+ a1obsTmp.sum() * coef
+                uyy[key]= uyy [key]+ (a1retTmp**2).sum() * coef
+                uxx[key]= uxx [key]+ (a1obsTmp**2).sum() * coef
+                uxy[key]= uxy [key]+ (a1retTmp * a1obsTmp).sum() * coef
+
+                if a1retCond.shape[0] ==0: continue
+
+                cn [key]= cn  [key]+ a1retCond.shape[0] * coef
+                cy [key]= cy [key] + a1retCond.sum() * coef
+                cx [key]= cx [key] + a1obsCond.sum() * coef
+                cyy[key]= cyy[key] + (a1retCond**2).sum() * coef
+                cxx[key]= cxx[key] + (a1obsCond**2).sum() * coef
+                cxy[key]= cxy[key] + (a1retCond * a1obsCond).sum() * coef
 
 
-                #-- Histograms log-scale -------
-                #-- shift 0.01mm/h for log-scale --
-                logvmin, logvmax = -1.2, 2
-                a1retTmp  = np.log10(a1retTmp + 0.01)
-                a1obsTmp  = np.log10(a1obsTmp + 0.01)
-                H,xedges,yedges = np.histogram2d(a1obsTmp, a1retTmp, bins = bins)
-                H = H.T
-                H = H * d1coef[satid][idx_db]
-                d2freq[satid,surftype] = d2freq[satid,surftype] + H
+    #*******************************
+    lout = []
+    for satid in [999] + lsatid:
+        for surftype in lsurftype:
+            key = satid,surftype 
+            lout.append( [satid, surftype, 'h', h[key]]) 
+            lout.append( [satid, surftype, 'm', m[key]]) 
+            lout.append( [satid, surftype, 'f', f[key]]) 
+            lout.append( [satid, surftype, 'c', c[key]]) 
+            lout.append( [satid, surftype, 'un',  un[key]]) 
+            lout.append( [satid, surftype, 'uy',  uy[key]]) 
+            lout.append( [satid, surftype, 'ux',  ux[key]]) 
+            lout.append( [satid, surftype, 'uyy', uyy[key]]) 
+            lout.append( [satid, surftype, 'uxx', uxx[key]]) 
+            lout.append( [satid, surftype, 'uxy', uxy[key]]) 
+            lout.append( [satid, surftype, 'cn',  cn[key]]) 
+            lout.append( [satid, surftype, 'cy',  cy[key]]) 
+            lout.append( [satid, surftype, 'cx',  cx[key]])
+            lout.append( [satid, surftype, 'cyy', cyy[key]]) 
+            lout.append( [satid, surftype, 'cxx', cxx[key]]) 
+            lout.append( [satid, surftype, 'cxy', cxy[key]]) 
 
-
+    sout = util.list2csv(lout)
 
     #*******************************
     # Save
@@ -298,80 +327,92 @@ for rettype in lrettype:
     idx_db0 = min(lidx_db)
     idx_db1 = max(lidx_db)
 
-    pickleDir = '/'.join(retbaseDir.split('/')[:-1] ) + '/pickle'
-    histoPath  = pickleDir + '/histo.%s.%s.%05d-%05d.%s.bfile'%(expr, coefflag, idx_db0, idx_db1, rettype)
-    binsPath   = pickleDir + '/bins.%s.%s.%05d-%05d.%s.npy'%(expr, coefflag, idx_db0, idx_db1, rettype)
-    if calcflag == True:
-        with open(histoPath, 'wb') as f:
-            pickle.dump(d2freq, f)
+    outDir  = '/home/utsumi/temp/ret'
+    csvPath = outDir + '/multi.metrics.%s.%s.%05d-%05d.%s.csv'%(expr, coefflag, idx_db0, idx_db1, rettype)
 
-        np.save(binsPath, bins)
-    #*******************************
-    # Load 
-    #-------------------------------
-    with open(histoPath, 'r') as f:
-        d2freq = pickle.load(f)
-    bins = np.load(binsPath)
+    f=open(csvPath,'w'); f.write(sout); f.close()
+    print csvPath
 
+#*******************************
+# Load  and calc metrics
+#-------------------------------
+for rettype in lrettype:
+    idx_db0 = min(lidx_db)
+    idx_db1 = max(lidx_db)
 
-    #*******************************
-    # Figure
-    #-------------------------------
+    outDir  = '/home/utsumi/temp/ret'
+    csvPath = outDir + '/multi.metrics.%s.%s.%05d-%05d.%s.csv'%(expr, coefflag, idx_db0, idx_db1, rettype)
+
+    f=open(csvPath,'r'); lines=f.readlines(); f.close()
+    d = {}
+    for line in lines:
+        satid,surftype,varname,dat = line.strip().split(',')        
+        satid = int(satid)
+        dat   = float(dat)
+ 
+        d[satid,surftype,varname] = dat
+
+    lout = []
+
     for satid in [999] + lsatid:
         for surftype in lsurftype:
-            H   = d2freq[satid,surftype]
-            X,Y = np.meshgrid(bins,bins) 
+            h  = d[satid,surftype,'h'] 
+            m  = d[satid,surftype,'m'] 
+            f  = d[satid,surftype,'f'] 
+            c  = d[satid,surftype,'c'] 
 
-            print satid, surftype, H.max()    
-            #-- Figure density plot ----
-            if rettype == lrettype[0]:
-                vpercentile = np.percentile(H,95)
-    
-                if vpercentile !=0:
-                    dvnummax[satid, surftype] = vpercentile
-                else:
-                    dvnummax[satid, surftype] = H.max()
-                
-            
-            fig = plt.figure(figsize=[6,6])
-            ax  = fig.add_axes([0.15,0.13,0.66,0.66])
-            im  = ax.pcolormesh(X,Y,H, norm=matplotlib.colors.LogNorm(), cmap='jet', vmin=1, vmax=dvnummax[satid, surftype])
-   
-            if H.max() ==0:
-                print 'No precipitating case',satid, surftype
-                print 'Skip'
-                continue 
-        
-            #-- plot 1:1 line
-            ax.plot(array([logvmin,logvmax]),array([logvmin,logvmax]),'-',color='k',linewidth=0.5)
-            #-- axis labels ---
-            lticks = [-1,0,1,2]
-            lticklabels = [0.1, 1, 10, 100]
-        
-            ax.set_xticks(lticks)
-            ax.set_xticklabels(lticklabels, fontsize=16)
-            ax.set_yticks(lticks)
-            ax.set_yticklabels(lticklabels, fontsize=16)
-       
-            if rettype=='GPROF': 
-                ax.set_xlabel('DPR/NScmb [mm/hour]', fontsize=22)
-            else:
-                ax.set_xlabel('DPR/%s [mm/hour]'%(rettype), fontsize=22)
-    
-            ax.set_ylabel('%s [mm/hour]'%(rettype), fontsize=22)
-            ax.set_ylim([logvmin,logvmax])
-            ax.set_xlim([logvmin,logvmax])
-      
-            satname = dsatname[satid] 
-            stitle =  '%s (%s)\n%s %s'%(rettype, expr, satname, dsurflabel[surftype])
-            plt.title(stitle, fontsize=24)
-        
-            cax = fig.add_axes([0.82,0.15,0.02, 0.6])
-            cbar=plt.colorbar(im, orientation='vertical', cax=cax)
-            cbar.ax.tick_params(labelsize=16)
-       
-            figPath= figDir + '/scatter.%s.%s.%s.%05d-%05d.%s.%s.png'%(expr, satname, coefflag, idx_db0, idx_db1, rettype,surftype)
-            util.mk_dir(figDir)
-        
-            plt.savefig(figPath)
-            print figPath
+            un = d[satid,surftype,'un'] 
+            uy = d[satid,surftype,'uy'] 
+            ux = d[satid,surftype,'ux'] 
+            uyy= d[satid,surftype,'uyy'] 
+            uxx= d[satid,surftype,'uxx'] 
+            uxy= d[satid,surftype,'uxy'] 
+
+            cn = d[satid,surftype,'cn'] 
+            cy = d[satid,surftype,'cy'] 
+            cx = d[satid,surftype,'cx'] 
+            cyy= d[satid,surftype,'cyy'] 
+            cxx= d[satid,surftype,'cxx'] 
+            cxy= d[satid,surftype,'cxy'] 
+
+            urmse = np.sqrt( (uyy - 2*uxy + uxx)/un )
+            crmse = np.sqrt( (cyy - 2*cxy + cxx)/cn )
+
+            uxmean= ux/un
+            cxmean= cx/cn
+            uymean= uy/un
+            cymean= cy/cn
+
+            unrmse= urmse / uxmean
+            cnrmse= crmse / cxmean
+
+            ubias = (uy -ux)/un / uxmean
+            cbias = (cy -cx)/cn / cxmean
+
+            ucov  = uxy - uymean*ux - uxmean*uy + un*uxmean*uymean
+            ccov  = cxy - cymean*cx - cxmean*cy + cn*cxmean*cymean
+
+            uxvar = uxx - 2*uxmean*ux + un * uxmean**2
+            cxvar = cxx - 2*cxmean*cx + cn * cxmean**2
+
+            uyvar = uyy - 2*uymean*uy + un * uymean**2
+            cyvar = cyy - 2*cymean*cy + cn * cymean**2
+
+            ucc   = ucov / (uxvar*uyvar)**0.5
+            ccc   = ccov / (cxvar*cyvar)**0.5
+
+            pod   = float(h) / (h + m)
+            far   = float(f) / (h + f)
+
+            satName = dsatname[satid]
+            ltmp = [sensor,satName,surftype,un,cn,unrmse,cnrmse,ubias,cbias,ucc,ccc,pod,far]
+            lout.append(ltmp)
+
+    lout = [['sensor','satellite','surface','un','cn','unrmse','cnrmse','unbias','cnbias','ucc','ccc','pod','far']] + lout
+
+    sout = util.list2csv(lout)
+
+    outPath = outDir + '/multi.metrics.summary.%s.%s.%05d-%05d.%s.csv'%(expr, coefflag, idx_db0, idx_db1, rettype)
+    f=open(outPath, 'w'); f.write(sout); f.close()
+    print outPath
+  

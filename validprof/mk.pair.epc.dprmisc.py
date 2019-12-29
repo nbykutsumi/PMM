@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import socket
 import EPCDB
 #*******************************
-iDTime = datetime(2014,7,1)
+iDTime = datetime(2014,7,23)
 eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 lskipdates = [[2014,12,9],[2014,12,10]]
@@ -40,9 +40,9 @@ miss_out= -9999.
 
 #lvar = [['DPRGMI','NS/Input/zeroDegAltitude']]
 #lvar = [['DPRGMI','NS/Input/surfaceElevation'],['DPRGMI','NS/Input/zeroDegAltitude'],['Ku','NS/PRE/heightStormTop'],['Ku','dprx']]
-#lvar = [['Ku','NS/PRE/heightStormTop']]
+lvar = [['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','dpry'],['Ku','dprx']]
-lvar = [['DPRGMI','NS/vfracConv']] 
+#lvar = [['DPRGMI','NS/vfracConv']] 
 
 db = EPCDB.EPCDB()
 #------------------------------------------------

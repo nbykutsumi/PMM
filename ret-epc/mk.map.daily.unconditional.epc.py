@@ -23,11 +23,13 @@ else:
     print 'check myhost'
     sys.exit()
 #*******************************
-#iDTime = datetime(2014,6,1)
-#eDTime = datetime(2014,7,31)
-iDTime = datetime(2015,2,1)
-eDTime = datetime(2015,2,28)
+iDTime = datetime(2014,9,1)
+eDTime = datetime(2015,5,31)
+#iDTime = datetime(2015,2,1)
+#eDTime = datetime(2015,2,28)
 lDTime = util.ret_lDTime(iDTime, eDTime, timedelta(days=1))
+lYM_skip = [[2014,12],[2015,1],[2015,2]]
+
 DB_MAXREC = 10000
 DB_MINREC = 1000
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
@@ -46,6 +48,9 @@ for DTime in lDTime:
     a2ss= np.zeros([ny,nx],float32)
     #-- EPC ---------
     Year,Mon,Day = DTime.timetuple()[:3]
+
+    if [Year,Mon] in lYM_skip: continue
+
     srcDir = epcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
     if rettype=='epcNS':
         ssearch  = srcDir + '/nsurfNS.??????.y-9999--9999.nrec%d.npy'%(DB_MAXREC)

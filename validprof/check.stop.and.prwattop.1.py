@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import socket
 
 iDTime = datetime(2014,6,1)
-eDTime = datetime(2014,6,30)
+eDTime = datetime(2014,6,5)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 myhost = socket.gethostname()

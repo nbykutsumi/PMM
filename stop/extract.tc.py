@@ -11,7 +11,7 @@ import myfunc.util as util
 
 varName = 'nltb'
 iYM = [2017,1]
-eYM = [2017,1]
+eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
 #outDir= '/work/hk01/utsumi/PMM/TPCDB/PC_COEF'
 outDir= '/work/hk01/utsumi/PMM/stop/data'
@@ -81,8 +81,10 @@ for (Year,Mon) in lYM:
             oid,Year,Mon,Day,itime,etime = orbinfo
     
             #-- Storm Top Height ----
-            stopDir  = matchBaseDir + '/S1.ABp103-117.Ku.V06A.heightStormTop/%04d/%02d/%02d'%(Year,Mon,Day)
-            stopPath = stopDir + '/heightStormTop.1.%06d.npy'%(oid)
+            #stopDir  = matchBaseDir + '/S1.ABp103-117.Ku.V06A.heightStormTop/%04d/%02d/%02d'%(Year,Mon,Day)
+            #stopPath = stopDir + '/heightStormTop.1.%06d.npy'%(oid)
+            stopDir  = matchBaseDir + '/S1.ABp103-117.Ku.V06A.9ave.heightStormTop/%04d/%02d/%02d'%(Year,Mon,Day)   # 2019/12/25
+            stopPath = stopDir + '/heightStormTop.%06d.npy'%(oid)  # 2019/12/25
             #a2stop = np.load(stopPath)
             a2stop = np.load(stopPath)
             if a2stop.max()<0: continue
@@ -155,10 +157,6 @@ for (Year,Mon) in lYM:
                 a1tmp2 = a3tmp2.reshape(-1,ntc2)
 
 
-                #print a1surftype.shape
-                #print a2stop.flatten().shape
-                #print a1tmp1.shape
-                #print a2stop.shape 
                 #******************************
                 # Screen StormTop >=0 and SurfaceType
                 #******************************

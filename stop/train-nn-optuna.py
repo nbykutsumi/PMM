@@ -1,6 +1,6 @@
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+#import matplotlib
+#matplotlib.use('Agg')
+#import matplotlib.pyplot as plt
 
 import numpy as np
 import pylab as pl
@@ -9,7 +9,10 @@ import matplotlib.gridspec as gridspec
 from glob import glob
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
+from tensorflow.keras import layers, initializers
+import optuna
+#from optuna.integration import KerasPruningCallback
+from optuna.integration.tfkeras import TFKerasPruningCallback
 
 import numpy.ma as ma
 import sys,os
@@ -43,14 +46,16 @@ Year  = 2017
 season = 0
 #season = 9
 #lisurf = range(1,14+1)
-#lisurf = range(2,14+1)
-lisurf = [7]
-saveprep = 1
-savemodel= 1
-#restmodel = 0
-restmodel = 1
+#lisurf = range(2,5+1)
+#lisurf = range(6,9+1)
+#lisurf = range(10,13+1)
+#lisurf = range(14,14+1)
+lisurf = [1]
+savemodel= 0
+restmodel = 0
+#restmodel = 1
 #expr  = 'a01'
-expr  = 'cv01'
+expr  = 'opt01'
 #lact = ['H','L','LT']
 #lact = ['L','LT']
 lact = ['LTQZ']
@@ -116,26 +121,34 @@ def split2batchs(a,bsize):
 
 
 
-#def build_model_sepConv2d(inshape):
-#    filters = 32
-#    model = keras.Sequential([
-#         layers.SeparableConv2D(filters=filters, kernel_size=(2,2),data_format='channels_last',use_bias=False, activation='relu', input_shape=inshape)
-#        ,layers.MaxPooling2D((2,2))
-#        ,layers.SeparableConv2D(filters=filters, kernel_size=(2,2),data_format='channels_last',use_bias=False, activation='relu', input_shape=inshape)
-#        ,layers.MaxPooling2D((2,2))
-#        ,layers.Dense(1)
-#    ])
-#    optimizer = tf.keras.optimizers.RMSprop(0.001)
-#
-#    model.compile(loss='mse'
-#                  ,optimizer=optimizer
-#                  ,metrics=['mae', 'mse']
-#                 )
-#    return model 
+def build_model_2d_opt(trial):
+
+    nlayers = trial.suggest_int('nlayers', 2,5)
+    
+    model = keras.Sequential()
+    for i in range(nlayers):
+        mid_units = int(trial.suggest_discrete_uniform('mid_units_%d'%(i), 32,96,32))
+
+        #model.add( layers.Dense(mid_units, kernel_initializer=initializers.he_normal()) )
+        #model.add( layers.BatchNormalization())
+        #model.add( layers.Activation('relu'))
+
+        model.add( layers.Dense(mid_units, activation='relu',kernel_initializer=initializers.he_normal()) )
+        model.add( layers.Dropout(rate=0.3) )
+
+    model.add(layers.Dense(1))
+    #optimizer = tf.keras.optimizers.RMSprop(0.001)
+    optimizer = tf.keras.optimizers.Adam()
+
+    model.compile(loss='mse'
+                  ,optimizer=optimizer
+                  ,metrics=['mae', 'mse']
+                 )
+    return model 
 
 
 
-def build_model_2d(ncol):
+def build_model_2d():
     model = keras.Sequential([
          layers.Dense(64, activation='relu', input_shape=[ncol])
         ,layers.Dense(64, activation='relu')
@@ -342,7 +355,7 @@ def read_Tc_2d(lDTime=None, ldydx=None, isurf=None, samplerate=None, ch='LH'):
             np.random.seed(0)  # Do not change !!
             aidx = np.random.choice(range(a2tcTmp.shape[0]), int(a2tcTmp.shape[0]*samplerate), replace=False)
 
-            a2tcTmp = a2tcTmp[a1idx,:]            
+            a2tcTmp = a2tcTmp[aidx,:]            
         #**********************
         a2tc.extend(a2tcTmp)
 
@@ -377,7 +390,7 @@ def read_var_collect(varName=None, lDTime=None, ldydx=None, isurf=None, samplera
             np.random.seed(0)  # Do not change !!
             aidx = np.random.choice(range(a2varTmp.shape[0]), int(a2varTmp.shape[0]*samplerate), replace=False)
 
-            a2varTmp = a2varTmp[a1idx,:] 
+            a2varTmp = a2varTmp[aidx] 
         #**********************
 
 
@@ -387,23 +400,8 @@ def read_var_collect(varName=None, lDTime=None, ldydx=None, isurf=None, samplera
             a2varTmp = np.array(a2varTmp)
         #**********************
         a2var.extend(a2varTmp)
-
     return np.array(a2var)
 
-def read_pc_coef(isurf):
-    #*********************************
-    # Read PC coefficient
-    #*********************************
-    #coefDir = '/work/hk01/utsumi/PMM/stop/data/coef'
-    coefDir = stopbaseDir + '/data/coef'
-    egvecPath = coefDir + '/egvec.%02dch.%03dpix.%02dsurf.npy'%(ntc1+ntc2, len(ldydx),isurf)
-    egvalPath = coefDir + '/egval.%02dch.%03dpix.%02dsurf.npy'%(ntc1+ntc2, len(ldydx),isurf)
-    varratioPath = coefDir + '/varratio.%02dch.%03dpix.%02dsurf.npy'%(ntc1+ntc2, len(ldydx),isurf)
-    
-    a2egvec = np.load(egvecPath)  # (n-th, ncomb)
-    a1varratio = np.load(varratioPath)
-    a1cumvarratio= np.cumsum(a1varratio)
-    return a2egvec, a1varratio, a1cumvarratio
 
 def my_unit(x,Min,Max):
     return (x-Min)/(Max-Min)
@@ -414,7 +412,7 @@ def my_unit(x,Min,Max):
 
 
 
-def load_data_2d(lDTime):
+def load_data_2d(lDTime, shuffleflag=True, samplerate=None):
     dtrainx = {}
     lvar    = []
     #ldx   = [-2,-1,0,1,2]
@@ -429,22 +427,21 @@ def load_data_2d(lDTime):
     elif 'L' in act: ch= 'L'
     else: print 'check act',act; sys.exit()
 
-
-    trainTc   = read_Tc_2d(lDTime, ldydx, isurf, ch=ch)
-    trainStop = read_var_collect('stop', lDTime, [[0,0]], isurf)
+    trainTc   = read_Tc_2d(lDTime, ldydx, isurf, ch=ch, samplerate=samplerate)
+    trainStop = read_var_collect('stop', lDTime, [[0,0]], isurf, samplerate=samplerate)
    
-   
+  
     if 'T' in act:
         lvar.append('t2m')
-        dtrainx['t2m'] = read_var_collect('t2m', lDTime, [[0,0]], isurf)
+        dtrainx['t2m'] = read_var_collect('t2m', lDTime, [[0,0]], isurf, samplerate=samplerate)
    
     if 'Q' in act:
         lvar.append('tqv')
-        dtrainx['tqv'] = read_var_collect('tqv', lDTime, [[0,0]], isurf)
+        dtrainx['tqv'] = read_var_collect('tqv', lDTime, [[0,0]], isurf, samplerate=samplerate)
 
     if 'Z' in act:
         lvar.append('gtopo')
-        dtrainx['gtopo'] = read_var_collect('tqv', lDTime, [[0,0]], isurf)
+        dtrainx['gtopo'] = read_var_collect('tqv', lDTime, [[0,0]], isurf, samplerate=samplerate)
 
     #****************************************************
     # Screen invalid data
@@ -467,10 +464,10 @@ def load_data_2d(lDTime):
     for var in lvar:
         dtrainx[var] = dtrainx[var][a1flag]
  
-    print 'After Tc screening'
-    print trainTc.shape, trainStop.shape
-    print 'trainTc.min, max=',trainTc.min(), trainTc.max()
-    print 'stop.min, max=', trainStop.min(), trainStop.max()
+    #print 'After Tc screening'
+    #print trainTc.shape, trainStop.shape
+    #print 'trainTc.min, max=',trainTc.min(), trainTc.max()
+    #print 'stop.min, max=', trainStop.min(), trainStop.max()
     
     
     #***********************************************************
@@ -481,7 +478,6 @@ def load_data_2d(lDTime):
     
     #trainStop = my_unit(trainStop, stopmin, stopmax)
     
-    print lvar
      
     for var in lvar:
         varmin, varmax = dvarminmax[var]
@@ -492,6 +488,14 @@ def load_data_2d(lDTime):
     for var in lvar:
         trainTc = np.hstack([trainTc, dtrainx[var].reshape(-1,1)])
     #print trainTc.shape        
+
+    if shuffleflag is True:
+        a1idx = np.arange(trainTc.shape[0]).astype('int32')
+        np.random.shuffle(a1idx)
+
+        trainTc   = trainTc[a1idx]
+        trainStop = trainStop[a1idx]
+
 
     return trainTc, trainStop
 
@@ -588,8 +592,6 @@ def load_data_4d(lDTime):
     
     #trainStop = my_unit(trainStop, stopmin, stopmax)
     
-    print lvar
-     
     for var in lvar:
         varmin, varmax = dvarminmax[var]
         dtrainx[var] = my_unit(dtrainx[var], varmin, varmax)
@@ -608,6 +610,103 @@ def load_data_4d(lDTime):
 
 
 
+
+def objective(trial):
+    keras.backend.clear_session()
+
+    ncol  = dncol[act]  
+    model = build_model_2d_opt(trial)
+    
+    if savemodel==1:
+        modelPath = cpDir + '/model.json'
+        json_string = model.to_json()
+        with open(modelPath, 'w') as f:
+            f.write(json_string)
+
+    if restmodel ==1: 
+        latest = tf.train.latest_checkpoint(cpDir)
+    
+        if latest is not None:
+            print 'Load weights'
+            model.load_weights(latest)
+
+
+    #************************
+    if   season == 0:
+        lDTime = util.ret_lDTime(datetime(Year,1,1), datetime(Year,12,31),timedelta(days=1))
+    
+    else:
+        Mon  = season
+        eDay = calendar.monthrange(Year,Mon)[1]
+        lDTime = util.ret_lDTime(datetime(Year,Mon,1), datetime(Year,Mon,eDay), timedelta(days=1))
+
+
+    lDTime = [x for x in lDTime if not x in lDTimeSkip]
+    #************************
+
+
+    if isurf==1:
+        bsize = 15
+        samplerate = 0.5
+    else:
+        bsize = 80
+        samplerate = None
+    np.random.shuffle(lDTime)
+    llDTime = split2batchs(lDTime,bsize)
+
+
+    for klDTime,lDTime in enumerate(llDTime):
+
+        lDTime_train, lDTime_test = train_test_split(lDTime, train_size=0.8, test_size=0.2)
+    
+        trainX, trainY = load_data_2d(lDTime_train, shuffleflag=True, samplerate=samplerate)
+        #****************************************************
+        # Training
+        #****************************************************
+        # Set test data aside
+    
+        #cpPath= cpDir + '/cp-s%02d-{epoch:04d}.ckpt'%(isurf)
+        #cpPath= cpDir + '/cp-s%02d-{val_loss:.2f}.ckpt'%(isurf)
+        cpPath= cpDir + '/cp-s%02d.ckpt'%(isurf)
+        #cp_callback = tf.keras.callbacks.ModelCheckpoint(cpPath, save_weights_only=True, verbose=1, monitor='val_loss', save_best_only=True, mode='min')
+        cp_callback = TFKerasPruningCallback(trial, 'val_acc')
+    
+        early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
+   
+    
+        if isurf ==1: 
+            EPOCHS = 3
+        elif isurf==3:
+            EPOCHS = 10
+        else:
+            EPOCHS = 10
+
+
+        history = model.fit(
+            x=trainX, y=trainY,
+            batch_size=128,
+            epochs=EPOCHS, validation_split=0.2,
+            #callbacks = [cp_callback, early_stop],
+            callbacks = [cp_callback],
+            verbose=0)
+
+
+        #histPath = cpDir + '/hist-%s-%s-s%02d.pickle'%(expr,act, isurf)
+        #if restmodel ==0:
+        #    if (klDTime==0)and(os.path.exists(histPath)):
+        #        
+        #        os.remove(histPath)
+
+        #append_history(history, histPath)
+
+    #score = history['val_loss']
+    testX, testY = load_data_2d(lDTime_test)
+    score = model.evaluate(testX, testY, verbose=0)[1]
+    return score
+
+
+
+
 print 'Define functions'
 #***********************************************************
 # Main loop start
@@ -620,105 +719,37 @@ for act in lact:
     for isurf in lisurf:
        
         ncol  = dncol[act]  
-        #nc  = dnc[act]  
-        model = build_model_2d(ncol)
-        #model = build_model_cnn([ny,nx,nc])
+
+        study = optuna.create_study(
+                direction='minimize',
+                pruner=optuna.pruners.MedianPruner()
+            )
+
+        study.optimize(objective, n_trials=50)
+
+        pruned_trials = [t for t in study.trials if t.state == optuna.structs.TrialState.PRUNED]
+        complete_trials = [t for t in study.trials if t.state == optuna.structs.TrialState.COMPLETE]
+        print 'Study statistics:'
+        print  'Number of finished trials: ', len(study.trials)
+        print  'Number of pruned trials: ', len(pruned_trials)
+        print  'Number of complete trials: ', len(complete_trials)
+
+
+        print "Best trial:"
+        trial = study.best_trial
+        print "  Value: ", trial.value
+        print "  Params: "
+        for key, value in trial.params.items():
+            print 'key',key, 'value',value
+
+        now = datetime.now()
+        studyPath = cpDir + '/study-surf%d-'%(isurf)+ now.strftime('%Y%m%d_%H%M%S') + '.pickle'
     
-        if savemodel==1:
-            modelPath = cpDir + '/model.json'
-            json_string = model.to_json()
-            with open(modelPath, 'w') as f:
-                f.write(json_string)
-
-        if restmodel ==1: 
-            latest = tf.train.latest_checkpoint(cpDir)
-        
-            if latest is not None:
-                print 'Load weights'
-                model.load_weights(latest)
-
-
-        #************************
-        if   season == 0:
-            lDTime = util.ret_lDTime(datetime(Year,1,1), datetime(Year,12,31),timedelta(days=1))
-        
-        else:
-            Mon  = season
-            eDay = calendar.monthrange(Year,Mon)[1]
-            lDTime = util.ret_lDTime(datetime(Year,Mon,1), datetime(Year,Mon,eDay), timedelta(days=1))
-
-
-        lDTime = [x for x in lDTime if not x in lDTimeSkip]
-        np.random.shuffle(lDTime)
-        #************************
-
-
-        if isurf==1:
-            bsize = 10
-        else:
-            bsize = 80
-        llDTime = split2batchs(lDTime,bsize)
-
-
-        for klDTime,lDTime in enumerate(llDTime):
+        with open(studyPath, 'wb') as f:
+            pickle.dump(study, f)
     
-            lDTime_train, lDTime_test = train_test_split(lDTime, train_size=0.8, test_size=0.2)
-    
-            trainX, trainY = load_data_2d(lDTime_train)
+        print studyPath
 
-            print ''
-            print 'isurf=',isurf,'shapes train',trainX.shape    
-            #****************************************************
-            # Training
-            #****************************************************
-            # Set test data aside
-    
-            #cpPath= cpDir + '/cp-s%02d-{epoch:04d}.ckpt'%(isurf)
-            #cpPath= cpDir + '/cp-s%02d-{val_loss:.2f}.ckpt'%(isurf)
-            cpPath= cpDir + '/cp-s%02d.ckpt'%(isurf)
-            cp_callback = tf.keras.callbacks.ModelCheckpoint(cpPath, save_weights_only=True, verbose=1, monitor='val_loss', save_best_only=True, mode='min')
-    
-            early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
-    
-   
-    
-            if isurf ==1: 
-                EPOCHS = 3
-            elif isurf==3:
-                EPOCHS = 10
-            else:
-                EPOCHS = 10
+ 
 
-            history = model.fit(
-                x=trainX, y=trainY,
-                batch_size=128,
-                epochs=EPOCHS, validation_split=0.2,
-                #callbacks = [cp_callback, early_stop],
-                callbacks = [cp_callback],
-                verbose=1)
-                
-
-            histPath = cpDir + '/hist-%s-%s-s%02d.pickle'%(expr,act, isurf)
-            if restmodel ==0:
-                if (klDTime==0)and(os.path.exists(histPath)):
-                    
-                    os.remove(histPath)
-
-            append_history(history, histPath)
-
-
-            #*******************************************************
-            # Figure
-            #*******************************************************
-   
-            testX, testY = load_data_2d(lDTime_test)
-            pred = model.predict(testX)
-            print 'isurf=',isurf    
-            #expr= 'a-%s.s-%02d'%(act,isurf)
-            corr = np.corrcoef(testY.flatten(), pred.flatten())[0,1]
-            print corr
-            figPath = figDir + '/train.%s-%s-ssn%s-surf%d.png'%(expr,act,season, isurf)
-            Figure(testY, pred, 50, figPath)
-    
-            #***************************************************
 

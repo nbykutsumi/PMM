@@ -7,7 +7,8 @@ import myfunc.util as util
 
 myhost = socket.gethostname()
 #lsensor = ['AMSR2','SSMIS','MHS','ATMS']
-lsensor = ['SSMIS','MHS','ATMS']
+#lsensor = ['SSMIS','MHS','ATMS']
+lsensor = ['AMSR2']
 
 '''
  /* first six= Ntotal then Nrain exceeding 1 5 10 20 50 mm/hr when T2m < 278K */
@@ -17,7 +18,8 @@ Warm/Cold separation is not considered for now.
 '''
 
 
-lepcid = range(29*29*28)
+#lepcid = range(29*29*29)
+lepcid = range(23543,29*29*29)
 #lepcid = range(1000)
 for sensor in lsensor:
     if myhost == 'shui':
@@ -26,7 +28,7 @@ for sensor in lsensor:
         baseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE_TEST29'%(sensor)
 
 
-    db = JPLDB.JPLDB()
+    db = JPLDB.JPLDB(sensor)
 
 
     for epcid in lepcid:

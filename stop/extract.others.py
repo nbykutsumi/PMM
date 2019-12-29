@@ -23,7 +23,7 @@ else:
 
 
 iYM = [2017,1]
-eYM = [2017,1]
+eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
 verGMI = '05'
 subverGMI = 'A'
@@ -34,9 +34,9 @@ ldx   = [0]
 Shape = [len(ldy),len(ldx)]
 ldydx = [[dy,dx] for dy in ldy for dx in ldx]
 #varNameFull= 'S1.ABp103-117.GMI.Latitude'
-varNameFull= 'S1.ABp000-220.MERRA2.t2m'
+#varNameFull= 'S1.ABp000-220.MERRA2.t2m'
 #varNameFull= 'S1.ABp000-220.MERRA2.tqv'
-#varNameFull= 'S1.ABp000-220.gtopo'
+varNameFull= 'S1.ABp000-220.gtopo'
 
 varName = varNameFull.split('.')[-1]
 #**** Function *****************
@@ -98,8 +98,13 @@ for (dy,dx) in ldydx:
                 oid,Year,Mon,Day,itime,etime = orbinfo
         
                 #-- Storm Top Height ----
-                stopDir  = matchBaseDir + '/S1.ABp103-117.Ku.V06A.heightStormTop/%04d/%02d/%02d'%(Year,Mon,Day)
-                stopPath = stopDir + '/heightStormTop.1.%06d.npy'%(oid)
+                #stopDir  = matchBaseDir + '/S1.ABp103-117.Ku.V06A.heightStormTop/%04d/%02d/%02d'%(Year,Mon,Day)
+                #stopPath = stopDir + '/heightStormTop.1.%06d.npy'%(oid)
+
+                stopDir  = matchBaseDir + '/S1.ABp103-117.Ku.V06A.9ave.heightStormTop/%04d/%02d/%02d'%(Year,Mon,Day)   # 2019/12/25
+                stopPath = stopDir + '/heightStormTop.%06d.npy'%(oid)  # 2019/12/25
+
+
                 a2stop = np.load(stopPath)
                 if a2stop.max()<=0: continue
 

@@ -19,7 +19,8 @@ import random
 #lidx_db = [4721]
 #lidx_db = range(29*29*29)[1:]
 #lidx_db = range(10000,20000)
-lidx_db = range(20000,29*29*29)[1:]
+lidx_db = range(23516,29*29*29)[1:]
+#lidx_db = range(23543,29*29*29)[1:]
 #lidx_db = range(1000)
 #lidx_db = [1365]
 nsample = 1000
@@ -31,10 +32,10 @@ dbtype  = 'jpl'
 DB_MAXREC    = 10000
 DB_MINREC    = 1000
 #sensor  = 'GMI'
-sensor  = 'AMSR2'
+#sensor  = 'AMSR2'
 #sensor  = 'SSMIS'
-#sensor  = 'MHS'
 #sensor  = 'ATMS'
+#sensor  = 'MHS'
 expr = 'org.%s.smp%d'%(sensor,nsample)
 #expr = 'no-same-rev.smp%d'%(nsample)
 

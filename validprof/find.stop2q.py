@@ -105,7 +105,7 @@ for rettype in lrettype:
 
                 a1precradTmp= np.load(pairDir+ '/precrad.%06d.npy'%(oid))
                 a2profradTmp= np.load(pairDir+ '/profrad.%06d.npy'%(oid))[:,4:nz]  # bottom to top
-                a1stopradTmp=np.load(pairDir + '/stoprad.%06d.npy'%(oid))
+                a1stopradTmp=np.load(pairDir + '/heightStormToprad.%06d.npy'%(oid))
                 a1elevTmp   = np.load(pairDir + '/surfaceElevationrad.%06d.npy'%(oid))
 
                 #--- Screen missing surface precipitation ---

@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 import socket
 import EPCDB
 #*******************************
-iDTime = datetime(2015,1,27)
-eDTime = datetime(2015,1,31)
+iDTime = datetime(2015,5,1)
+eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 DB_MAXREC = 10000
 DB_MINREC = 1000
@@ -37,9 +37,9 @@ NLEV_PREC = 50
 miss_out= -9999.
 db = EPCDB.EPCDB()
 
-#lvar = ['heightStormTop']
+lvar = ['heightStormTop']
 #lvar = ['tqv']
-lvar = ['vfracConv']
+#lvar = ['vfracConv']
 
 ddbvar = {'heightStormTop':'storm_height_ku'
         }

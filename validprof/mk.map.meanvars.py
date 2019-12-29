@@ -20,8 +20,8 @@ else:
     print 'check myhost'
     sys.exit()
 #*******************************
-iYM  = [2014,12]
-eYM  = [2015,2]
+iYM  = [2015,3]
+eYM  = [2015,5]
 lYM  = util.ret_lYM(iYM,eYM)
 
 DB_MAXREC = 10000
@@ -29,12 +29,15 @@ DB_MINREC = 1000
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 miss_out= -9999.
-#lrettype = ['epc']
-lrettype = ['gprof']
-#lvar= ['stoprad','top-stoppmw']
-#lvar= ['stoprad','top-stoppmw']
+lrettype = ['epc']
+#lrettype = ['gprof']
+#lrettype = ['epc','gprof']
+#lvar= ['stop-profrad','stop-profpmw']
+#lvar= ['stop-profrad.th0.033q','stop-profpmw.th0.033q']
+#lvar= ['stop-profpmw']
+lvar= ['stoprad','top-stoppmw']
 #lvar = ['precrad','precpmw','zeroDegAltituderad']
-lvar = ['precpmw']
+#lvar = ['precpmw','precrad']
 #lvar = ['convfreqrad','stratfreqrad','convfreqpmw','stratfreqpmw']
 #lvar = ['precrad','precpmw','stoprad','top-stoppmw','convfreqrad','stratfreqrad','convfreqpmw','stratfreqpmw']
 #lvar = ['convfreqpmw','stratfreqpmw']
@@ -48,10 +51,13 @@ lskipdates = [[2014,10,22],[2014,10,23],[2014,10,24],[2014,12,9],[2014,12,10],[2
 
 
 #lstype= ['all','sea','land','veg','snow','coast']
-lstype= ['all','sea','veg','snow','coast']
+#lstype= ['all','sea','veg','snow','coast']
+lstype= ['all']
 #lstype= ['coast']
-lptype= ['all','conv','stra']
-lph   = ['H','L','A']
+#lptype= ['all','conv','stra']
+lptype= ['all']
+#lph   = ['H','L','A']
+lph   = ['A']
 #lprrange=[[0.5,999],[1,3],[8,12]]
 lprrange=[[0.5,999]]
 lprrange= map(tuple, lprrange)
@@ -61,6 +67,11 @@ def ret_var_filename(var):
         var_filename= 'typePreciprad'
     elif var in ['convfreqpmw','stratfreqpmw']:
         var_filename= 'top-typePrecippmw'
+    elif var =='stoprad':
+        var_filename= 'heightStormToprad'
+    elif var =='top-stoppmw':
+        var_filename= 'top-heightStormToppmw'
+        
     else:
         var_filename= var
     return var_filename
@@ -109,10 +120,13 @@ for Year,Mon in lYM:
         
                 ssearch = srcDir + '/%s.??????.npy'%(var_filename)
                 lprofPath = np.sort(glob.glob(ssearch))
+
+                print len(lprofPath)
                 for profPath in lprofPath:
                     oid = int(profPath.split('.')[-2])    
         
                     avar  = np.load(srcDir + '/%s.%06d.npy'%(var_filename,oid))
+
                     a1lat  = np.load(srcDir + '/Latitude.%06d.npy'%(oid)).astype(float64)
                     a1lon  = np.load(srcDir + '/Longitude.%06d.npy'%(oid)).astype(float64)
 
@@ -123,9 +137,9 @@ for Year,Mon in lYM:
                     a1ph   = np.load(srcDir + '/stop-profrad.%06d.npy'%(oid))
                     a1freez= np.load(srcDir + '/zeroDegAltituderad.%06d.npy'%(oid))
 
-                    if var[-3:] =='rad':
+                    if var.split('.')[0][-3:] =='rad':
                         a1prec = np.load(srcDir + '/precrad.%06d.npy'%(oid))
-                    elif var[-3:]=='pmw':
+                    elif var.split('.')[0][-3:]=='pmw':
                         a1prec = np.load(srcDir + '/precpmw.%06d.npy'%(oid))
                     else:
                         print 'check var',var

@@ -31,8 +31,9 @@ miss_out= -9999.
 #lvar = [['Ku','NS/CSF/typePrecip']]
 #lvar = [['Ku','NS/PRE/heightStormTop'],['Ku','NS/CSF/typePrecip'],['DPRGMI','NS/Input/zeroDegAltitude']]
 #lvar = [['Ku','NS/CSF/typePrecip'],['DPRGMI','NS/Input/zeroDegAltitude'],['Ku','dprx']]
-lvar = [['DPRGMI','NS/Input/surfaceElevation']]
-#lvar = [['Ku','NS/PRE/heightStormTop']]
+#lvar = [['DPRGMI','NS/Input/surfaceElevation']]
+#lvar = [['DPRGMI','NS/vfracConv']]
+lvar = [['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','dprx'],['Ku','dpry']]
 #------------------------------------------------
 def ret_aprof(a4clusterProf, a2tIndex, a3profNum, a3profScale, lspecies=[0,2,3,4]):
@@ -217,7 +218,8 @@ for DTime in lDTime:
             if varName in ['dpry','dprx']: continue
 
             #-- Read DPR-Ku  ----------------------------------------
-            if prod=='DPRGMI':
+
+            elif prod=='DPRGMI':
                 dprbaseDir = workbaseDir + '/hk01/PMM/NASA/GPM.DPRGMI/2B/V06'
                 dprDir     = dprbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
                 ssearch = dprDir + '/2B.GPM.DPRGMI.*.%06d.V???.HDF5'%(oid)
@@ -227,8 +229,14 @@ for DTime in lDTime:
                     print 'No DPR file for oid=',oid
                     continue
 
-                with h5py.File(dprPath, 'r') as h:
-                    davarorg[prod,varName] = h[varName][:]
+                if varName == 'NS/vfracConv':
+                    with h5py.File(dprPath, 'r') as h:
+                        davarorg[prod,varName] = h['/NS/Input/precipitationType'][:]
+                        aprec = h['NS/surfPrecipTotRate'][:]
+
+                else:
+                    with h5py.File(dprPath, 'r') as h:
+                        davarorg[prod,varName] = h[varName][:]
 
             elif prod=='Ku':
                 dprbaseDir = tankbaseDir + '/utsumi/data/PMM/NASA/GPM.Ku/2A/V06'
@@ -300,6 +308,14 @@ for DTime in lDTime:
 
                 print oid, a1y.shape, davar[prod,varName].shape, a1flag.sum()
                 
+
+            elif varName in ['NS/vfracConv']:
+                pconv = ma.masked_less(davarorg[prod,varName],0)
+                pall  = ma.masked_less(aprec,0) 
+                pconv = sum_9grids_2d(pconv, a1y, a1x, miss=0).filled(0)
+                pall  = sum_9grids_2d(pall , a1y, a1x, miss=0).filled(0)
+
+                davar[prod,varName] = (ma.masked_less(pall==0, pconv) / pall).filled(0.0)
 
             elif varName in ['NS/CSF/typePrecip']:
                 Dat0 = (davarorg[prod,varName]/10000000).astype('int16')

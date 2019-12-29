@@ -30,7 +30,8 @@ else:
 #*******************************
 #lseason=['JJA']
 #lseason=['DJF']
-lseason=['JJADJF']
+#lseason=['JJADJF']
+lseason=['ALL']
 ny,nx = 120,360
 DB_MAXREC = 10000
 DB_MINREC = 1000
@@ -68,7 +69,10 @@ a2orog = a2orog[30:30+120,:]
 
 #*******************************
 for season in lseason:
-    if season =='JJADJF':
+    if season =='ALL':
+        lYM = util.ret_lYM([2014,6],[2015,5])
+
+    elif season =='JJADJF':
         lYM = util.ret_lYM([2014,6],[2014,8]) + util.ret_lYM([2014,12],[2015,2])
     elif season=='JJA':
         lYM = util.ret_lYM([2014,6],[2014,8])

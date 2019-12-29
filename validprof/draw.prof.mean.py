@@ -53,8 +53,8 @@ lstype = ['veg','sea','snow','coast']
 #lstype = ['veg']
 lptype= ['conv','stra']
 #lptype= ['stra']
-lph   = ['L','H','A']
-#lph   = ['A']
+#lph   = ['L','H','A']
+lph   = ['A']
 #lph   = ['L']
 #lprrange=[[0.5,999],[1,3],[8,12]]
 #lprrange=[[1,3],[8,12]]
@@ -342,6 +342,28 @@ for season in lseason:
             y1 = int(floor(lat1 - latmin))
             x0 = int(floor(lon0 - lonmin))
             x1 = int(floor(lon1 - lonmin))
+
+            #********************************************** 
+            #-- cvs file
+            #********************************************** 
+            a1y = 0.25 + np.arange(nz) * 0.5 # [km]
+            a1rad = ma.masked_where(a3mask, dvar['epc',  'profrad'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
+            a1pmw = ma.masked_where(a3mask, dvar['epc',  'profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
+            a1gpr = ma.masked_where(a3mask, dvar['gprof','profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
+
+            sout = ',,%s,%s,%s\n'%(region,region,region)
+            sout = sout + ',%s,%s,%s\n'%(season,season,season)
+            sout = sout + ',%s,%s,%s\n'%(stype,stype,stype)
+            sout = sout + ',%s,%s,%s\n'%(ptype,ptype,ptype)
+            sout = sout + 'km,rad,pmw,gpr\n'
+
+            for i in range(len(a1rad)):
+                stmp = '%s,%s,%s,%s\n'%(a1y[i], a1rad[i], a1pmw[i], a1gpr[i])
+                sout = sout + stmp
+            
+            csvPath = figDir + '/prof.%s.%s.csv'%(stampOut,region)
+            f=open(csvPath,'w'); f.write(sout); f.close()
+            continue
 
             #-------------------
             n = dnum['epc','profrad'][y0:y1+1,x0:x1+1].sum() 

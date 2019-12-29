@@ -26,8 +26,8 @@ else:
     sys.exit()
 
 varName = 'nltb'
-iYM = [2017,1]
-eYM = [2017,1]
+iYM = [2017,11]
+eYM = [2017,12]
 lYM = util.ret_lYM(iYM,eYM)
 
 
@@ -101,8 +101,13 @@ for (dy,dx) in ldydx:
                 oid,Year,Mon,Day,itime,etime = orbinfo
         
                 #-- Storm Top Height ----
-                stopDir  = matchBaseDir + '/S1.ABp103-117.Ku.V06A.heightStormTop/%04d/%02d/%02d'%(Year,Mon,Day)
-                stopPath = stopDir + '/heightStormTop.1.%06d.npy'%(oid)
+                #stopDir  = matchBaseDir + '/S1.ABp103-117.Ku.V06A.heightStormTop/%04d/%02d/%02d'%(Year,Mon,Day)
+                #stopPath = stopDir + '/heightStormTop.1.%06d.npy'%(oid)
+
+                stopDir  = matchBaseDir + '/S1.ABp103-117.Ku.V06A.9ave.heightStormTop/%04d/%02d/%02d'%(Year,Mon,Day)  # 2019/12/25
+                stopPath = stopDir + '/heightStormTop.%06d.npy'%(oid)    # 2019/12/25
+
+
                 a2stop = np.load(stopPath)
                 if a2stop.max()<=0: continue
    
@@ -137,7 +142,6 @@ for (dy,dx) in ldydx:
             for isurf in range(1,15+1):
                 aout = array(dastop[isurf])
                 Year,Mon,Day = DTime.timetuple()[:3]
-                #outDir = '/work/hk01/utsumi/PMM/stop/data/stop/%04d/%02d/%02d'%(Year,Mon,Day)
                 outDir = tankDir + '/utsumi/PMM/stop/data/stop/%04d/%02d/%02d'%(Year,Mon,Day)
                 outPath= outDir + '/stop.%ddy.%ddx.%02dsurf.npy'%(dy,dx,isurf)
                 util.mk_dir(outDir)

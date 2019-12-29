@@ -21,13 +21,14 @@ else:
 #*******************************
 
 iDTime = datetime(2014,6,4)
-eDTime = datetime(2014,6,4)
+eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 thpr = 0.1
 miss_out= -9999.
 #lvar  = ['S1/Latitude', 'S1/Longitude'] 
-lvar  = ['S1/Latitude', 'S1/Longitude']+ ['S1/qualityFlag','S1/surfaceTypeIndex'] 
+#lvar  = ['S1/Latitude', 'S1/Longitude']+ ['S1/qualityFlag','S1/surfaceTypeIndex']
+lvar  = ['S1/vfracConv']
 #------------------------------------------------
 
 def ave_9grids_2d(a2in, a1y, a1x, miss):
@@ -118,6 +119,8 @@ for DTime in lDTime:
         #-- Read GPROF --------------------------------------------
         with h5py.File(gprofPath,'r') as h: 
             a2sfcprecg = h['S1/surfacePrecipitation'][:,83:137+1]  # (Y,X)
+
+
  
         #-- Reshape GPROF --
         a1sfcprecg=a2sfcprecg.flatten()
@@ -155,8 +158,16 @@ for DTime in lDTime:
         for var in lvar:
             print var
             varName = var.split('/')[-1]
-            with h5py.File(gprofPath,'r') as h: 
-                a2var = h[var][:,83:137+1]  # (Y,X)
+            if varName =='vfracConv':
+                with h5py.File(gprofPath,'r') as h: 
+                    a2conv = h['S1/convectivePrecipitation'][:,83:137+1]  # (Y,X)
+                    a2all  = h['S1/surfacePrecipitation'][:,83:137+1]  # (Y,X)
+                    a2var = (ma.masked_where(a2all==0, a2conv) / a2all).filled(0.0)
+
+                
+            else:
+                with h5py.File(gprofPath,'r') as h: 
+                    a2var = h[var][:,83:137+1]  # (Y,X)
 
             a1var = a2var.flatten() 
             a1var = a1var[a1flag] 

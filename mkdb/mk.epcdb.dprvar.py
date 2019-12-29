@@ -44,13 +44,13 @@ worg= 221  # GMI total angle bins
 #lvar = [['Ku','NS/PRE/elevation'],['Ku','NS/CSF/typePrecip'],['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','NS/CSF/typePrecip'],['Ku','NS/PRE/heightStormTop']]
-#lvar = [['Ku','NS/PRE/heightStormTop']]
+lvar = [['Ku','NS/PRE/heightStormTop']]
 #lvar = [['DPRGMI','NS/precipTotWaterCont']]
 #lvar = [['DPRGMI','NS/surfPrecipTotRate']]
 #lvar = [['DPRGMI','MS/surfPrecipTotRate']]
 #lvar = [['DPRGMI','NS/surfPrecipTotRate'],['DPRGMI','NS/precipTotWaterCont']]
 #lvar = [['DPRGMI','NS/Input/zeroDegAltitude']]
-lvar = [['DPRGMI','NS/vfracConv']]
+#lvar = [['DPRGMI','NS/vfracConv']]
 
 
 '''
@@ -436,6 +436,8 @@ for Year,Mon in lYM:
                     # a1dpry==-9999 and a1dprx==-9999 iwll be
                     # masked in ave_9grids_2d 
                     #------------------
+                    Dat0 = ma.masked_less_equal(Dat0, 0)  # 2019/12/25
+
                     Dat = ave_9grids_2d(Dat0, a1dpry, a1dprx, miss=-9999).filled(-9999).astype(dattype[var])
 
                 else:

@@ -30,13 +30,14 @@ DB_MINREC = 1000
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 miss_out= -9999.
-#lrettype = ['epc','gprof']
+lrettype = ['epc','gprof']
 #lrettype = ['epc']
-lrettype = ['gprof']
+#lrettype = ['gprof']
 lvar = ['profpmw','profrad']
 #lvar = ['profrad']
 #lvar = ['profpmw','profrad','top-profpmw']
-thwat = 0.01  # g/m3 for defining stop
+#thwat = 0.01  # g/m3 for defining stop
+thwat = 0.033  # g/m3 for defining stop
 nz    = 25
 #********************************
 def mk_stop(a2prof, thwat):
@@ -85,9 +86,8 @@ for Year,Mon in lYM:
 
                     a2stop = mk_stop(a2prof, thwat)
 
-                    outPath = srcDir + '/stop-%s.%06d.npy'%(var, oid)
+                    outPath = srcDir + '/stop-%s.th%05.3fq.%06d.npy'%(var, thwat, oid)
                     np.save(outPath, a2stop)
                     print outPath
-
 
 
