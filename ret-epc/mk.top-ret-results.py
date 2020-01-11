@@ -12,14 +12,15 @@ import shutil
 from numpy import *
 import EPCDB
 
-iDTime = datetime(2014,10,14)
-eDTime = datetime(2014,10,14)
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2014,7,31)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 #lvar = ['zmNS','prwatprofNS']
 #lvar = ['zmNS']
 #lvar = ['prwatprofNS']
-lvar = ['tbNS']
+#lvar = ['tbNS']
+lvar = ['heightStormTopNS']
 
 
 #** Constants ******
@@ -28,8 +29,8 @@ iscan = -9999
 escan = -9999
 #iscan = 917
 #escan = 1117
-#target_oid = None
-target_oid = 3556
+target_oid = None
+#target_oid = 3556
 
 
 DB_MAXREC = 10000
@@ -77,6 +78,10 @@ for DTime in lDTime:
         elif varName in ['prwatprofNS','prwatprofMS']:
             dbvarName = 'precip_water_prof_%s'%(scan)
             nz = NLEV_PRECIP
+        elif varName =='heightStormTopNS':
+            dbvarName = 'storm_height_ku'
+            nz = 1
+
         else:
             print 'check varName',varName
             sys.exit()
@@ -118,7 +123,7 @@ for DTime in lDTime:
             for idx_db in lidx_db:
                 if idx_db ==-9999: continue
 
-                print idx_db
+                #print idx_db
                 a1flag = ma.masked_equal(a1idxdb, idx_db).mask
                 a1xTmp = a1x[a1flag]
                 a1yTmp = a1y[a1flag]
@@ -132,7 +137,10 @@ for DTime in lDTime:
                     dat = db.get_var(dbvarName)[a1irecTmp]
  
                 if aout is None:
-                    aout = np.ones([ny,nx,nz], dat.dtype)*(-9999)
+                    if nz ==1:
+                        aout = np.ones([ny,nx], dat.dtype)*(-9999)
+                    else:
+                        aout = np.ones([ny,nx,nz], dat.dtype)*(-9999)
 
                 aout[a1yTmp, a1xTmp] = dat
 

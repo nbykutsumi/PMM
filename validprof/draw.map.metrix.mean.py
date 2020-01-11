@@ -2,6 +2,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
+from matplotlib.colors import ListedColormap
 
 import numpy as np
 import os, sys
@@ -38,13 +39,12 @@ DB_MINREC = 1000
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 ny,nx = 120,360
-dvar = {}
-#lrettype = ['epc','gprof']
-lrettype = ['epc']
+lrettype = ['epc','gprof']
+#lrettype = ['epc']
 #lrettype = ['gprof']
 #lvar = ['profrad','profpmw','top-profpmw']
-#lvar = ['profrad','profpmw']
-lvar = ['stoprad','top-stoppmw']
+lvar = ['profrad','profpmw']
+#lvar = ['stoprad','top-stoppmw']
 #lvar = ['stop-profrad','stop-profpmw']
 #lvar = ['precrad','precpmw']
 #lvar = ['convfreqrad','stratfreqrad','convfreqpmw','stratfreqpmw']
@@ -57,18 +57,82 @@ lprrange=[[0.5,999]]
 ph = 'A'
 thq = 0.033
 #*******************************
-def calc_cc(x,y,axis):
+def calc_cc(x,y, xnumprof=None, ynumprof=None, axis=None):
     ny,nx,nz = x.shape
+
+    if xnumprof is not None:
+        xnummax = xnumprof.max(axis=2).reshape(ny,nx,1)
+        ynummax = ynumprof.max(axis=2).reshape(ny,nx,1)
+        a3xnumprof = ma.masked_invalid(xnumprof / xnummax )
+        a3ynumprof = ma.masked_invalid(ynumprof / ynummax )
+        a3masknumprof = ma.masked_less(a3xnumprof,0.9).mask + ma.masked_less(a3ynumprof,0.9).mask
+        
+        x = ma.masked_where(a3masknumprof, x)
+        y = ma.masked_where(a3masknumprof, y)
+  
     xm = x.mean(axis=axis).reshape(ny,nx,1)
     ym = y.mean(axis=axis).reshape(ny,nx,1)
     A  = ((x-xm)*(y-ym)).sum(axis=axis)
     B  = ((x-xm)**2).sum(axis=axis)
     C  = ((y-ym)**2).sum(axis=axis)
-    return A/( np.sqrt(B*C) )
+    CC = A/( np.sqrt(B*C) )
 
-def calc_rmse(x,y,axis):
+
+
+    #h = np.arange(x.shape[2]) * 0.5  +2
+    ##y0,y1 = 90, 95
+    ##x0,x1 = 265, 275
+    #y0,y1 = 90,90
+    #x0,x1 = 265, 265
+
+    #v0 = x[y0:y1+1, x0:x1+1].mean(axis=(0,1))
+    #v1 = y[y0:y1+1, x0:x1+1].mean(axis=(0,1))
+
+    #print 'CC=',CC[y0,x0]
+    #print xm[y0,x0] ,ym[y0,x0]
+
+
+    #for i in range(h.shape[0]):
+    #    print h[i], v0[i],v1[i]
+
+    #print ''
+    #print v0.shape, v1.shape, h.shape
+    #print ''
+
+    #fig = plt.figure(figsize=(4,4))
+    #ax  = fig.add_axes([0.2,0.2,0.6,0.6])
+    #ax.plot(v0,h,color='k')
+    #ax.plot(v1,h,color='r')
+    #plt.savefig('/home/utsumi/temp/ret/temp.png')
+    #sys.exit()   
+
+
+    return CC
+
+def calc_rmse(x,y, xnumprof=None, ynumprof=None, axis=None):
     ny,nx,nz = x.shape
+    if xnumprof is not None:
+        xnummax = xnumprof.max(axis=2).reshape(ny,nx,1)
+        ynummax = ynumprof.max(axis=2).reshape(ny,nx,1)
+
+        a3xnumprof = ma.masked_invalid(xnumprof / xnummax )
+        a3ynumprof = ma.masked_invalid(ynumprof / ynummax )
+        a3masknumprof = ma.masked_less(a3xnumprof,0.9).mask + ma.masked_less(a3ynumprof,0.9).mask
+        
+        x = ma.masked_where(a3masknumprof, x)
+        y = ma.masked_where(a3masknumprof, y)
+ 
+
     return np.sqrt(((x-y)**2).sum(axis=axis)/nz)
+
+def calc_ptot(x, numprof=None):
+    ny,nx,nz = x.shape
+    if numprof is not None:
+        nummax = numprof.max(axis=2).reshape(ny,nx,1)
+        a3numprof=ma.masked_invalid(numprof / nummax)
+        x = ma.masked_where(a3numprof<0.9, x)
+
+    return x.sum(axis=2)*500 / 1000.
 
 #*******************************
 def draw_map(a2dat, textcbartop=None, bounds=None, extend=None, mincolor=None, maxcolor=None):
@@ -108,6 +172,11 @@ def draw_map(a2dat, textcbartop=None, bounds=None, extend=None, mincolor=None, m
     cbar= plt.colorbar(im, orientation='vertical', cax=cax)
     if extend=='both':
         cbar.ax.set_yticklabels([''] + list(bounds[1:-1]) + [''])
+    if extend=='min':
+        cbar.ax.set_yticklabels([''] + list(bounds[1:]))
+    if extend=='max':
+        cbar.ax.set_yticklabels(list(bounds[:-1]) + [''])
+
 
 
     cax.tick_params(labelsize=13)
@@ -159,8 +228,12 @@ for key in lkey:
         else:
             print 'check season',season
             sys.exit()
-    
+
         for rettype in lrettype:
+
+            dvar = {}
+            dnumprof = {} 
+
             for var in lvar:
                 if (rettype=='gprof')and(var=='top-profpmw'):
                     continue
@@ -180,7 +253,8 @@ for key in lkey:
                 else:
                     a3sum = zeros([ny,nx,nz-4], float32)  # 2-12.5km (500m layers)
                     a2num = zeros([ny,nx], int32)
-            
+                    a3numprof = zeros([ny,nx,nz-4], int32)           
+ 
                 for Year,Mon in lYM:
                     if rettype =='epc': 
                         outDir = tankbaseDir + '/utsumi/PMM/validprof/map.pair/epc.%s'%(expr)
@@ -198,12 +272,16 @@ for key in lkey:
                         sumPath= outDir  + '/%s.sum.%s.sp.one.npy' %(var, stamp)
                         numPath= outDir  + '/%s.num.%s.sp.one.npy' %(var, stamp)
                         sum2Path= outDir + '/%s.sum2.%s.sp.one.npy'%(var, stamp)
+                        numprofPath= outDir  + '/%s.numprof.%s.sp.one.npy' %(var, stamp)
+
                 
                         a3sumTmp = np.load(sumPath)[:,:,4:nz]  # 2-12.5km
                         a2numTmp = np.load(numPath)
-    
+                        a3numprofTmp = np.load(numprofPath)[:,:,4:nz]  # 2-12.5km
+ 
                         a3sum = a3sum + a3sumTmp
                         a2num = a2num + a2numTmp
+                        a3numprof= a3numprof + a3numprofTmp              
 
                     elif var in ['stop-profrad','stop-profpmw']:
                         sumPath= outDir  + '/%s.th%05.3fq.sum.%s.sp.one.npy' %(var,thq,stamp)
@@ -230,6 +308,7 @@ for key in lkey:
             
                 if var in ['profpmw','profrad','top-profpmw']: 
                     dvar[var] = a3sum / a2num.reshape(ny,nx,1)
+                    dnumprof[var]= a3numprof
                 else:
                     dvar[var] = a2sum / a2num.reshape(ny,nx)
     
@@ -389,20 +468,29 @@ for key in lkey:
     
             if 'profpmw' in lvar:
                 #*** CC ********
-                vmin,vmax=0,1 
-                mycm  = 'jet'
+                #vmin,vmax=0,1 
+                vmin,vmax=0.5,1 
+                mycm  = 'rainbow'
+                #mycm  = 'jet'
+                #mycm  = plt.cm.get_cmap(mycm)
+                #cm_list= mycm(np.arange(mycm.N))[:-10]
+                #mycm = ListedColormap(cm_list)
+
+                #bounds= np.arange(vmin,1+0.01,0.1)
+                bounds= np.array([0,0.5,0.6,0.7,0.8,0.9,1])
                 # DPR vs PMW
-                a2cc  = calc_cc(dvar['profrad'], dvar['profpmw'], axis=2)
+                a2cc  = calc_cc(dvar['profrad'], dvar['profpmw'], xnumprof=dnumprof['profrad'], ynumprof=dnumprof['profpmw'], axis=2)
                 stitle= 'Correlation of profles. %s\n(COMB & %s) %s'%(season, string.upper(rettype), expr)
                 figPath= figDir + '/mmap.cc.prof.%s.%s.%s.png'%(rettype,stampfig,season)
-                draw_map(a2cc)
+                draw_map(a2cc, bounds=bounds, extend='min')
         
                 # DPR vs PME top-ranked
                 if (rettype=='epc')and('top-profpmw' in dvar.keys()):
-                    a2cc  = calc_cc(dvar['profrad'], dvar['top-profpmw'], axis=2)
+                    #a2cc  = calc_cc(dvar['profrad'], dvar['top-profpmw'], axis=2)
+                    a2cc  = calc_cc(dvar['profrad'], dvar['top-profpmw'], xnumprof=dnumprof['profrad'], ynumprof=dnumprof['top-profpmw'], axis=2)
                     stitle= 'Correlation of profles. %s\n(COMB & %s top-ranked) %s'%(season, string.upper(rettype), expr)
                     figPath= figDir + '/mmap.cc.prof-top.%s.%s.%s.png'%(rettype,stampfig,season)
-                    draw_map(a2cc)
+                    draw_map(a2cc, bounds=bounds, extend='both')
             
         
                 
@@ -433,10 +521,10 @@ for key in lkey:
                 ##*** Peak height ******
                 #vmin,vmax=0,8
                 #mycm  = 'rainbow'
-                ##bounds=np.array([0,2,3,4,5,12])
-                #bounds=np.array([0,2,3,4,5,10])
-                ##mincolor = (0.5, 0.5, 0.5, 1) # grey
-                #mincolor = (0.8, 0.8, 0.8, 1) # grey
+                #bounds=np.array([0,2,3,4,5,12])
+                bounds=np.array([0,2,3,4,5,10])
+                #mincolor = (0.5, 0.5, 0.5, 1) # grey
+                mincolor = (0.8, 0.8, 0.8, 1) # grey
 
                 ## DPR
                 #a2ph = dvar['profrad'].argmax(axis=2) * 0.5
@@ -509,7 +597,8 @@ for key in lkey:
                 mycm = 'rainbow'
                 textcbartop = ur'($kg/m^{2}$)'
                 # DPR
-                a2ptot = dvar['profrad'].sum(axis=2)*500 / 1000.
+                #a2ptot = dvar['profrad'].sum(axis=2)*500 / 1000.
+                a2ptot = calc_ptot(dvar['profrad'], dnumprof['profrad'])
 
                 #print dvar['profrad'][100,100]
                 #print dvar['profrad'][100,100].shape
@@ -520,7 +609,8 @@ for key in lkey:
                 draw_map(a2ptot,textcbartop=textcbartop)
                
                 # PMW
-                a2ptot = dvar['profpmw'].sum(axis=2)*500 / 1000.
+                #a2ptot = dvar['profpmw'].sum(axis=2)*500 / 1000.
+                a2ptot = calc_ptot(dvar['profpmw'], dnumprof['profrad'])  # Use 'profrad' for dnumprof
                 stitle= 'Total prec. size hydrometeor (2-12km) (kg/m2) %s\n%s'%(season,string.upper(rettype))
                 figPath= figDir + '/mmap.totwat.pmw.%s.%s.%s.png'%(rettype,stampfig,season)
                 draw_map(a2ptot)
@@ -528,7 +618,11 @@ for key in lkey:
                 
        
                 # Difference  
-                a2var = (dvar['profpmw'].sum(axis=2) - dvar['profrad'].sum(axis=2))*500 / 1000.
+                a2ptotrad = calc_ptot(dvar['profrad'], dnumprof['profrad'])
+                a2ptotpmw = calc_ptot(dvar['profpmw'], dnumprof['profrad'])  # Use 'profrad' for dnumprof
+                #a2var = (dvar['profpmw'].sum(axis=2) - dvar['profrad'].sum(axis=2))*500 / 1000.
+                a2var = a2ptotpmw - a2ptotrad
+
                 #vmin,vmax= -5,5
                 vmin,vmax= -0.5,0.5
                 mycm  = 'Spectral_r'

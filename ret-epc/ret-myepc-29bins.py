@@ -428,8 +428,8 @@ a2nsurfNS    = ones([nyout,nxout],float32)*miss
 a2nsurfMScmb = ones([nyout,nxout],float32)*miss
 a2nsurfNScmb = ones([nyout,nxout],float32)*miss
 
-a3prprofNS   = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
-a3prprofNScmb= ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+#a3prprofNS   = ones([nyout,nxout,NLEV_PRECIP],float32)*miss
+#a3prprofNScmb= ones([nyout,nxout,NLEV_PRECIP],float32)*miss
 a3prwatprofNS= ones([nyout,nxout,NLEV_PRECIP],float32)*miss
 
 a2top_idxdbMS   = ones([nyout,nxout],int32)*miss_int32

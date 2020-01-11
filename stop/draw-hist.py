@@ -36,18 +36,17 @@ else:
 Year  = 2017
 season = 0
 #season = 1
-#lisurf = range(1,14+1)
-#lisurf = range(2,14+1)
-#lisurf = range(4,14+1)
-lisurf = [7]
+lsurf = ['vege']
+#lsurf = ['ocean']
 saveprep = 1
 savemodel= 1
 #restmodel = 1
 restmodel = 0
-expr  = 'a01'
+expr  = 'mse04-01'
 #lact = ['H','L','LT']
 #lact = ['L','LT']
-lact = ['LTQZ']
+#lact = ['LTQZ']
+lact = ['HTQZ']
 #lact = ['L']
 #***********************************************************
 # Functions
@@ -59,8 +58,8 @@ lact = ['LTQZ']
 for act in lact:
     cpDir = stopbaseDir + '/cp/%s-%s-ssn%s'%(expr,act, season)
     
-    for isurf in lisurf:
-        histPath = cpDir + '/hist-%s-%s-s%02d.pickle'%(expr,act, isurf)
+    for surf in lsurf:
+        histPath = cpDir + '/hist-%s-%s-s%s.pickle'%(expr,act, surf)
 
 
         with open(histPath,'rb') as f:
@@ -69,8 +68,11 @@ for act in lact:
         print d
         epochs = 5
         print d.keys()
-        adif_t = d['mean_absolute_error']
-        adif_v = d['val_mean_absolute_error']
+        #adif_t = d['mean_absolute_error']
+        #adif_v = d['val_mean_absolute_error']
+        adif_t = d['mae']
+        adif_v = d['val_mae']
+
         x      = (np.arange(len(adif_t))+1) * epochs
 
         fig = plt.figure(figsize=(5,3))
@@ -78,15 +80,15 @@ for act in lact:
         ax.plot(x, adif_t, '-',color='k',label = 'train')
         ax.plot(x, adif_v, '--',color='k',label = 'validation')
 
-        ax.set_ylim([0,2000])
+        ax.set_ylim([0,4000])
         ax.set_ylabel('mean abs. error')
         ax.set_xlabel('epoch')
         ax.legend()
 
-        stitle = '%s-%s surf=%d'%(expr, act , isurf)
+        stitle = '%s-%s surf=%s'%(expr, act , surf)
         plt.title(stitle)
 
-        figPath = figDir + '/hist.%s-%s-surf%d.png'%(expr, act,isurf)
+        figPath = figDir + '/hist.%s-%s-surf-%s.png'%(expr, act,surf)
 
         plt.savefig(figPath)
         print figPath

@@ -15,7 +15,7 @@ verDPR    = '06'
 subverDPR = 'A'
 fullverDPR= '%s%s'%(verDPR, subverDPR)
 
-iYM = [2017,1]
+iYM = [2017,12]
 eYM = [2017,12]
 #eYM = [2017,11]
 lYM = util.ret_lYM(iYM,eYM)

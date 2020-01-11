@@ -8,8 +8,17 @@ import numpy.ma as ma
 import h5py
 import shutil
 
-iDTime = datetime(2015,4,21)
-eDTime = datetime(2015,4,30)
+#iDTime = datetime(2014,10,14)
+#eDTime = datetime(2014,10,14)
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2014,7,31)
+
+#iDTime = datetime(2014,12,16)
+#eDTime = datetime(2014,12,31)
+#iDTime = datetime(2015,1,1)
+#eDTime = datetime(2015,1,1)
+
+
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 
@@ -20,35 +29,37 @@ DB_MAXREC = 10000
 DB_MINREC = 1000
 
 #** Constants ******
-#expr = 'glb.wprof.org'
-#expr = 'glb.wprof.batch'
-#expr = 'glb.wprof.rnr'
-#expr = 'glb.nprof'
-#expr = 'glb.v02.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-#expr  = 'test.batch2'
-expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.stop01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.stop-wgt-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.stop-rng-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
+type_stop = expr.split('.')[1].split('-')[1]
 
-prog = 'ret-myepc-29bins.py'
+#stopstamp = 'wtpdf01-LTQZ-ssn0'
+stopstamp = 'best01-HTQZ-ssn0'
+
+#prog = 'ret-myepc-29bins.py'
+prog = 'ret-myepc-stop.py'
 #prog = 'ret-test.py'
 
 sensor  = 'GMI'
 myhost = socket.gethostname()
 if myhost =="shui":
-    gmibaseDir  = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05'
+    gmibaseDir  = '/work/hk02/PMM/NASA/GPM.GMI/1C/V05'
     matchbaseDir= '/tank/utsumi/PMM/MATCH.GMI.V05A'
     coefDir = '/tank/utsumi/PMM/EPCDB/EPC_COEF/%s'%(sensor)
     dbDir   = '/tank/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
+    tankDir = '/tank'
     outbaseDir = '/tank/utsumi/PMM/retepc/%s'%(expr) 
 elif myhost =="well":
     #gmibaseDir  = '/media/disk2/share/data/PMM/NASA/GPM.GMI/1C/V05'
-    gmibaseDir  = '/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.GMI/1C/V05'
+    gmibaseDir  = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/GPM.GMI/1C/V05'
     matchbaseDir= '/media/disk2/share/PMM/MATCH.GMI.V05A'
     coefDir = '/media/disk2/share/PMM/EPCDB/EPC_COEF/%s'%(sensor)
     dbDir   = '/media/disk2/share/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
     #outbaseDir = '/media/disk2/share/PMM/retepc/%s'%(expr)
     outbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/%s'%(expr)
-
+    tankDir = '/home/utsumi/mnt/lab_tank'
 
 #*******************
 # Copy program
@@ -88,6 +99,8 @@ for DTime in lDTime:
         a2t2m = []
         a2tqv = []
         a2elev= []
+        a2stop= []
+        a2fguess= []
         loid  = []
         lny   = [] 
 
@@ -95,7 +108,7 @@ for DTime in lDTime:
         for gmiPath in lgmiPath:
             oid = int(gmiPath.split('.')[-3])
             print 'oid=',oid
-            #if oid <=4474: continue  # test
+            #if oid <=2780: continue  # test
 
             loid.append(oid)
             #------------
@@ -107,7 +120,14 @@ for DTime in lDTime:
             tqvPath = ''
             #elevPathTmp = glob.glob(matchbaseDir + '/S1.ABp000-220.gtopo/%04d/%02d/%02d/gtopo.%06d.npy'%(Year,Mon,Day,oid))[0]
             elevPath = ''
-        
+            #stopPath = glob.glob(tankDir + '/utsumi/PMM/stop/orbit/%s/%04d/%02d/%02d/stop.%06d.npy'%(stopstamp,Year,Mon,Day,oid))[0]
+            try:
+                stopPath = glob.glob(matchbaseDir + '/S1.ABp083-137.Ku.V06A.9ave.heightStormTop/%04d/%02d/%02d/heightStormTop.%06d.npy'%(Year,Mon,Day,oid))[0]
+            except IndexError:
+                print 'skip oid=',oid
+                loid.pop(-1)
+                continue
+            fguessPath=glob.glob(tankDir + '/utsumi/PMM/retepc/glb.v03.minrec1000.maxrec10000/%04d/%02d/%02d/nsurfNScmb.%06d.y-9999--9999.nrec10000.npy'%(Year,Mon,Day,oid))[0]
             print srcPath
     
             #-- Append HDF file contents-----
@@ -129,6 +149,10 @@ for DTime in lDTime:
                 a2tqv.append(np.load(tqvPath))
             if elevPath !='':
                 a2elev.append(np.load(elevPath))
+            if stopPath !='':
+                a2stop.append(np.load(stopPath))
+            if fguessPath !='':
+                a2fguess.append(np.load(fguessPath))
 
             #-- Renew yoffset ---------------
             yoffset = yoffset + a3tb1[-1].shape[0]
@@ -153,6 +177,17 @@ for DTime in lDTime:
             a2tqv  = np.concatenate(a2tqv, axis=0) 
         if elevPath !='':
             a2elev = np.concatenate(a2elev,axis=0)
+        if stopPath !='':
+            a2stop = np.concatenate(a2stop,axis=0)
+            nytmp,nxtmp = a2stop.shape
+            print a2stop.shape
+            if (sensor=='GMI')and(nxtmp != 221):
+                a2stopTmp = (np.ones([nytmp,221])*(-9999.)).astype('int32')
+                #a2stopTmp[:,103:117+1] = a2stop
+                a2stopTmp[:,83:137+1] = a2stop
+                a2stop = a2stopTmp
+        if fguessPath !='':
+            a2fguess=np.concatenate(a2fguess, axis=0)
 
         #----------------------- 
         dargv = {}
@@ -174,6 +209,16 @@ for DTime in lDTime:
             elevPathTmp= outDirTmp + '/elev.%06d.npy'%(oid)
         else:
             elevPathTmp = ''
+        if stopPath !='':
+            stopPathTmp= outDirTmp + '/stop.%06d.npy'%(oid)
+        else:
+            stopPathTmp = ''
+        if fguessPath !='':
+            fguessPathTmp= outDirTmp + '/fguess.%06d.npy'%(oid)
+        else:
+            fguessPathTmp = ''
+
+
         #-- Save HDF file -------
         with h5py.File(srcPathTmp, 'w') as h:
             h.create_group('S1')
@@ -192,6 +237,11 @@ for DTime in lDTime:
             np.save(tqvPathTmp, a2tqv)
         if elevPath !='':
             np.save(elevPathTmp, a2elev)
+        if stopPath !='':
+            np.save(stopPathTmp, a2stop)
+        if fguessPath !='':
+            np.save(fguessPathTmp, a2fguess)
+
 
         #***** Set parameter dictionary *************
         dargv['sensor']=sensor
@@ -241,10 +291,18 @@ for DTime in lDTime:
         dargv['DB_RAINFRAC'] = 0.0001 # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
         dargv['MAX_T2M_DIFF'] = 10
         dargv['MAX_TQV_DIFF'] = 10
+        dargv['MAX_STOP_DIFF'] = 2000  # [meter]
         dargv['MAX_TB_RMSD'] = -9999 # max TB RMS difference between observed and DB pixel 
         dargv['MAX_RMA_0'] = 0.05 # Maximum Ratio of missing amount (0>=mm/h) acceptable for rain / no-rain classification # -9999. --> No screening
+
+        dargv['MIN_PRECIP_RNR'] = 0.2  # [mm/h] for Rain/No-rain based on first guess precipitation
+        dargv['STD_STORMTOP'] = 2100 # [m] stop
+
+
         dargv['flag_top_var'] = 0  # 0: No top-ranked vars. 1: Retrieve top-ranked vars.
         #dargv['flag_top_var'] = 1  # 0: No top-ranked vars. 1: Retrieve top-ranked vars.
+        dargv['type_stop'] = type_stop  # stop
+
         dargv['outDir'] = outDirTmp
     
         #------------
@@ -255,7 +313,8 @@ for DTime in lDTime:
         dargv['t2mPath'] = t2mPathTmp
         dargv['tqvPath'] = tqvPathTmp
         dargv['elevPath']= elevPathTmp
-    
+        dargv['stopPath']= stopPathTmp
+        dargv['fguessPath']=fguessPathTmp 
         #-------------
         sargv = ['%s=%s'%(key, dargv[key]) for key in dargv.keys()]
         sargv = ' '.join(sargv)
@@ -263,8 +322,11 @@ for DTime in lDTime:
         
         lcmd = ['python', progcopy, sargv]
         print lcmd
-        subprocess.call(lcmd)
-
+        returncode = subprocess.call(lcmd)
+        if returncode==1:
+            print 'Error for',lcmd
+            #sys.exit()
+        print returncode
         #***************************
         # Split output files 
         #***************************

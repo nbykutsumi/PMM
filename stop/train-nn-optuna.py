@@ -42,15 +42,23 @@ else:
     figDir = '/mnt/c/ubuntu/fig'
 
 
+argvs = sys.argv
+
 Year  = 2017
 season = 0
 #season = 9
-#lisurf = range(1,14+1)
-#lisurf = range(2,5+1)
-#lisurf = range(6,9+1)
-#lisurf = range(10,13+1)
-#lisurf = range(14,14+1)
-lisurf = [1]
+if len(argvs)>1:
+    print argvs
+    lisurf = map(int,argvs[1:])
+else:
+
+    #lisurf = range(1,14+1)
+    #lisurf = range(2,5+1)
+    #lisurf = range(6,9+1)
+    #lisurf = range(10,13+1)
+    #lisurf = range(14,14+1)
+    lisurf = [1]
+
 savemodel= 0
 restmodel = 0
 #restmodel = 1
@@ -646,7 +654,7 @@ def objective(trial):
 
 
     if isurf==1:
-        bsize = 15
+        bsize = 10
         samplerate = 0.5
     else:
         bsize = 80
@@ -675,21 +683,21 @@ def objective(trial):
    
     
         if isurf ==1: 
-            EPOCHS = 3
+            EPOCHS = 2
         elif isurf==3:
-            EPOCHS = 10
+            EPOCHS = 5
         else:
-            EPOCHS = 10
+            EPOCHS = 5
 
-
+        print 'trainX.shape',trainX.shape
+        print 'start fit'
         history = model.fit(
             x=trainX, y=trainY,
             batch_size=128,
             epochs=EPOCHS, validation_split=0.2,
             #callbacks = [cp_callback, early_stop],
             callbacks = [cp_callback],
-            verbose=0)
-
+            verbose=1)
 
         #histPath = cpDir + '/hist-%s-%s-s%02d.pickle'%(expr,act, isurf)
         #if restmodel ==0:

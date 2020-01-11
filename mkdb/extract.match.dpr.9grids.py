@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import sys
 from f_match_fov import *
-
+import os
 
 gmi  = l1_gmi.L1_GMI()
 #dpr  = l2_dpr.L2_DPR()
@@ -22,15 +22,29 @@ radar = 'Ku'
 #eDTime = datetime(2018,1,1)
 #iDTime = datetime(2017,1,1)
 #eDTime = datetime(2018,1,1)
-iDTime = datetime(2017,7,7)
-eDTime = datetime(2017,12,31)
+iDTime = datetime(2014,9,2)
+eDTime = datetime(2015,5,31)
+#iDTime = datetime(2014,10,14)
+#eDTime = datetime(2014,10,14)
 
 
 #-- exclude missing files --
 lDTimeTmp = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 lDTime = []
 for DTime in lDTimeTmp:
-    if ((datetime(2017,9,26)<=DTime) & (DTime <= datetime(2017,9,29))): continue
+    ##if ((datetime(2014,8,25)<=DTime) & (DTime <= datetime(2014,8,25))): continue
+    #if ((datetime(2014,8,29)<=DTime) & (DTime <= datetime(2014,8,29))): continue
+    #if ((datetime(2014,9,4)<=DTime) & (DTime <= datetime(2014,9,4))): continue
+    #if ((datetime(2014,9,16)<=DTime) & (DTime <= datetime(2014,9,16))): continue
+    #if ((datetime(2014,9,22)<=DTime) & (DTime <= datetime(2014,9,22))): continue
+    #if ((datetime(2017,9,26)<=DTime) & (DTime <= datetime(2017,9,29))): continue
+    #if ((datetime(2014,10,1)<=DTime) & (DTime <= datetime(2014,10,2))): continue
+    #if ((datetime(2014,10,7)<=DTime) & (DTime <= datetime(2014,10,7))): continue
+    #if ((datetime(2014,10,22)<=DTime) & (DTime <= datetime(2014,10,24))): continue
+    #if ((datetime(2014,11,5)<=DTime) & (DTime <= datetime(2014,11,6))): continue
+    #if ((datetime(2014,11,20)<=DTime) & (DTime <= datetime(2014,11,20))): continue
+    #if ((datetime(2014,12,1)<=DTime) & (DTime <= datetime(2014,12,1))): continue
+    #if ((datetime(2014,12,1)<=DTime) & (DTime <= datetime(2014,12,1))): continue
 
     lDTime.append(DTime)
 #---------------------------
@@ -39,8 +53,8 @@ ix0 = 83   # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=22
 ex0 = 137  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
 
 cx  = 110  # GMI center angle bin (py-idx)
-#cw  = 55    # extract this width around center
-cw  = 15    # extract this width around center
+cw  = 55    # extract this width around center
+#cw  = 15    # extract this width around center
 w   = int(cw/2)
 
 
@@ -52,11 +66,11 @@ verDPR = '06'
 subverDPR = 'A'
 fullverDPR = '%s%s'%(verDPR,subverDPR)
 
-baseDirGMI = '/work/hk01/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
-baseDirDPR = '/work/hk01/PMM/NASA/GPM.Ku/2A/V%s'%(verDPR)
-idxbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.IDX'%(fullverGMI, mwscan, ix0, ex0, radar, fullverDPR)
+baseDirGMI = '/work/hk02/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
+baseDirDPR = '/work/hk02/PMM/NASA/GPM.Ku/2A/V%s'%(verDPR)
+idxbaseDir = '/tank/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.IDX'%(fullverGMI, mwscan, ix0, ex0, radar, fullverDPR)
 
-outrootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
+outrootDir = '/tank/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
 #lvar = ['/NS/SLV/precipRate']
 #lvar = ['/NS/CSF/typePrecip']
@@ -145,8 +159,9 @@ for DTime in lDTime:
 
     if len(lsrcPathDPR)==0:
         print 'No DPR file',Year,Mon,Day
-        print ssearchDPR
-        sys.exit()
+        print ssearch
+        #sys.exit()
+        continue
 
     for srcPathDPR in lsrcPathDPR:
         oid = srcPathDPR.split('.')[-3]
@@ -154,7 +169,11 @@ for DTime in lDTime:
         idxDir      = idxbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
         idxPathX    = idxDir + '/Xpy.1.%s.npy'%(oid)
         idxPathY    = idxDir + '/Ypy.1.%s.npy'%(oid)
-    
+   
+        if not os.path.exists(idxPathX):
+            print 'No file'
+            print idxPathX
+            continue
         X    = np.load(idxPathX)
         Y    = np.load(idxPathY)
     

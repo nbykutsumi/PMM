@@ -191,12 +191,15 @@ reftype = 'dpr'
 oid = 3556
 Year,Mon,Day = 2014,10,14
 #iy, ey = 987, 1047
-iy, ey = 917,1117
+#iy, ey = 917,1117
+iy,ey = -9999,-9999
 clat    = 34    # SE.US case. oid = 003556
 clon    = -86   # 2014/10/14  05:42:03 UTC
 DB_MINREC = 1000
 DB_MAXREC = 10000
-expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.stop-wgt-obs-01.minrec1000.maxrec10000'
+expr = 'glb.stop-rng-obs-01.minrec1000.maxrec10000'
 
 ## SW.Japan typhoon case, oid=019015, 2017/07/03
 #oid = 19015

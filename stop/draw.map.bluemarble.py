@@ -1,0 +1,1 @@
+/home/utsumi/bin/PMM/ret-epc/draw.map.bluemarble.py

@@ -46,9 +46,8 @@ clat    = 28.3
 clon    = 133.0
 DB_MAXREC = 10000
 DB_MINREC = 1000
-#expr = 'glb.v03.minrec1000.maxrec10000'
-expr = 'glb.v04.minrec1000.maxrec10000'
-
+expr = 'glb.v03.minrec1000.maxrec10000'
+#expr = 'glb.stop-wgt-obs-01.minrec1000.maxrec10000'
 
 
 ## Amazon (Underestimation)
