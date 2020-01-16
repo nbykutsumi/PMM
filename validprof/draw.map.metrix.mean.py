@@ -61,8 +61,8 @@ def calc_cc(x,y, xnumprof=None, ynumprof=None, axis=None):
     ny,nx,nz = x.shape
 
     if xnumprof is not None:
-        xnummax = xnumprof.max(axis=2).reshape(ny,nx,1)
-        ynummax = ynumprof.max(axis=2).reshape(ny,nx,1)
+        xnummax = xnumprof.max(axis=2).reshape(ny,nx,1).astype('float32')
+        ynummax = ynumprof.max(axis=2).reshape(ny,nx,1).astype('float32')
         a3xnumprof = ma.masked_invalid(xnumprof / xnummax )
         a3ynumprof = ma.masked_invalid(ynumprof / ynummax )
         a3masknumprof = ma.masked_less(a3xnumprof,0.9).mask + ma.masked_less(a3ynumprof,0.9).mask
@@ -76,6 +76,19 @@ def calc_cc(x,y, xnumprof=None, ynumprof=None, axis=None):
     B  = ((x-xm)**2).sum(axis=axis)
     C  = ((y-ym)**2).sum(axis=axis)
     CC = A/( np.sqrt(B*C) )
+
+    #ix=270
+    #iy=92
+    #xnum = a3xnumprof[iy,ix,:]
+    #ynum = a3ynumprof[iy,ix,:]
+    #xvar = x[iy,ix,:]
+    #yvar = y[iy,ix,:]
+    #for i in range(xnum.shape[0])[::-1]:
+    #    print i,xnum[i],ynum[i], xvar[i], yvar[i]
+
+    #print ''
+    #print 'CC=',CC[iy,ix]
+    #sys.exit()
 
 
 
@@ -112,8 +125,9 @@ def calc_cc(x,y, xnumprof=None, ynumprof=None, axis=None):
 def calc_rmse(x,y, xnumprof=None, ynumprof=None, axis=None):
     ny,nx,nz = x.shape
     if xnumprof is not None:
-        xnummax = xnumprof.max(axis=2).reshape(ny,nx,1)
-        ynummax = ynumprof.max(axis=2).reshape(ny,nx,1)
+        xnummax = xnumprof.max(axis=2).reshape(ny,nx,1).astype('float32')
+        ynummax = ynumprof.max(axis=2).reshape(ny,nx,1).astype('float32')
+
 
         a3xnumprof = ma.masked_invalid(xnumprof / xnummax )
         a3ynumprof = ma.masked_invalid(ynumprof / ynummax )
@@ -128,7 +142,7 @@ def calc_rmse(x,y, xnumprof=None, ynumprof=None, axis=None):
 def calc_ptot(x, numprof=None):
     ny,nx,nz = x.shape
     if numprof is not None:
-        nummax = numprof.max(axis=2).reshape(ny,nx,1)
+        nummax = numprof.max(axis=2).reshape(ny,nx,1).astype('float32')
         a3numprof=ma.masked_invalid(numprof / nummax)
         x = ma.masked_where(a3numprof<0.9, x)
 

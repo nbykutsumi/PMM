@@ -40,20 +40,32 @@ dsurflabel={ 'ocean':'Class1 (Ocean)'
             }
 
 region = 'GLB'
-season = 8
+#season = 'JJA'
+season = 6
 DB_MAXREC = 10000
 DB_MINREC = 1000
 
 lexpr = ['glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC),
-        'glb.stop-wgt-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC),
-        'glb.stop-rng-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+        #'glb.stop-wgt-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC),
+        #'glb.stop-rng-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC),
+
+        'glb.stop-wgt-obs-01.minrec%d.maxrec%d-th0.0mm'%(DB_MINREC,DB_MAXREC),
+        'glb.stop-rng-obs-01.minrec%d.maxrec%d-th0.0mm'%(DB_MINREC,DB_MAXREC),
+        'glb.stop-wgt-ret-01.minrec%d.maxrec%d-th1.0mm'%(DB_MINREC,DB_MAXREC),
+        'glb.stop-wgt-ret-01.minrec%d.maxrec%d-th5.0mm'%(DB_MINREC,DB_MAXREC),
+        'glb.stop-wgt-ret-01.minrec%d.maxrec%d-th7.0mm'%(DB_MINREC,DB_MAXREC),
+
         ]
 
 dexprshort = {}
 for expr in lexpr:
     tmp = expr.split('.')[1]
     if tmp[:4]=='stop':
-        exprshort = tmp.split('-')[1]
+        if expr[-2:] =='mm':
+            thpr = expr.split('-')[-1]
+            exprshort = '-'.join(tmp.split('-')[1:3])+ '-' + thpr
+        else:
+            exprshort = '-'.join(tmp.split('-')[1:3])
     else:
         exprshort = 'org'
     dexprshort[expr] = exprshort
@@ -73,8 +85,10 @@ for expr in lexpr:
         for i,var in enumerate(lvar):
             dat[expr,surftype,var] = line[i] 
 
-llabel1 = [''] + ['num']*3 + ['cc']*3 + ['nbias']*3 + ['rmse']*3
+nexpr = len(lexpr)
+llabel1 = [''] + ['num']*nexpr + ['cc']*nexpr + ['nbias']*nexpr + ['rmse']*nexpr
 llabel2 = [''] + [dexprshort[expr] for expr in lexpr]*4
+
 lout = []
 lout.append(llabel1)
 lout.append(llabel2)

@@ -22,8 +22,8 @@ radar = 'Ku'
 #eDTime = datetime(2018,1,1)
 #iDTime = datetime(2017,1,1)
 #eDTime = datetime(2018,1,1)
-iDTime = datetime(2014,9,2)
-eDTime = datetime(2015,5,31)
+iDTime = datetime(2017,10,1)
+eDTime = datetime(2017,12,31)
 #iDTime = datetime(2014,10,14)
 #eDTime = datetime(2014,10,14)
 
@@ -72,15 +72,16 @@ idxbaseDir = '/tank/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.IDX'%(fullve
 
 outrootDir = '/tank/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
-#lvar = ['/NS/SLV/precipRate']
-#lvar = ['/NS/CSF/typePrecip']
-lvar = ['NS/PRE/heightStormTop']
-#lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/SLV/precipRate']
-#lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/SLV/precipRate']
-#lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/VER/heightZeroDeg']
-#lvar = ['/NS/Latitude','/NS/Longitude']
-#lvar = ['/NS/VER/heightZeroDeg']
-#lvar = ['NS/SLV/precipRateESurface']
+#lvar = [['Ku','/NS/SLV/precipRate']]
+#lvar = [['Ku','/NS/CSF/typePrecip']]
+#lvar = [['Ku','NS/PRE/heightStormTop']]
+#lvar = [['Ku','/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/SLV/precipRate']]
+#lvar = [['Ku','/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/SLV/precipRate']]
+#lvar = [['Ku','/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/VER/heightZeroDeg']]
+#lvar = [['Ku','/NS/Latitude','/NS/Longitude']]
+#lvar = [['Ku','/NS/VER/heightZeroDeg']]
+#lvar = [[['Ku','NS/SLV/precipRateESurface']]
+lvar = [['DPRGMI','NS/surfPrecipTotRate']]
 
 #------------------------------------------
 def ave_9grids_3d(a3in, a1y, a1x, imiss, omiss, omiss_nomatch):
@@ -149,39 +150,46 @@ def ave_9grids_2d(a2in, a1y, a1x, imiss, omiss, omiss_nomatch):
     return a1datTmp
 
 #------------------------------------------
-for DTime in lDTime:
-    Year,Mon,Day = DTime.timetuple()[:3]
-
-    srcDirDPR   = baseDirDPR + '/%04d/%02d/%02d'%(Year,Mon,Day)
-    ssearch     = srcDirDPR  + '/2A.GPM.%s.*.V%s.HDF5'%(radar,fullverDPR)
-    lsrcPathDPR = sort(glob.glob(ssearch))
-
-
-    if len(lsrcPathDPR)==0:
-        print 'No DPR file',Year,Mon,Day
-        print ssearch
-        #sys.exit()
-        continue
-
-    for srcPathDPR in lsrcPathDPR:
-        oid = srcPathDPR.split('.')[-3]
-
-        idxDir      = idxbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
-        idxPathX    = idxDir + '/Xpy.1.%s.npy'%(oid)
-        idxPathY    = idxDir + '/Ypy.1.%s.npy'%(oid)
+for radar,var in lvar:
+    varName = var.split('/')[-1]
+    for DTime in lDTime:
+        Year,Mon,Day = DTime.timetuple()[:3]
    
-        if not os.path.exists(idxPathX):
-            print 'No file'
-            print idxPathX
-            continue
-        X    = np.load(idxPathX)
-        Y    = np.load(idxPathY)
+        if radar=='Ku': 
+            srcDirDPR   = baseDirDPR + '/%04d/%02d/%02d'%(Year,Mon,Day)
+            ssearch     = srcDirDPR  + '/2A.GPM.%s.*.V%s.HDF5'%(radar,fullverDPR)
+
+        elif radar=='DPRGMI':
+            srcDirDPR = '/work/hk02/PMM/NASA/GPM.DPRGMI/2B/V06/%04d/%02d/%02d'%(Year,Mon,Day)
+            ssearch   = srcDirDPR + '/2B.GPM.DPRGMI.*.??????.V06A.HDF5'
+
+
+        lsrcPathDPR = sort(glob.glob(ssearch))
     
-        a2x  = X[:,cx-w-ix0:cx+w+1-ix0]
-        a2y  = Y[:,cx-w-ix0:cx+w+1-ix0]
-        nygmi, nxgmi = a2x.shape
-        for var in lvar:
-            varName = var.split('/')[-1]
+        if len(lsrcPathDPR)==0:
+            print 'No DPR file',Year,Mon,Day
+            print ssearch
+            #sys.exit()
+            continue
+    
+        for srcPathDPR in lsrcPathDPR:
+            oid = srcPathDPR.split('.')[-3]
+    
+            idxDir      = idxbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
+            idxPathX    = idxDir + '/Xpy.1.%s.npy'%(oid)
+            idxPathY    = idxDir + '/Ypy.1.%s.npy'%(oid)
+       
+            if not os.path.exists(idxPathX):
+                print 'No file'
+                print idxPathX
+                continue
+            X    = np.load(idxPathX)
+            Y    = np.load(idxPathY)
+        
+            a2x  = X[:,cx-w-ix0:cx+w+1-ix0]
+            a2y  = Y[:,cx-w-ix0:cx+w+1-ix0]
+            nygmi, nxgmi = a2x.shape
+
             #DatDPR = dpr.load_var_granule(srcPathDPR, var)
             hdpr   = h5py.File(srcPathDPR)
             DatDPR = hdpr[var][:]
@@ -206,6 +214,8 @@ for DTime in lDTime:
                 imiss = -9999
                 omiss = -9999
                 datatype= 'int16'
+
+
             if   len(DatDPR.shape)==2:
                 datout = ave_9grids_2d(DatDPR, a2y.flatten(), a2x.flatten(), imiss, omiss, omiss_nomatch)
                 datout = datout.reshape(nygmi,nxgmi)

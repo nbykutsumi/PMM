@@ -31,8 +31,8 @@ stopact  = 'HTQZ'
 
 #iDTime = datetime(2015,1,1)
 #eDTime = datetime(2015,5,31)
-iDTime = datetime(2014,9,1)
-eDTime = datetime(2014,11,30)
+iDTime = datetime(2017,1,1)
+eDTime = datetime(2017,12,31)
 #iDTime = datetime(2014,12,16)
 #eDTime = datetime(2014,12,31)
 
@@ -40,6 +40,13 @@ eDTime = datetime(2014,11,30)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 lskipdates = [[2014,10,22],[2014,10,23],[2014,10,24],[2014,11,25],[2014,12,9],[2014,12,10]]
 
+
+#Year = 2017
+#lDTime  = np.load('/home/utsumi/bin/PMM/stop/ldtime-%04d-test.npy'%(Year), allow_pickle=True)
+#lDTime  = np.sort(lDTime)
+##n = len(lDTime)
+##lDTime = lDTime[:36]
+##lDTime = lDTime[36:]
 
 myhost = socket.gethostname()
 if myhost =='shui':
@@ -61,6 +68,9 @@ tcmin, tcmax = 50, 350
 dvarminmax = {'T':[200,350],'Q':[0,120],'Z':[-100,8800]}
 
 #get_ipython().magic(u'matplotlib inline')
+
+
+
 #******************************************
 # Functions
 #******************************************

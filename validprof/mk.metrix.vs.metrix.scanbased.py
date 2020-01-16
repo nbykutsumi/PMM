@@ -2,6 +2,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+from matplotlib.ticker import ScalarFormatter
 import numpy as np
 import os, sys
 from numpy import ma
@@ -38,10 +39,10 @@ lskipdates = [[2014,6,4],[2014,6,6],[2014,10,22],[2014,10,23],[2014,10,24],[2014
 #xymetric = ['dstop-prof','ndprec']
 #xymetric = ['dstop','ndprec']
 
-xymetric = ['ndprec','cc']
+#xymetric = ['ndprec','cc']
 #xymetric = ['ndprec','dwatNorm']
 #xymetric = ['ndprec','dstop-prof']
-#xymetric = ['ndprec','dstop']
+xymetric = ['ndprec','dstop']
 #xymetric = ['ndprec','dvfracConv']
 #xymetric = ['ndprec','rmse']
 
@@ -437,6 +438,7 @@ for rettype in lrettype:
     sum2Path = outDir + '/sum2.%s.%s.%s.%s.binned.bfile'%(xmetric,ymetric,rettype,season)
     precrangePath = outDir + '/precrange.%s.%s.%s.%s.bfile'%(xmetric,ymetric,rettype,season)
     xbndPath= outDir + '/xbnd.%s.%s.%s.%s.npy'%(xmetric,ymetric,rettype,season) 
+    ybndPath= outDir + '/ybnd.%s.%s.%s.%s.npy'%(xmetric,ymetric,rettype,season) 
 
     histPath= outDir + '/hist.%s.%s.%s.%s.binned.bfile'%(xmetric,ymetric,rettype,season)
 
@@ -456,6 +458,7 @@ for rettype in lrettype:
 
 
         lxbnd.tofile(xbndPath)
+        lybnd.tofile(ybndPath)
         print sumPath
 
     ##************************************
@@ -472,72 +475,76 @@ for rettype in lrettype:
     with open(histPath, 'rb') as f:
         da2hist = pickle.load(f)
 
-    lxbnd = np.fromfile(xbndPath)
+    #lxbnd = np.fromfile(xbndPath)
+    #lybnd = np.fromfile(ybndPath)
 
-    #************************************
-    # Plot (xmetric vs ymetric)
-    #************************************
+    lxbnd = dxbnd[xmetric]
+    lybnd = dxbnd[ymetric]
+
+    ##************************************
+    ## Plot (xmetric vs ymetric)
+    ##************************************
     dlabel = {'dprec':'Surface precipitation error (mm/h)'
              ,'ndprec':'Norm. surf. precip. error'
              ,'rmse':'Profile RMSE (g/m3)'
              ,'cc'  :'Profile Correlation Coef.'
              ,'dwatNorm' :'Total condensed water \n difference (Normed)'
-             ,'dconvfrac':'Convective fraction difference'
-             ,'dstop-prof':'Storm top height difference (km)\n(profile-based)'
-             ,'dstop':'Storm top height difference (km)\n(top-weighted)'
+             ,'dconvfrac':'Convective fraction error'
+             ,'dstop-prof':'Storm top height error (km)\n(profile-based)'
+             ,'dstop':'Storm top height error (km)\n(top-weighted)'
              ,'dtqv' :'Total water vapor error (kg/m2)'
              ,'dvfracConv' :'convective fraction error'
              }
 
-    for surf in lsurf:
-        fig = plt.figure(figsize=(6,6))
-        ax = fig.add_axes([0.25,0.20,0.7,0.7])
-    
-        a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
-        for preclev in dprecrange.keys():
-            if preclev ==-1: continue
+    #for surf in lsurf:
+    #    fig = plt.figure(figsize=(6,6))
+    #    ax = fig.add_axes([0.25,0.20,0.7,0.7])
+    #
+    #    a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
+    #    for preclev in dprecrange.keys():
+    #        if preclev ==-1: continue
 
-            iprec,eprec = dprecrange[preclev]
-            slabel = '%d-%dmm/h'%(iprec,eprec)
-            linestyle= ['-', '--', '-'][preclev]
-            linewidth= [1, 2, 2][preclev]
-            #mycolor = ['darkblue','orange','crimson'][preclev]
-            mycolor = ['k','k','k'][preclev]
-    
-            #a1y = ma.masked_invalid(da1sum[surf,preclev] / da1num[surf,preclev])
-            a1y = ma.masked_where(da1num[surf,preclev] <100, da1sum[surf,preclev]) / da1num[surf,preclev]
+    #        iprec,eprec = dprecrange[preclev]
+    #        slabel = '%d-%dmm/h'%(iprec,eprec)
+    #        linestyle= ['-', '--', '-'][preclev]
+    #        linewidth= [1, 2, 2][preclev]
+    #        #mycolor = ['darkblue','orange','crimson'][preclev]
+    #        mycolor = ['k','k','k'][preclev]
+    #
+    #        #a1y = ma.masked_invalid(da1sum[surf,preclev] / da1num[surf,preclev])
+    #        a1y = ma.masked_where(da1num[surf,preclev] <100, da1sum[surf,preclev]) / da1num[surf,preclev]
 
-            ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor, label=slabel)
-    
-        stitle = '%s %s'%(string.upper(rettype), surf)
-        plt.title(stitle, fontsize=20)
-    
-        xlabel = dlabel[xmetric]
-        ylabel = dlabel[ymetric]
-    
-    
-        ax.set_ylabel(ylabel, fontsize=20)
-        ax.set_xlabel(xlabel, fontsize=20)
-        ax.legend(fontsize=20)
-        ax.xaxis.set_tick_params(labelsize=16)
-        ax.yaxis.set_tick_params(labelsize=16)
-        ax.axvline(x=0, linestyle=':', color='gray', linewidth=3)
-        ax.axhline(y=0, linestyle=':', color='gray', linewidth=3)
-    
-        if xmetric=='rmse':
-            xmin, xmax= 0, 0.7
-        elif xmetric=='dwatNorm':
-            xmin, xmax= -1.2, 5.5
-        else:
-            xmin, xmax= None,None
-        ax.set_xlim([xmin,xmax])
-    
-        figDir = '/home/utsumi/temp/ret'
-        figPath = figDir + '/plot.%s.vs.%s.%s.%s.%s.png'%(xmetric,ymetric, rettype,surf,season)
-        plt.savefig(figPath)
-        plt.clf()
-        plt.close()
-        print figPath
+    #        ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor, label=slabel)
+    #
+    #    stitle = '%s %s'%(string.upper(rettype), surf)
+    #    plt.title(stitle, fontsize=20)
+    #
+    #    xlabel = dlabel[xmetric]
+    #    ylabel = dlabel[ymetric]
+    #
+    #
+    #    ax.set_ylabel(ylabel, fontsize=20)
+    #    ax.set_xlabel(xlabel, fontsize=20)
+    #    ax.legend(fontsize=20)
+    #    ax.xaxis.set_tick_params(labelsize=16)
+    #    ax.yaxis.set_tick_params(labelsize=16)
+    #    ax.axvline(x=0, linestyle=':', color='gray', linewidth=3)
+    #    ax.axhline(y=0, linestyle=':', color='gray', linewidth=3)
+    #
+    #    if xmetric=='rmse':
+    #        xmin, xmax= 0, 0.7
+    #    elif xmetric=='dwatNorm':
+    #        xmin, xmax= -1.2, 5.5
+    #    else:
+    #        xmin, xmax= None,None
+    #    ax.set_xlim([xmin,xmax])
+    #
+    #    figDir = '/home/utsumi/temp/ret'
+    #    figPath = figDir + '/plot.%s.vs.%s.%s.%s.%s.png'%(xmetric,ymetric, rettype,surf,season)
+    #    plt.savefig(figPath)
+    #    plt.clf()
+    #    plt.close()
+    #    print figPath
     
     #************************************
     # Plot (xmetric vs num)
@@ -595,14 +602,15 @@ for rettype in lrettype:
         print figPath
     '''
     #************************************
-    # Plot scatterplot (all range) + lines
+    # Plot 2D histogram + lines
     #************************************
+    a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
     for surf in lsurf:
         H  = da2hist[surf,-1]
         X,Y= np.meshgrid(lxbnd, lybnd)
 
         fig = plt.figure(figsize=(6,6))
-        ax = fig.add_axes([0.25,0.20,0.53,0.53])
+        ax = fig.add_axes([0.25,0.20,0.45,0.45])
        
         vmax= H.max()
         im = ax.pcolormesh(X,Y,H, norm=matplotlib.colors.LogNorm(), cmap='jet', vmin=10, vmax=vmax)
@@ -625,9 +633,6 @@ for rettype in lrettype:
 
         iprec,eprec = dprecrange[preclev]
  
-        stitle = '%s %s'%(string.upper(rettype), surf)
-        plt.title(stitle, fontsize=20)
-
         
         xlabel = dlabel[xmetric]
         ylabel = dlabel[ymetric]
@@ -646,6 +651,44 @@ for rettype in lrettype:
         ax.axvline(x=0, linestyle=':', color='gray', linewidth=4)
         ax.axhline(y=0, linestyle=':', color='gray', linewidth=4)
 
+
+        ##-------------------------------
+        ##-- PDF : top
+        ##-------------------------------  
+        #a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
+
+        #axpdfx = fig.add_axes([0.25,0.67, 0.45, 0.05])
+        #xpdf = ma.masked_less(H,0).sum(axis=0)
+        #xpdf = xpdf / float(xpdf.max())
+
+        #axpdfx.plot(a1x, xpdf, '-', linewidth=2 , color='k')
+        #axpdfx.set_xlim([xmin,xmax])
+        #axpdfx.tick_params(labelbottom=False, labelleft=False)
+        #axpdfx.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+        #axpdfx.ticklabel_format(style="sci",  axis="y",scilimits=(0,0))
+        #-------------------------------
+        #-- PDF : hight
+        #-------------------------------  
+        a1y = (lybnd[:-1] + lybnd[1:])*0.5
+        
+        axpdfy = fig.add_axes([0.72,0.20, 0.05, 0.45])
+        ypdf = ma.masked_less(H,0).sum(axis=1)
+        ypdf = ypdf / float(ypdf.max())
+
+        axpdfy.plot(ypdf, a1y, '-', linewidth=2 , color='k')
+        axpdfy.set_ylim([ymin,ymax])
+        axpdfy.tick_params(labelbottom=False, labelleft=False)
+        axpdfy.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+        axpdfy.ticklabel_format(style="sci",  axis="x",scilimits=(0,0))
+
+        #-------------------------------
+        # Title
+        #-------------------------------
+        stitle = '%s %s'%(string.upper(rettype), surf)
+        ax.set_title(stitle, fontsize=20, pad=10)
+
+
+
         #--- Separate legend -----
         figleg = plt.figure(figsize=(6,2)) 
         axleg  = figleg.add_axes([0.1,0.1,0.8,0.8])
@@ -663,10 +706,11 @@ for rettype in lrettype:
         ax.set_xlim([xmin,xmax])
 
         #-- colorbar ---
-        cax = fig.add_axes([0.82,0.15,0.02, 0.6])
+        cax = fig.add_axes([0.79,0.20,0.02, 0.44])
         cbar=plt.colorbar(im, orientation='vertical', cax=cax)
         cbar.ax.tick_params(labelsize=16)
-        #---------------
+
+
         figDir = '/home/utsumi/temp/ret'
         figPath = figDir + '/plot.scatter.%s.vs.%s.%s.%s.%s.png'%(xmetric,ymetric, rettype,surf,season)
         fig.savefig(figPath)

@@ -65,9 +65,9 @@ lprrange = map(tuple, lprrange)
 #lregion = ['TRO','SUBN','MIDN']
 #lregion = ['TRO','MIDN']
 #lregion = ['MIDN']
-#lregion = ['TIB']
+lregion = ['TIB']
 #lregion = ['TIO']
-lregion = ['WTP']
+#lregion = ['WTP']
 #lregion = ['SETP']
 #lregion = ['AMZ','CUS','EUS','TIB','NETP','SETP','NTA','STA','WTP','ETI','WMP','WMA','TAF','NEA','SEC','NIN']
 dBBox = {
@@ -352,6 +352,13 @@ for season in lseason:
             x0 = int(floor(lon0 - lonmin))
             x1 = int(floor(lon1 - lonmin))
 
+            print ''
+            print ''
+            print ''
+            print y0,x0
+            print ''
+            print ''
+            print ''
             #********************************************** 
             #-- cvs file
             #********************************************** 

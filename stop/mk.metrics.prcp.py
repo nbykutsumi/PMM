@@ -35,8 +35,9 @@ else:
     print 'check hostname',myhost
     sys.exit()
 
-#lsurftype = ['ocean','vegetation','coast','snow']
-lsurftype = ['ocean']
+lsurftype = ['ocean','vegetation','coast','snow']
+#lsurftype = ['ocean']
+#lsurftype = ['vegetation','coast','snow']
 
 dsurflabel={ 'ocean':'Class1 (Ocean)'
             ,'vegetation':'Classes 3-7 (Vegetation)'
@@ -50,19 +51,24 @@ calcflag= True
 region = 'GLB'
 #lseason = ['JJADJF']
 #lseason = ['JJA']
-lseason = [8]
+lseason = [6]
+#lseason = ['AD']
 DB_MAXREC = 10000
 DB_MINREC = 1000
-
-prmin = 0.2
+prmin = 0.2 # for RNR screening
 #prmin = 1
 #prmin = 0.01
 #prmin = 0.0
+
+lthpr = [1,5,7] # mm/h, for replacement
 expr_rnr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
-lexpr = ['glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC),
-        'glb.stop-wgt-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC),
-        'glb.stop-rng-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+lexpr = [#'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC),
+         #'glb.stop-wgt-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC),
+         #'glb.stop-rng-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC),
+         'glb.stop-wgt-ret-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC),
+         #'glb.stop-wgt-cor-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC),
+         #'glb.stop-wgt-ret-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC),
         ]
 
 nsample  = 100 # number of sampled orbits per month (for region=='GLB')
@@ -78,6 +84,7 @@ def read_orbitlist_us(Year,Mon):
 def read_orbitlist_glob(Year,Mon):
     iDay = 1
     eDay = calendar.monthrange(Year,Mon)[1]
+    #eDay = 25  # test
     lout = []
     for Day in range(iDay,eDay+1):
         retDir = epcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
@@ -160,196 +167,205 @@ def ave_9grids_2d(a2in, a1y, a1x, miss):
 for season in lseason:
     lYM = ret_lym(season)
     for expr in lexpr:
+        exprtype = expr.split('.')[1].split('-')[0]
 
-        for surftype in lsurftype:
+        for thpr in lthpr:
+            for surftype in lsurftype:
     
-            for Year,Mon in lYM:
-                if calcflag==False: continue
+                for Year,Mon in lYM:
+                    if calcflag==False: continue
 
-                a1ret = array([])
-                a1obs = array([])
-
-
-                print surftype,Year,Mon
-                if region=='US':
-                    lorbit = read_orbitlist_us(Year,Mon)
-                elif region=='GLB':
-                    lorbit = read_orbitlist_glob(Year,Mon)
-                    random.seed(0)
-                    lorbit = random.sample(lorbit, nsample)
-                else:
-                    print 'check region',region
-                    sys.exit()
-
-                lorbit.sort()
-                #lorbit = lorbit[:1] # test
-                for orbit in lorbit:
-                    Day,oid,iy,ey = orbit[2:]
-                    print Year,Mon,Day ,oid
-
-                    #-- Read surface type ----
-                    ssearch = gprofbaseDir + '/%04d/%02d/%02d/2A.GPM.GMI.GPROF2017v1.20140701-S030429-E043702.001921.V05A.HDF5'
-                    ssearch = gprofbaseDir + '/%04d/%02d/%02d/2A.GPM.GMI.GPROF2017v1.*.%06d.V05A.HDF5'%(Year,Mon,Day,oid)
-                    lgprofPath = glob.glob(ssearch)
-                    if len(lgprofPath)==0:
-                        print 'No file for',Year,Mon,Day,oid
-                        print ssearch
-                        continue
-                    gprofPath= lgprofPath[0]
-
-                    with h5py.File(gprofPath,'r') as h:
-                        a2surftype = h['S1/surfaceTypeIndex'][:]
-
-                    #-- Read EPC precip for Rain/No Rain) ----
-                    epcDir = epcbaseDir + '/%s/%04d/%02d/%02d'%(expr_rnr, Year,Mon,Day)
-                    rnrPath= epcDir + '/nsurf%s.%06d.y-9999--9999.nrec%d.npy'%('NScmb', oid, DB_MAXREC)
-                    a2rnr  = np.load(rnrPath)
-
-                    #-- Read retrieval data ----
-                    srcDir = epcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
-                    retPath= srcDir + '/nsurf%s.%06d.y-9999--9999.nrec%d.npy'%('NScmb', oid, DB_MAXREC)
-                    a2ret = np.load(retPath)
-
-                    #-- Read DPR-Combined -----------------------------------------------
-#                    dprbaseDir = tankbaseDir + '/utsumi/data/PMM/NASA/GPM.Ku/2A/V06'
-#                    dprDir     = dprbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
-#                    ssearch = dprDir + '/2A.GPM.Ku.*.%06d.V06A.HDF5'%(oid)
-                    dprbaseDir = workbaseDir + '/hk02/PMM/NASA/GPM.DPRGMI/2B/V06'
-                    dprDir     = dprbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
-                    ssearch = dprDir + '/*.%06d.V06A.HDF5'%(oid)
+                    a1ret = array([])
+                    a1obs = array([])
 
 
-
-                    try:
-                        dprPath = glob.glob(ssearch)[0]
-                    except:
-                        print 'No DPR file for oid=',oid
-                        print ssearch
-                        continue
-                
-                    with h5py.File(dprPath, 'r') as h:
-                        a2obsOrg = h['NS/surfPrecipTotRate'][:]
-
-                    #-- index file for colocation ---
-                    xyDir = tankbaseDir + '/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.IDX/%04d/%02d/%02d'%(Year,Mon,Day)
-                    xPath = xyDir + '/Xpy.1.%06d.npy'%(oid)
-                    yPath = xyDir + '/Ypy.1.%06d.npy'%(oid)
-                
-                    if not os.path.exists(xPath):
-                        continue
-                    a2x = np.load(xPath)
-                    a2y = np.load(yPath)
-
-                    ny,nx= a2x.shape
-                    a1x = a2x.flatten()
-                    a1y = a2y.flatten()
-
-                    a2obsOrg = ma.masked_less(a2obsOrg,0).filled(-9999.)
-                    a2obs = ave_9grids_2d(a2obsOrg, a1y, a1x, miss=-9999.).filled(-9999.).reshape(ny,nx)
-
-
-                    #-- Extract regional data ---------------------
-                    if iy >0:
-                        a2surftype = a2surftype[iy:ey+1]
-                        a2rnr= a2rnr[iy:ey+1]
-                        a2ret = a2ret[iy:ey+1]
-                        a2obs = a2obs[iy:ey+1]  # radar
-
-                    
-                    #-- Extract x=83-137 of PMW  ------------------
-                    a2surftype = a2surftype[:,84:136+1]
-                    a2rnr = a2rnr[:,84:136+1]
-                    a2ret = a2ret[:,84:136+1] 
-                    a2obs = a2obs[:,1:-1]                    
-
-                    if a2ret.shape[0]==0: continue 
-
-                    #-- Screen by surface types -------------------
-                    if surftype=='ocean':
-                        a2masksurf = ma.masked_not_equal(a2surftype,1).mask
-                    elif surftype=='vegetation':
-                        a2masksurf = ma.masked_outside(a2surftype,3,7).mask
-                    elif surftype=='snow':
-                        a2masksurf = ma.masked_outside(a2surftype,8,11).mask
-                    elif surftype=='coast':
-                        a2masksurf = ma.masked_not_equal(a2surftype,13).mask
+                    print surftype,Year,Mon
+                    if region=='US':
+                        lorbit = read_orbitlist_us(Year,Mon)
+                    elif region=='GLB':
+                        lorbit = read_orbitlist_glob(Year,Mon)
+                        random.seed(0)
+                        lorbit = random.sample(lorbit, nsample)
                     else:
-                        print '\n'+'check surftype',surftype
-                        sys.exit() 
-                    #-- set zero for missing and very weak precip --
-                    a2obs = ma.masked_less(a2obs, prmin).filled(0)
-                    a2ret = ma.masked_less(a2ret, prmin).filled(0)
+                        print 'check region',region
+                        sys.exit()
 
-                    #--- Mask ---------------------
-                    a2mask  = a2masksurf
+                    lorbit.sort()
+                    #lorbit = lorbit[:1] # test
+                    for orbit in lorbit:
+                        Day,oid,iy,ey = orbit[2:]
+                        print Year,Mon,Day ,oid
 
-                    #-- Screeen No precip pixels --
-                    a2maskP = ma.masked_less(a2rnr,prmin).mask
-                    a2mask  = a2mask + a2maskP
-                    #------------------------------
+                        #-- Read surface type ----
+                        ssearch = gprofbaseDir + '/%04d/%02d/%02d/2A.GPM.GMI.GPROF2017v1.20140701-S030429-E043702.001921.V05A.HDF5'
+                        ssearch = gprofbaseDir + '/%04d/%02d/%02d/2A.GPM.GMI.GPROF2017v1.*.%06d.V05A.HDF5'%(Year,Mon,Day,oid)
+                        lgprofPath = glob.glob(ssearch)
+                        if len(lgprofPath)==0:
+                            print 'No file for',Year,Mon,Day,oid
+                            print ssearch
+                            continue
+                        gprofPath= lgprofPath[0]
 
-                    a1retTmp = ma.masked_where(a2mask, a2ret).compressed()
-                    a1obsTmp = ma.masked_where(a2mask, a2obs).compressed()
+                        with h5py.File(gprofPath,'r') as h:
+                            a2surftype = h['S1/surfaceTypeIndex'][:]
+
+                        #-- Read EPC precip for Rain/No Rain) ----
+                        epcDir = epcbaseDir + '/%s/%04d/%02d/%02d'%(expr_rnr, Year,Mon,Day)
+                        rnrPath= epcDir + '/nsurf%s.%06d.y-9999--9999.nrec%d.npy'%('NScmb', oid, DB_MAXREC)
+                        a2rnr  = np.load(rnrPath)
+
+                        #-- Read retrieval data ----
+                        srcDir = epcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
+                        retPath= srcDir + '/nsurf%s.%06d.y-9999--9999.nrec%d.npy'%('NScmb', oid, DB_MAXREC)
+                        a2ret = np.load(retPath)
+
+                        #-- Read DPR-Combined -----------------------------------------------
+#                        dprbaseDir = tankbaseDir + '/utsumi/data/PMM/NASA/GPM.Ku/2A/V06'
+#                        dprDir     = dprbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
+#                        ssearch = dprDir + '/2A.GPM.Ku.*.%06d.V06A.HDF5'%(oid)
+                        dprbaseDir = workbaseDir + '/hk02/PMM/NASA/GPM.DPRGMI/2B/V06'
+                        dprDir     = dprbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
+                        ssearch = dprDir + '/*.%06d.V06A.HDF5'%(oid)
+
+
+
+                        try:
+                            dprPath = glob.glob(ssearch)[0]
+                        except:
+                            print 'No DPR file for oid=',oid
+                            print ssearch
+                            continue
+                    
+                        with h5py.File(dprPath, 'r') as h:
+                            a2obsOrg = h['NS/surfPrecipTotRate'][:]
+
+                        #-- index file for colocation ---
+                        xyDir = tankbaseDir + '/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.IDX/%04d/%02d/%02d'%(Year,Mon,Day)
+                        xPath = xyDir + '/Xpy.1.%06d.npy'%(oid)
+                        yPath = xyDir + '/Ypy.1.%06d.npy'%(oid)
+                    
+                        if not os.path.exists(xPath):
+                            continue
+                        a2x = np.load(xPath)
+                        a2y = np.load(yPath)
+
+                        ny,nx= a2x.shape
+                        a1x = a2x.flatten()
+                        a1y = a2y.flatten()
+
+                        a2obsOrg = ma.masked_less(a2obsOrg,0).filled(-9999.)
+                        a2obs = ave_9grids_2d(a2obsOrg, a1y, a1x, miss=-9999.).filled(-9999.).reshape(ny,nx)
+
+
+                        #-- Extract regional data ---------------------
+                        if iy >0:
+                            a2surftype = a2surftype[iy:ey+1]
+                            a2rnr= a2rnr[iy:ey+1]
+                            a2ret = a2ret[iy:ey+1]
+                            a2obs = a2obs[iy:ey+1]  # radar
+
+                        
+                        #-- Extract x=83-137 of PMW  ------------------
+                        a2surftype = a2surftype[:,84:136+1]
+                        a2rnr = a2rnr[:,84:136+1]
+                        a2ret = a2ret[:,84:136+1] 
+                        a2obs = a2obs[:,1:-1]                    
+
+                        if a2ret.shape[0]==0: continue 
+
+                        #-- Screen by surface types -------------------
+                        if surftype=='ocean':
+                            a2masksurf = ma.masked_not_equal(a2surftype,1).mask
+                        elif surftype=='vegetation':
+                            a2masksurf = ma.masked_outside(a2surftype,3,7).mask
+                        elif surftype=='snow':
+                            a2masksurf = ma.masked_outside(a2surftype,8,11).mask
+                        elif surftype=='coast':
+                            a2masksurf = ma.masked_not_equal(a2surftype,13).mask
+                        else:
+                            print '\n'+'check surftype',surftype
+                            sys.exit() 
+                        #**************************************
+                        # Replace pmw precip where a2rnr < thpr
+                        #**************************************
+                        if exprtype =='stop':
+                            a2flag= ma.masked_less(a2rnr, thpr).mask
+                            a2ret[a2flag] = a2rnr[a2flag]
+
+                        #-- set zero for missing and very weak precip --
+                        a2obs = ma.masked_less(a2obs, prmin).filled(0)
+                        a2ret = ma.masked_less(a2ret, prmin).filled(0)
+
+                        #--- Mask ---------------------
+                        a2mask  = a2masksurf
+
+                        #-- Screeen No precip pixels --
+                        a2maskP = ma.masked_less(a2rnr,prmin).mask
+                        a2mask  = a2mask + a2maskP
+                        #------------------------------
+
+                        a1retTmp = ma.masked_where(a2mask, a2ret).compressed()
+                        a1obsTmp = ma.masked_where(a2mask, a2obs).compressed()
     
-                    a1ret = np.concatenate([a1ret, a1retTmp])
-                    a1obs = np.concatenate([a1obs, a1obsTmp])
+                        a1ret = np.concatenate([a1ret, a1retTmp])
+                        a1obs = np.concatenate([a1obs, a1obsTmp])
 
-                 
+                     
+
+                    #*******************************
+                    # Save
+                    #-------------------------------
+                    stamp =  '%s-th%.1fmm.%s.%s.%04d.%02d'%(expr, thpr, region, surftype, Year, Mon)
+
+                    pickleDir  = '/home/utsumi/temp/stop/pickle'
+                    util.mk_dir(pickleDir)
+
+                    retPath = pickleDir + '/prcp.%s.ret.npy'%(stamp)
+                    obsPath = pickleDir + '/prcp.%s.obs.npy'%(stamp)
+                    if calcflag == True:
+                        np.save(retPath, a1ret) 
+                        np.save(obsPath, a1obs)                    
+                
 
                 #*******************************
-                # Save
+                # Load
                 #-------------------------------
-                stamp =  '%s.%s.%s.%04d.%02d'%(expr, region, surftype, Year, Mon)
+                a1ret = np.array([])
+                a1obs = np.array([])
+                for Year,Mon in lYM:
+                    stamp =  '%s-th%.1fmm.%s.%s.%04d.%02d'%(expr, thpr, region, surftype, Year, Mon)
+                    pickleDir  = '/home/utsumi/temp/stop/pickle'
 
-                pickleDir  = '/home/utsumi/temp/stop/pickle'
-                util.mk_dir(pickleDir)
+                    retPathTmp = pickleDir + '/prcp.%s.ret.npy'%(stamp)
+                    obsPathTmp = pickleDir + '/prcp.%s.obs.npy'%(stamp)
 
-                retPath = pickleDir + '/prcp.%s.ret.npy'%(stamp)
-                obsPath = pickleDir + '/prcp.%s.obs.npy'%(stamp)
-                if calcflag == True:
-                    np.save(retPath, a1ret) 
-                    np.save(obsPath, a1obs)                    
-            
-
-            #*******************************
-            # Load
-            #-------------------------------
-            a1ret = np.array([])
-            a1obs = np.array([])
-            for Year,Mon in lYM:
-                stamp =  '%s.%s.%s.%04d.%02d'%(expr, region, surftype, Year, Mon)
-                pickleDir  = '/home/utsumi/temp/stop/pickle'
-
-                retPathTmp = pickleDir + '/prcp.%s.ret.npy'%(stamp)
-                obsPathTmp = pickleDir + '/prcp.%s.obs.npy'%(stamp)
-
-                a1ret = np.concatenate([a1ret, np.load(retPathTmp).astype(float32)]) 
-                a1obs = np.concatenate([a1obs, np.load(obsPathTmp).astype(float32)]) 
+                    a1ret = np.concatenate([a1ret, np.load(retPathTmp).astype(float32)]) 
+                    a1obs = np.concatenate([a1obs, np.load(obsPathTmp).astype(float32)]) 
 
 
-            #print ''
-            #print expr
-            #print 'obs max,min',a1obs.min(), a1obs.max()
-            #print 'ret max,min',a1ret.min(), a1ret.max()
-            #print 'ret sum',a1ret.sum() 
+                #print ''
+                #print expr
+                #print 'obs max,min',a1obs.min(), a1obs.max()
+                #print 'ret max,min',a1ret.min(), a1ret.max()
+                #print 'ret sum',a1ret.sum() 
 
-            #*******************************
-            # Metrics
-            #-------------------------------
-            cc = np.ma.corrcoef(a1ret,a1obs, allow_masked=True)[0][1] 
-            nbias= (a1ret - a1obs).mean()/a1obs.mean()
-            rmse = np.sqrt(((a1ret-a1obs)**2).mean())
-            num  = a1ret.shape[0]
+                #*******************************
+                # Metrics
+                #-------------------------------
+                cc = np.ma.corrcoef(a1ret,a1obs, allow_masked=True)[0][1] 
+                nbias= (a1ret - a1obs).mean()/a1obs.mean()
+                rmse = np.sqrt(((a1ret-a1obs)**2).mean())
+                num  = a1ret.shape[0]
 
-            stampOut = '%s.%s.%s.%s'%(expr, region, surftype, season)
-            outPath = figDir + '/metrics.prcp.%s.csv'%(stampOut)
-            lout = [['num','cc','nbias','rmse']]
-            lout.append([num,cc,nbias,rmse])
-            sout = util.list2csv(lout)
-            f=open(outPath,'w'); f.write(sout); f.close()
-            print ''
-            print outPath
-            print 'cc=',cc
-            print 'bias=',nbias
-            print 'rmse=',rmse
+                stampOut = '%s-th%.1fmm.%s.%s.%s'%(expr, thpr, region, surftype, season)
+                outPath = figDir + '/metrics.prcp.%s.csv'%(stampOut)
+                lout = [['num','cc','nbias','rmse']]
+                lout.append([num,cc,nbias,rmse])
+                sout = util.list2csv(lout)
+                f=open(outPath,'w'); f.write(sout); f.close()
+                print ''
+                print outPath
+                print 'cc=',cc
+                print 'bias=',nbias
+                print 'rmse=',rmse
 

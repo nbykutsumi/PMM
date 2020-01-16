@@ -30,34 +30,34 @@ else:
     print 'check hostname',myhost
     sys.exit()
 
-lsurftype = ['ocean','vegetation','coast','snow']
+#lsurftype = ['ocean','vege','coast','snow']
+lsurftype = ['ocean','seaice','vege','snow','swater','coast','siedge']
+
 #lsurftype = ['ocean']
 
-dsurflabel={ 'ocean':'Class1 (Ocean)'
-            ,'vegetation':'Classes 3-7 (Vegetation)'
-            ,'snow':'Classes 8-11 (Snow)'
-            ,'coast':'Class 13 (Coast)'
-            }
 
 region = 'GLB'
-season = 8
+#season = 'ALL'
+season = 'JJA'
 DB_MAXREC = 10000
 DB_MINREC = 1000
 
 lexpr = ['NScmb.glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC),
-        'ml.best01-HTQZ'
+        'ml.best01-HTQZ',
+        #'ml-2017.best01-HTQZ',
+        #'ml-2017.best01cr-HTQZ'
         ]
 
 dexprshort = {}
 for expr in lexpr:
     tmp = expr.split('.')[0]
-    if tmp=='ml':
-        exprshort = 'ml'
+    if tmp in ['ml','ml-2017']:
+        exprshort = expr
     else:
         exprshort = 'org'
     dexprshort[expr] = exprshort
 #*************************************************
-lvar = ['cc','nbias','rmse']
+lvar = ['cc','nbias','rmse','slope','intercept']
 dat = {}
 for expr in lexpr:
     for surftype in lsurftype:
@@ -72,8 +72,9 @@ for expr in lexpr:
         for i,var in enumerate(lvar):
             dat[expr,surftype,var] = line[i] 
 
-llabel1 = [''] + ['cc']*2 + ['nbias']*2 + ['rmse']*2
-llabel2 = [''] + [dexprshort[expr] for expr in lexpr]*3
+nexpr = len(lexpr)
+llabel1 = [''] + ['cc']*nexpr + ['nbias']*nexpr + ['rmse']*nexpr + ['slope']*nexpr + ['intercept']*nexpr
+llabel2 = [''] + [dexprshort[expr] for expr in lexpr]*5
 lout = []
 lout.append(llabel1)
 lout.append(llabel2)

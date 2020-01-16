@@ -35,11 +35,10 @@ else:
     print 'check hostname',myhost
     sys.exit()
 
-lsurftype = ['ocean','vegetation','coast','snow']
-#lsurftype = ['vegetation']
+lsurftype = ['ocean','vege','coast','snow']
 
 dsurflabel={ 'ocean':'Class1 (Ocean)'
-            ,'vegetation':'Classes 3-7 (Vegetation)'
+            ,'vege':'Classes 3-7 (Vegetation)'
             ,'snow':'Classes 8-11 (Snow)'
             ,'coast':'Class 13 (Coast)'
             }
@@ -48,14 +47,26 @@ calcflag= True
 #calcflag= False
 #region = 'US'
 region = 'GLB'
+#iYM = [2017,1]
+#eYM = [2017,12]
+iYM = [2014,6]
+eYM = [2015,5]
+
+lYMorg = util.ret_lYM(iYM,eYM)
 #lseason = ['JJADJF']
-#lseason = ['JJA']
-lseason = [8]
+lseason = ['JJA']
+#lseason = [8]
+#lseason = ['ALL']
+rnrtype = 'epc'
+#rnrtype = 'dpr'
+
+
 DB_MAXREC = 10000
 DB_MINREC = 1000
 
-lrettype = ['ml','NScmb','ml']
-#lrettype = ['ml']
+#lrettype = ['ml','NScmb']
+lrettype = ['ml']
+#lrettype = ['ml-2017']
 #lrettype = ['NScmb']
 prmin = 0.2
 #prmin = 1
@@ -63,6 +74,7 @@ prmin = 0.2
 #prmin = 0.0
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 stopexpr = 'best01'
+#stopexpr = 'best01cr'
 #stopact  = 'LTQZ'
 stopact  = 'HTQZ'
 nsample  = 100 # number of sampled orbits per month (for region=='GLB')
@@ -80,14 +92,60 @@ def read_orbitlist_glob(Year,Mon):
     eDay = calendar.monthrange(Year,Mon)[1]
     lout = []
     for Day in range(iDay,eDay+1):
-        retDir = epcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
-        ssearch= retDir + '/nsurf%s.??????.y-9999--9999.nrec%d.npy'%('NScmb', DB_MAXREC)
+        srcDir = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/GPM.GMI/1C/V05/%04d/%02d/%02d'%(Year,Mon,Day)
+        ssearch= srcDir + '/1C.GPM.GMI.*.??????.V05A.HDF5'
         lsrcPath = np.sort(glob.glob(ssearch))
         for srcPath in lsrcPath:
-            oid = int(srcPath.split('.')[-4])
+            oid = int(srcPath.split('.')[-3])
 
             lout.append([Year,Mon,Day,oid,-9999,-9999])
     return lout
+
+
+def read_orbitlist_testdata(Year,Mon):
+    lDTime  = np.load('/home/utsumi/bin/PMM/stop/ldtime-%04d-test.npy'%(Year), allow_pickle=True)
+    lDTime  = np.sort(lDTime)
+    lout = []
+    for DTime in lDTime:
+        if DTime.month != Mon: continue
+        Day = DTime.day
+        srcDir = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/GPM.GMI/1C/V05/%04d/%02d/%02d'%(Year,Mon,Day)
+        ssearch= srcDir + '/1C.GPM.GMI.*.??????.V05A.HDF5'
+        lsrcPath = np.sort(glob.glob(ssearch))
+        for srcPath in lsrcPath:
+            oid = int(srcPath.split('.')[-3])
+
+            lout.append([Year,Mon,Day,oid,-9999,-9999])
+
+    return lout
+
+def ret_lmon(season):
+    if season=='JJADJF':
+        lmon = [6,7,8,12,1,2]
+    if season=='ALL':
+        lmon = range(1,12+1)
+    elif season=='JJA':
+        lmon = [6,7,8]
+    elif season=='SON':
+        lmon = [9,10,11]
+    elif season=='DJF':
+        lmon = [12,1,2]
+    elif season=='MAM':
+        lmon = [3,4,5]
+    elif season=='AD':
+        lmon = [8,12]
+    elif season =='JJ':
+        lmon = [6,7]
+    elif season =='DJ':
+        lmon = [12,1]
+    elif type(season)==int:
+        lmon = [int(season)]
+    else:
+        print 'check season',season
+        sys.exit()
+    return lmon
+
+
 
 def ret_lym(season):
     if season=='JJADJF':
@@ -158,10 +216,11 @@ def ave_9grids_2d(a2in, a1y, a1x, miss):
 
 
 for season in lseason:
-    lYM = ret_lym(season)
+    lmon = ret_lmon(season)
+    lYM = [[Y,M] for [Y,M] in lYMorg if M in lmon]
     dvnummax = {}
     for rettype in lrettype:
-        if rettype =='ml':
+        if rettype in ['ml','ml-2017']:
             exprTmp = '%s-%s'%(stopexpr, stopact)
         elif rettype in ['NS','MS','NScmb','MScmb']:
             exprTmp = expr
@@ -178,10 +237,15 @@ for season in lseason:
                 print surftype,Year,Mon
                 if region=='US':
                     lorbit = read_orbitlist_us(Year,Mon)
+
+                elif (region=='GLB')and(rettype =='ml-%04d'%(Year)):
+                    lorbit = read_orbitlist_testdata(Year,Mon)
+
                 elif region=='GLB':
                     lorbit = read_orbitlist_glob(Year,Mon)
                     random.seed(0)
                     lorbit = random.sample(lorbit, nsample)
+
                 else:
                     print 'check region',region
                     sys.exit()
@@ -204,12 +268,21 @@ for season in lseason:
                     with h5py.File(gprofPath,'r') as h:
                         a2surftype = h['S1/surfaceTypeIndex'][:]
 
-                    #-- Read EPC precip (for Rain/No Rain) ----
-                    epcDir = epcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
-                    a2prcp = np.load(epcDir + '/nsurf%s.%06d.y-9999--9999.nrec%d.npy'%('NScmb', oid, DB_MAXREC))
+                    #-- Read Rain/No Rain data ----
+                    if rnrtype=='epc':
+                        epcDir = epcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
+                        a2rnr = np.load(epcDir + '/nsurf%s.%06d.y-9999--9999.nrec%d.npy'%('NScmb', oid, DB_MAXREC))
+
+                    elif rnrtype=='dpr':
+                        rnrDir = tankbaseDir + '/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.DPRGMI.V06A.9ave.surfPrecipTotRate/%04d/%02d/%02d'%(Year,Mon,Day)
+                        rnrPath = rnrDir + '/surfPrecipTotRate.%06d.npy'%(oid)
+                        a2rnr = np.load(rnrPath)
+                    else:
+                        print 'check rnrtype',rnrtype
+                        sys.exit()
 
                     #-- Read storm top ----
-                    if rettype =='ml':
+                    if rettype in ['ml','ml-2017']:
                         srcbaseDir = tankbaseDir + '/utsumi/PMM/stop/orbit/%s-%s-ssn%s'%(stopexpr, stopact, 0)
                         srcDir     = srcbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
                         srcPath = srcDir + '/stop.%06d.npy'%(oid)
@@ -220,7 +293,7 @@ for season in lseason:
                         a2ret  = np.load(epcDir + '/top-heightStormTopNS.%06d.y-9999--9999.nrec%d.npy'%(oid, DB_MAXREC))
 
                     #-- Read DPR-Combined -----------------------------------------------
-                    dprbaseDir = tankbaseDir + '/utsumi/data/PMM/NASA/GPM.Ku/2A/V06'
+                    dprbaseDir = workbaseDir + '/hk02/PMM/NASA/GPM.Ku/2A/V06'
                     dprDir     = dprbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
                     ssearch = dprDir + '/2A.GPM.Ku.*.%06d.V06A.HDF5'%(oid)
 
@@ -228,6 +301,7 @@ for season in lseason:
                         dprPath = glob.glob(ssearch)[0]
                     except:
                         print 'No DPR file for oid=',oid
+                        print ssearch
                         continue
                 
                     with h5py.File(dprPath, 'r') as h:
@@ -254,22 +328,25 @@ for season in lseason:
                     #-- Extract regional data ---------------------
                     if iy >0:
                         a2surftype = a2surftype[iy:ey+1]
-                        a2prcp= a2prcp[iy:ey+1]
+                        a2rnr = a2rnr[iy:ey+1]
                         a2ret = a2ret[iy:ey+1]
                         a2obs = a2obs[iy:ey+1]  # radar
 
                     
                     #-- Extract x=83-137 of PMW  ------------------
                     a2surftype = a2surftype[:,83:137+1]
-                    a2prcp= a2prcp[:,83:137+1]
                     a2ret = a2ret[:,83:137+1] 
+                    if rnrtype=='epc':
+                        a2rnr = a2rnr[:,83:137+1]
+
+
  
                     if a2ret.shape[0]==0: continue 
 
                     #-- Screen by surface types -------------------
                     if surftype=='ocean':
                         a2masksurf = ma.masked_not_equal(a2surftype,1).mask
-                    elif surftype=='vegetation':
+                    elif surftype=='vege':
                         a2masksurf = ma.masked_outside(a2surftype,3,7).mask
                     elif surftype=='snow':
                         a2masksurf = ma.masked_outside(a2surftype,8,11).mask
@@ -285,7 +362,8 @@ for season in lseason:
                     a2mask  = a2mask + a2masksurf
 
                     #-- Screeen No precip pixels --
-                    a2maskP = ma.masked_less(a2prcp,prmin).mask
+                    a2maskP = ma.masked_less(a2rnr,prmin).mask
+
                     a2mask  = a2mask + a2maskP
                     #------------------------------
 
@@ -297,14 +375,15 @@ for season in lseason:
 
                  
                 #-- Histograms -------
-                bins  = np.arange(0, 20000, 200)
-                H,xedges,yedges = np.histogram2d(a1obs, a1ret, bins = bins)
-                H = H.T
+                if calcflag==True:
+                    bins  = np.arange(0, 20000, 200)
+                    H,xedges,yedges = np.histogram2d(a1obs, a1ret, bins = bins)
+                    H = H.T
 
                 #*******************************
                 # Save
                 #-------------------------------
-                stamp =  '%s.%s.%s.%04d.%02d'%(exprTmp, region, surftype, Year, Mon)
+                stamp =  '%s.%s.%s.%s.%04d.%02d'%(exprTmp, rettype, region, surftype, Year, Mon)
 
                 pickleDir  = '/home/utsumi/temp/stop/pickle'
                 util.mk_dir(pickleDir)
@@ -322,7 +401,7 @@ for season in lseason:
             #-------------------------------
             H = None
             for Year,Mon in lYM:
-                stamp =  '%s.%s.%s.%04d.%02d'%(exprTmp, region, surftype, Year, Mon)
+                stamp =  '%s.%s.%s.%s.%04d.%02d'%(exprTmp, rettype, region, surftype, Year, Mon)
                 pickleDir  = '/home/utsumi/temp/stop/pickle'
                 histoPath  = pickleDir + '/histo.%s.bfile'%(stamp)
                 binsPath   = pickleDir + '/bins.%s.npy'%(exprTmp)
@@ -362,15 +441,19 @@ for season in lseason:
             ax.set_ylabel('%s [km]'%(rettype), fontsize=22)
             ax.set_ylim([vmin,vmax])
             ax.set_xlim([vmin,vmax])
-    
-            plt.title('%s (%s)\n%s %s'%(rettype, region, dsurflabel[surftype],season), fontsize=24)
+   
+            stitle = '%s (%s)\n%s %s'%(rettype, region, dsurflabel[surftype],season)
+            if rettype in ['ml','ml-2017']:
+                stitle = stopexpr + ' ' + stitle
+
+            plt.title(stitle, fontsize=24)
     
             cax = fig.add_axes([0.84,0.15,0.02, 0.6])
             cbar=plt.colorbar(im, orientation='vertical', cax=cax)
             cbar.ax.tick_params(labelsize=16)
     
             #figPath= figDir + '/scatter.%s.%s.%s.%s.%s.png'%(exprTmp,region,obstype,surftype,season)
-            figPath= figDir + '/scatter.%s.%s.%s.%s.png'%(region,exprTmp,surftype,season)
+            figPath= figDir + '/scatter.%s.%s.%s.%s.%s.png'%(region,exprTmp,rettype,surftype,season)
             util.mk_dir(figDir)
 
             plt.savefig(figPath)

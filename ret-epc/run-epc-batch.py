@@ -11,7 +11,7 @@ import shutil
 #iDTime = datetime(2014,10,14)
 #eDTime = datetime(2014,10,14)
 iDTime = datetime(2014,6,1)
-eDTime = datetime(2014,7,31)
+eDTime = datetime(2014,8,31)
 
 #iDTime = datetime(2014,12,16)
 #eDTime = datetime(2014,12,31)
@@ -28,15 +28,27 @@ batchsize = 6
 DB_MAXREC = 10000
 DB_MINREC = 1000
 
+
+#--- Storm top parameter ----
+#stoptype = 'ret'
+stoptype = 'cor'
+#stoptype = 'obs'
+#stopstamp = 'wtpdf01-LTQZ-ssn0'
+if stoptype=='ret':
+    stopstamp = 'best01-HTQZ-ssn0'
+elif stoptype=='cor':
+    stopstamp = 'best01cr-HTQZ-ssn0'
+#----------------------------
+
 #** Constants ******
 #expr = 'glb.stop01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 #expr = 'glb.stop-wgt-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-expr = 'glb.stop-rng-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.stop-rng-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.stop-wgt-%s-01.minrec%d.maxrec%d'%(stoptype,DB_MINREC,DB_MAXREC)
+expr = 'glb.stop-rng-%s-01.minrec%d.maxrec%d'%(stoptype,DB_MINREC,DB_MAXREC)
 
 type_stop = expr.split('.')[1].split('-')[1]
 
-#stopstamp = 'wtpdf01-LTQZ-ssn0'
-stopstamp = 'best01-HTQZ-ssn0'
 
 #prog = 'ret-myepc-29bins.py'
 prog = 'ret-myepc-stop.py'
@@ -120,9 +132,11 @@ for DTime in lDTime:
             tqvPath = ''
             #elevPathTmp = glob.glob(matchbaseDir + '/S1.ABp000-220.gtopo/%04d/%02d/%02d/gtopo.%06d.npy'%(Year,Mon,Day,oid))[0]
             elevPath = ''
-            #stopPath = glob.glob(tankDir + '/utsumi/PMM/stop/orbit/%s/%04d/%02d/%02d/stop.%06d.npy'%(stopstamp,Year,Mon,Day,oid))[0]
             try:
-                stopPath = glob.glob(matchbaseDir + '/S1.ABp083-137.Ku.V06A.9ave.heightStormTop/%04d/%02d/%02d/heightStormTop.%06d.npy'%(Year,Mon,Day,oid))[0]
+                if stoptype=='obs':
+                    stopPath = glob.glob(matchbaseDir + '/S1.ABp083-137.Ku.V06A.9ave.heightStormTop/%04d/%02d/%02d/heightStormTop.%06d.npy'%(Year,Mon,Day,oid))[0]
+                elif stoptype in ['ret','cor']:
+                    stopPath = glob.glob(tankDir + '/utsumi/PMM/stop/orbit/%s/%04d/%02d/%02d/stop.%06d.npy'%(stopstamp,Year,Mon,Day,oid))[0]
             except IndexError:
                 print 'skip oid=',oid
                 loid.pop(-1)

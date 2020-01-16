@@ -55,19 +55,22 @@ obstype= 'cmb'
 region = 'GLB'
 #lseason = ['JJADJF']
 #lseason = ['JJA']
-lseason = ['ALL']
+#lseason = ['ALL']
+lseason = [6]
 DB_MAXREC = 10000
 DB_MINREC = 1000
 
 #lrettype = ['NS','MS','NScmb','MScmb']
 #lrettype = ['NS','MS','NScmb','MScmb','GPROF']
-lrettype = ['NScmb','GPROF']
+#lrettype = ['NScmb','GPROF']
 #lrettype = ['GPROF'] 
-#lrettype = ['NScmb']
+lrettype = ['NScmb']
 #prmin = 0.1
 prmin = 0.01
 #prmin = 0.0
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.stop-wgt-ret-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.stop-wgt-cor-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 nsample = 100  # number of sampled orbits per month (for region=='GLB')
 
 def read_orbitlist_us(Year,Mon):
