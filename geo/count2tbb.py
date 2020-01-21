@@ -4,6 +4,7 @@ import socket
 import subprocess
 import myfunc.util as util
 import os, sys
+import shutil
 
 myhost = socket.gethostname()
 if myhost =='shui':
@@ -21,7 +22,24 @@ else:
     sys.exit()
 
 
-DTime = datetime(2017,7,1,2,20)
+argv = sys.argv
+if len(argv) != 7+1:
+    print 'cmd Year Mon Day Hour Min ch chnum'
+    print argv
+    sys.exit()
+
+print 'argv[1:]=',argv[1:]
+Year,Mon,Day,Hour,Min,ch,chnum = argv[1:]
+Year,Mon,Day,Hour,Min, chnum = map(int, [Year,Mon,Day,Hour,Min, chnum])
+DTime = datetime(Year,Mon,Day,Hour,Min)
+
+baseftp = 'ftp://hmwr829gr.cr.chiba-u.ac.jp/gridded/FD/V20190123/archived/archived2'
+
+
+#ch = 'tir'
+##ch = 'vis'
+##ch = 'ext'
+#chnum = 1
 
 
 ## -------------------------------------------------------
@@ -35,11 +53,8 @@ DTime = datetime(2017,7,1,2,20)
 
 
 #      wget ${FTP}/${YYYY}${MM}/${CHN}/${YYYY}${MM}${DD}${HH}${MN}.${CHN,,}.${NUM}.fld.geoss.bz2
-yyyy,mm,dd,hh,mn = DTime.timetuple()[:5]
-baseftp = 'ftp://hmwr829gr.cr.chiba-u.ac.jp/gridded/FD/V20190123/archived/archived2'
 
-ch = 'tir'
-chnum = 1
+yyyy,mm,dd,hh,mn = DTime.timetuple()[:5]
 timestamp = '%04d%02d%02d%02d%02d'%(yyyy,mm,dd,hh,mn)
 bzName  = '%s.%s.%02d.fld.geoss.bz2'%(timestamp,ch,chnum)
 
@@ -54,59 +69,79 @@ if os.path.exists(bzPath):
 
 scmd = 'wget %s -P %s'%(iPath, tmpDir)
 lcmd = scmd.split(' ')
-print ''
 print scmd
+print ''
 subprocess.call(lcmd)
 
-
+if not os.path.exists(bzPath):
+    sys.exit()
 print '----- Uncompress -------'
-bzPath = tmpDir + '/' + bzName
-scmd = 'dd if=%s of=%s/little.geoss conv=swab'%(bzPath, tmpDir)
-lcmd = scmd.split(' ')
-print ''
+scmd = 'bunzip2 %s'%(bzPath)
 print scmd
-subprocess.call(lcmd)
 print ''
-print '----- Convert count to tbb -----'
+subprocess.call(scmd.split(' '))
+
+
+
+print '----- Swap endian (to little) ------'
+bigPath = tmpDir + '/' + bzName[:-4]
+scmd = 'dd if=%s of=%s/little.geoss conv=swab'%(bigPath, tmpDir)
+lcmd = scmd.split(' ')
+print scmd
+print ''
+subprocess.call(lcmd)
+
+print ''
+print '----- Copy parameter files to temporay directry -----'
 print ''
 para = '%s.%02d'%(ch, chnum)
 
-os.chdir(tmpDir)
+shutil.copy(para, tmpDir + '/')
+print 'copy',para
+print 'to: ',tmpDir +'/'
 
-if ch=='tir':
-    scmd = './tir.x %s/little.geoss %s'%(tmpDir, para)
+
+print ''
+print '----- Convert count to tbb -----'
+print ''
+
+os.chdir(tmpDir)
+print os.getcwd()
+if ch in ['tir','sir']:
+    #scmd = './tir.x %s/little.geoss %s'%(tmpDir, para)
+    scmd = '/home/utsumi/bin/PMM/geo/tir_my.x little.geoss %s'%(para)
     print scmd
     subprocess.call(scmd.split(' '))
     resolution="0.02"
 
 elif ch=='vis':
-    scmd = './vis.x %s/little.geoss %s'%(tmpDir,para)
+    scmd = '/home/utsumi/bin/PMM/geo/vis_my.x little.geoss %s'%(para)
     print scmd
     subprocess.call(scmd.split(' '))
     resolution="0.01"
 
 elif ch=='ext':
-    scmd = 'dd if=%s/little.geoss of=%s/01.geoss bs=576000000 count=1'%(tmpDir, tmpDir)
+    scmd = 'dd if=little.geoss of=01.geoss bs=576000000 count=1'
     print scmd
     subprocess.call(scmd.split(' '))
 
-    scmd = './ext.x %s/01.geoss %s && mv %s/grid05.dat %s/grid05_1.dat'%(tmpDir, para, tmpDir, tmpDir)
+    scmd = '/home/utsumi/bin/PMM/geo/ext_my.x 01.geoss %s && mv grid05.dat grid05_1.dat'%(para)
     print scmd
     subprocess.call(scmd.split(' '))
 
-    scmd = 'dd if=%s/little.geoss of=%s/02.geoss bs=576000000 skip=1'%(tmpDir, tmpDir)
+    scmd = 'dd if=little.geoss of=02.geoss bs=576000000 skip=1'
     print scmd
     subprocess.call(scmd.split(' '))
 
-    scmd = './ext.x %s/02.geoss %s && mv %s/grid05.dat %s/grid05_2.dat'%(tmpDir, para, tmpDir, tmpDir)
+    scmd = '/home/utsumi/bin/PMM/geo/ext_my.x 02.geoss %s && mv grid05.dat grid05_2.dat'%(para)
     print scmd
     subprocess.call(scmd.split(' '))
 
-    scmd = 'cat %s/grid05_1.dat %s/grid05_2.dat > %s/grid05.dat'%(tmpDir, tmpDir, tmpDir)
+    scmd = 'cat grid05_1.dat grid05_2.dat > grid05.dat'
     print scmd
     subprocess.call(scmd.split(' '))
 
-    scmd = 'cat %s/grid05_1.dat %s/grid05_2.dat > %s/grid05.dat'%(tmpDir, tmpDir, tmpDir)
+    scmd = 'cat grid05_1.dat grid05_2.dat > grid05.dat'
     print scmd
     subprocess.call(scmd.split(' '))
 

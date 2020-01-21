@@ -58,6 +58,7 @@ for expr in lexpr:
     dexprshort[expr] = exprshort
 #*************************************************
 lvar = ['cc','nbias','rmse','slope','intercept']
+lminmax=['0~99','0~4','4~8','8~15']
 dat = {}
 for expr in lexpr:
     for surftype in lsurftype:
@@ -68,24 +69,37 @@ for expr in lexpr:
         iPath = figDir + '/metrics.stop.%s.csv'%(stampOut)
         f=open(iPath,'r'); lines =f.readlines(); f.close()
 
-        line = lines[1].strip().split(',')
-        for i,var in enumerate(lvar):
-            dat[expr,surftype,var] = line[i] 
+        for iline,line in enumerate(lines[1:]):
+            minmax = line.split(',')[0]
+            if minmax !=lminmax[iline]:
+                print 'lminmax does not match with csv'
+                print 'lminmax=',lminmax
+                print 'minmax in csv=',minmax
+                print line
+                print iPath
+                sys.exit()
+
+            ldat   = line.strip().split(',')[1:] 
+
+            for i,var in enumerate(lvar):
+                dat[expr,surftype,minmax,var] = ldat[i] 
+                
 
 nexpr = len(lexpr)
-llabel1 = [''] + ['cc']*nexpr + ['nbias']*nexpr + ['rmse']*nexpr + ['slope']*nexpr + ['intercept']*nexpr
-llabel2 = [''] + [dexprshort[expr] for expr in lexpr]*5
+llabel1 = ['',''] + ['cc']*nexpr + ['nbias']*nexpr + ['rmse']*nexpr + ['slope']*nexpr + ['intercept']*nexpr
+llabel2 = ['',''] + [dexprshort[expr] for expr in lexpr]*5
 lout = []
 lout.append(llabel1)
 lout.append(llabel2)
-for surftype in lsurftype:
-    line = [surftype]
-    for var in lvar:
-        for expr in lexpr:
-            key = (expr, surftype,var)
-            line.append(dat[key])
-
-    lout.append(line)
+for minmax in lminmax:
+    for surftype in lsurftype:
+        line = [minmax,surftype]
+        for var in lvar:
+            for expr in lexpr:
+                key = (expr, surftype, minmax, var)
+                line.append(dat[key])
+    
+        lout.append(line)
 
 sout = util.list2csv(lout)
 oPath = figDir + '/summary.stop.%s.%s.csv'%(region,season)

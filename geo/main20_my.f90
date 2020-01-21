@@ -17,7 +17,6 @@ call getarg( 2, filelist)
 ! Open and Read data
 !Open(21,file=arg,access='direct',status='old',iostat=io, recl=6000*6000*2)
 Open(21,file=arg,access='direct',status='old',iostat=io,form='unformatted', recl=6000*6000*2)
-write(*,*) status, io
 !if(status==0)then
 if(io==0)then
 read(21,rec=1)((data_all(i,j),i=1,pix),j=1,pix);close (21)

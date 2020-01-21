@@ -1,13 +1,13 @@
 program main
-! count to tbb v1.00
+! count to albedo v1.00
 implicit none
 character*29::arg
 character*8::filelist
 integer :: status, system
-real*4,dimension(17000)::tbb
-integer*2,dimension(17000)::cnt
+real*4,dimension(5000)::tbb
+integer*2,dimension(5000)::cnt
 integer*2:: i, j, k, io,NoF,N
-integer*2,parameter::pix=6000
+integer*2,parameter::pix=12000
 integer*2,dimension(pix,pix)::data_all
 real,dimension(pix,pix)::data_tbb
 
@@ -15,16 +15,15 @@ call getarg( 1, arg )
 call getarg( 2, filelist)
 
 ! Open and Read data
-!Open(21,file=arg,access='direct',status='old',iostat=io, recl=6000*6000*2)
-Open(21,file=arg,access='direct',status='old',iostat=io,form='unformatted', recl=6000*6000*2)
-write(*,*) status, io
-!if(status==0)then
+!Open(21,file=arg,access='direct',status='old',iostat=io, recl=12000*12000*2)
+Open(21,file=arg,access='direct',status='old',iostat=io,form='unformatted', recl=12000*12000*2)
+!if(status==0)thena
 if(io==0)then
 read(21,rec=1)((data_all(i,j),i=1,pix),j=1,pix);close (21)
 end if
 
 ! Read Tbb table file
-NoF=17000
+NoF=5000
 Open ( Unit=20, FILE=filelist,&
    STATUS='OLD',ACCESS='SEQUENTIAL',FORM='FORMATTED')
 do N=1,NoF
@@ -39,7 +38,8 @@ do i=1,pix
    end do
 end do
 
-Open ( Unit=10, File="grid20.dat", access='DIRECT',recl=6000*6000*4)
-   Write ( 10,rec=1 )((data_tbb(i,j),i=1,6000),j=1,6000)
+
+Open ( Unit=10, File="grid10.dat", access='DIRECT',recl=12000*12000*4)
+   Write ( 10,rec=1 )((data_tbb(i,j),i=1,12000),j=1,12000)
 close(10)
 end program

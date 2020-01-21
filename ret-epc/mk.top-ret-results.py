@@ -12,8 +12,8 @@ import shutil
 from numpy import *
 import EPCDB
 
-iDTime = datetime(2014,6,1)
-eDTime = datetime(2014,7,31)
+iDTime = datetime(2014,10,14)
+eDTime = datetime(2014,10,14)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
 #lvar = ['zmNS','prwatprofNS']
