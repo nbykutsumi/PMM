@@ -25,7 +25,7 @@ else:
     sys.exit()
 
 iDTime = datetime(2017,7,1)
-eDTime = datetime(2017,7,5)
+eDTime = datetime(2017,7,21)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 ny,nx = 7, 7
 lch = [['tir',1],['tir',2],['tir',3],['tir',4],['tir',5],['tir',6],['tir',7],['tir',8],['tir',9],['tir',10],['sir',1],['sir',2]]

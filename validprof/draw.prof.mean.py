@@ -28,11 +28,12 @@ else:
     sys.exit()
 #*******************************
 #lseason=['JJADJF','DJF','JJA']
-#lseason=['ALL','DJF','JJA']
+lseason=['ALL','DJF','JJA']
 #lseason=['JJA']
 #lseason=['DJF']
 #lseason=['JJADJF']
-lseason = ['ALL']
+#lseason = ['ALL']
+#lseason = [7]
 DB_MAXREC = 10000
 DB_MINREC = 1000
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
@@ -48,14 +49,15 @@ thorog = 500
 #lvar = ['profpmw','profrad','top-profpmw']
 lvar = ['profpmw','profrad']
 #lstype= ['sea','land','veg','snow','coast','all']
-#lstype = ['veg','sea','snow','coast']
+lstype = ['veg','sea','snow','coast']
 #lstype = ['veg','snow']
-lstype = ['all']
+#lstype = ['all']
+#lstype = ['sea']
 lptype= ['conv','stra']
 #lptype= ['stra']
 #lph   = ['L','H','A']
-lph   = ['A']
-#lph   = ['L']
+#lph   = ['A','L']
+lph   = ['H']
 #lprrange=[[0.5,999],[1,3],[8,12]]
 #lprrange=[[1,3],[8,12]]
 lprrange=[[0.5,999]]
@@ -63,9 +65,10 @@ lprrange=[[0.5,999]]
 #lprrange=[[1,3]]
 lprrange = map(tuple, lprrange)
 #lregion = ['TRO','SUBN','MIDN']
-#lregion = ['TRO','MIDN']
+lregion = ['TRO','MIDN']
+#lregion = ['TRO']
 #lregion = ['MIDN']
-lregion = ['TIB']
+#lregion = ['TIB']
 #lregion = ['AMZ','CUS','EUS','TIB','NETP','SETP','NTA','STA','WTP','ETI','WMP','WMA','TAF','NEA','SEC','NIN']
 dBBox = {
          'TRO':  [[-15,-180],[15,180]]
@@ -220,10 +223,11 @@ for season in lseason:
         thpr0,thpr1 = prrange
 
         #** Read profiles ***********
-        dvar = {}
         dstd = {}
+        dsum = {}
         dnum = {}
         dnumprof = {}
+        dss  = {}
         for rettype in lrettype:
             for var in lvar:
                 key = (rettype,var)
@@ -261,28 +265,29 @@ for season in lseason:
                     numPath= outDir  + '/%s.num.%s.sp.one.npy' %(var,stamp)
                     sum2Path= outDir + '/%s.sum2.%s.sp.one.npy'%(var,stamp)
                     numprofPath= outDir  + '/%s.numprof.%s.sp.one.npy' %(var,stamp)
-                
+               
                     a3sumTmp = np.load(sumPath)[:,:,:nz]
                     a2numTmp = np.load(numPath)
                     a3ssTmp  = np.load(sum2Path)
                     a3numprofTmp = np.load(numprofPath)
-    
+
+
                     a3sum = a3sum + a3sumTmp
                     a2num = a2num + a2numTmp
                     a3ss  = a3ss  + a3ssTmp
                     a3numprof= a3numprof + a3numprofTmp
 
     
-                dvar[key] = a3sum / a2num.reshape(ny,nx,1)
-                dvar[key] = ma.masked_invalid(dvar[key])
-    
-                dstd[key] = np.sqrt( ma.masked_invalid( (a3ss - (a3sum**2)/a3numprof)/a3numprof )) 
+                #dstd[key] = np.sqrt( ma.masked_invalid( (a3ss - (a3sum**2)/a3numprof)/a3numprof )) 
+                dsum[key] = a3sum
                 dnum[key] = a2num
                 dnumprof[key] = a3numprof 
-
+                dss[key]  = a3ss
 
         #** Read surface precip *****
         dprec = {}
+        dpsum = {}
+        dpnum = {}
         for rettype in lrettype:
             for var in ['precpmw','precrad']:
                 key = (rettype,var)
@@ -320,9 +325,11 @@ for season in lseason:
     
                 dprec[key] = a2sum / a2num.reshape(ny,nx)
                 dprec[key] = ma.masked_invalid(dprec[key])
-   
-        #*** Draw *******************
+                dpsum[key] = a2sum
+                dpnum[key] = a2num  
 
+
+        #*** Draw *******************
         a2mask = ma.masked_greater_equal(a2orog, thorog).mask
         a3mask = np.empty([ny,nx,nz])
         for i in range(nz):
@@ -337,7 +344,7 @@ for season in lseason:
         stampOut  = 's-%s.p-%s.ph-%s.pr-%.1f-%.1f.%s'%(stype,ptype,ph,thpr0,thpr1,season)
         for region in lregion:
             if region == 'TRO':
-                if season not in ['JJADJF','ALL']: continue
+                if season not in ['JJADJF','ALL',7]: continue
             if region == 'MIDN':
                 if season in ['JJADJF','ALL']: continue
 
@@ -347,13 +354,52 @@ for season in lseason:
             x0 = int(floor(lon0 - lonmin))
             x1 = int(floor(lon1 - lonmin))
 
+            
+            #********************************************** 
+            # mean profile
+            #********************************************** 
+            #a1radsum = ma.masked_where(a3mask, dsum['epc',  'profrad'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            #a1pmwsum = ma.masked_where(a3mask, dsum['epc',  'profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            #a1gprsum = ma.masked_where(a3mask, dsum['gprof','profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+
+            #a1radnumprof = ma.masked_where(a3mask, dnumprof['epc',  'profrad'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            #a1pmwnumprof = ma.masked_where(a3mask, dnumprof['epc',  'profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            #a1gprnumprof = ma.masked_where(a3mask, dnumprof['gprof','profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+
+
+            a1radsum = dsum['epc',  'profrad'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            a1pmwsum = dsum['epc',  'profpmw'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            a1gprsum = dsum['gprof','profpmw'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
+
+            a1radnumprof = dnumprof['epc',  'profrad'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            a1pmwnumprof = dnumprof['epc',  'profpmw'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            a1gprnumprof = dnumprof['gprof','profpmw'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
+
+            print a1radsum
+            print ''
+            print a1radnumprof
+            #sys.exit()
+
+
+            a1radss = ma.masked_where(a3mask, dss['epc',  'profrad'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            a1pmwss = ma.masked_where(a3mask, dss['epc',  'profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            a1gprss = ma.masked_where(a3mask, dss['gprof','profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+
+
+
+            a1rad = ma.masked_where(a1radnumprof==0, a1radsum)/a1radnumprof
+            a1pmw = ma.masked_where(a1pmwnumprof==0, a1pmwsum)/a1pmwnumprof
+            a1gpr = ma.masked_where(a1gprnumprof==0, a1gprsum)/a1gprnumprof
+
+
+            a1radstd = np.sqrt(ma.masked_invalid(a1radss - (a1radsum**2)/a1radnumprof)/a1radnumprof) 
+            a1pmwstd = np.sqrt(ma.masked_invalid(a1pmwss - (a1pmwsum**2)/a1pmwnumprof)/a1pmwnumprof) 
+            a1gprstd = np.sqrt(ma.masked_invalid(a1gprss - (a1gprsum**2)/a1gprnumprof)/a1gprnumprof) 
+
             #********************************************** 
             #-- cvs file
             #********************************************** 
             a1y = 0.25 + np.arange(nz) * 0.5 # [km]
-            a1rad = ma.masked_where(a3mask, dvar['epc',  'profrad'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
-            a1pmw = ma.masked_where(a3mask, dvar['epc',  'profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
-            a1gpr = ma.masked_where(a3mask, dvar['gprof','profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
 
             sout = ',,%s,%s,%s\n'%(region,region,region)
             sout = sout + ',%s,%s,%s\n'%(season,season,season)
@@ -384,23 +430,14 @@ for season in lseason:
             ax  = fig.add_axes([0.25,0.15,0.65,0.7])
     
             a1y = 0.25 + np.arange(nz) * 0.5 # [km]
-            a1rad = ma.masked_where(a3mask, dvar['epc',  'profrad'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
-            a1pmw = ma.masked_where(a3mask, dvar['epc',  'profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
-            a1gpr = ma.masked_where(a3mask, dvar['gprof','profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
-            #a1top = ma.masked_where(a3mask, dvar['epc',  'top-profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
             
             ax.plot( a1rad, a1y, '-', c='k', linewidth=2, label='CMB') 
             ax.plot( a1pmw, a1y, '-', c='k', linewidth=1, label='EPC')
             ax.plot( a1gpr, a1y, '--', c='k', linewidth=1.3, label='GPROF')
-            #ax.plot( a1top, a1y, '-', c='b', linewidth=1.3, label='TOP-EPC')
 
             freez = d2freez[(stype,ptype,ph,prrange,season)][y0:y1+1,x0:x1+1].mean()
             ax.axhline(y=freez, linestyle=':',c='gray',linewidth=2) 
 
-            ##***  test ***
-            #orog  = a2orog[y0:y1+1,x0:x1+1].mean()
-            #ax.axhline(y=orog, linestyle=':',c=0.3,linewidth=2)
-            ##*************
 
             #ax.set_xlim([xmin,xmax])
             ax.set_ylim([ymin,ymax])
@@ -434,15 +471,14 @@ for season in lseason:
             ax  = fig.add_axes([0.25,0.15,0.65,0.7])
     
             a1y = 0.25 + np.arange(nz) * 0.5 # [km]
-            a1rad = ma.masked_where(a3mask, dstd['epc',  'profrad'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
-            a1pmw = ma.masked_where(a3mask, dstd['epc',  'profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
-            a1gpr = ma.masked_where(a3mask, dstd['gprof','profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
-            #a1top = ma.masked_where(a3mask, dstd['epc','top-profpmw'])[y0:y1+1,x0:x1+1].mean(axis=(0,1))
             
-            ax.plot( a1rad, a1y, '-', c='k', linewidth=2, label='CMB') 
-            ax.plot( a1pmw, a1y, '-', c='k', linewidth=1, label='EPC')
-            ax.plot( a1gpr, a1y, '--', c='k', linewidth=1.3, label='GPROF')
-            #ax.plot( a1top, a1y, '-', c='b', linewidth=1.3, label='TOP-EPC')
+            #ax.plot( a1radstd, a1y, '-', c='k', linewidth=2, label='CMB') 
+            #ax.plot( a1pmwstd, a1y, '-', c='k', linewidth=1, label='EPC')
+            #ax.plot( a1gprstd, a1y, '--', c='k', linewidth=1.3, label='GPROF')
+
+            ax.plot( a1radsum, a1y, '-', c='k', linewidth=2, label='CMB') 
+            ax.plot( a1pmwsum, a1y, '-', c='k', linewidth=1, label='EPC')
+            ax.plot( a1gprsum, a1y, '--', c='k', linewidth=1.3, label='GPROF')
 
             ax.set_ylim([ymin,ymax])
             ax.set_xlim([0,None])

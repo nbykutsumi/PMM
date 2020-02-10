@@ -292,8 +292,7 @@ else:
     MAX_RMA_0   = float(dargv['MAX_RMA_0'])
     MIN_RNR     = float(dargv['MIN_RNR'])  # 2020/02/07 If the rain/no-rain index exceeds this number, do retrieval
     flag_top_var= int(dargv['flag_top_var'])
-    flag_rel_surf= int(dargv['flag_rel_surf'])   
- 
+    
     srcPath   = dargv['srcPath'] 
     s2xPath   = dargv['s2xPath'] 
     s2yPath   = dargv['s2yPath'] 
@@ -632,10 +631,7 @@ for i,idx_db in enumerate(lidxset):
         #a2prprofNSTmp   = db.get_var('precip_prof_NS')[:,-NLEV_PRECIP:]  # test
         #a2prprofNScmbTmp= ma.masked_less(db.get_var('precip_prof_NS_cmb'), 0).filled(0.0)[:,-NLEV_PRECIP:]
 
-        if flag_rel_surf ==1:
-            a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS_relsurf')[:,-NLEV_PRECIP:]).filled(-9999.)
-        else:
-            a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.)
+        a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.)
 
 
         #a1tsdbTmp  = db.get_var('ts') 
@@ -968,10 +964,7 @@ np.save(outDir + '/nsurfNScmb.%s.npy'%(stamp), a2nsurfNScmb)
 
 #np.save(outDir + '/prprofNS.%s.npy'%(stamp), a3prprofNS)
 #np.save(outDir + '/prprofNScmb.%s.npy'%(stamp), a3prprofNScmb)
-if flag_rel_surf==0:
-    np.save(outDir + '/prwatprofNS.%s.npy'%(stamp), a3prwatprofNS)
-elif flag_rel_surf==1:
-    np.save(outDir + '/prwatprofNS-rs.%s.npy'%(stamp), a3prwatprofNS)
+np.save(outDir + '/prwatprofNS.%s.npy'%(stamp), a3prwatprofNS)
 
 np.save(outDir + '/lat.%s.npy'%(stamp), a2lat)
 np.save(outDir + '/lon.%s.npy'%(stamp), a2lon)

@@ -39,7 +39,7 @@ else:
     figDir = '/mnt/c/ubuntu/fig'
 
 iDTime = datetime(2017,7,1)
-eDTime = datetime(2017,7,5)
+eDTime = datetime(2017,7,29)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 lch = [['tir',1],['tir',2],['tir',3],['tir',4],['tir',5],['tir',6],['tir',7],['tir',8],['tir',9],['tir',10],['sir',1],['sir',2]]
@@ -58,13 +58,15 @@ lDTimeSkip = util.ret_lDTime(datetime(2017,9,25),datetime(2017,9,29),timedelta(d
 #lunits = [96,96,64]
 lunits = [64,64,64]
 #lunits = [64,64]
-expr = 'pnt'
-act  = '01'
+#expr = 'pnt'
+expr = 'cnv'
+act  = '04'
 nloop = 100
-clipnorm = 1.0e-3
+#clipnorm = 1.0e-3
+#clipnorm = 1.0e-2
 savemodel = 1
-restmodel = 0
-onlypred  = 0
+restmodel = 1
+onlypred  = 1
 #***********************************************************
 # Functions
 #***********************************************************
@@ -91,6 +93,42 @@ def append_history(history, histPath):
 def split2batchs(a,bsize):
     n=len(a)/bsize + 1
     return [a[i*bsize:(i+1)*bsize] for i in range(n)] 
+
+def build_model_Conv2D():
+    nblocks = 3
+    for i in range(nblocks):
+        model = tf.keras.Sequential()
+        model.add( layers.Conv2D(12, kernel_size=(3, 3), strides=(1, 1),
+                 padding='same',
+                 ))
+    
+        model.add( layers.Activation('relu'))
+        model.add( layers.Conv2D(12, kernel_size=(3, 3), strides=(1, 1),
+                 padding='same',
+                 ))
+        model.add( layers.BatchNormalization())
+        model.add( layers.Activation('relu'))
+        model.add( layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='same'))
+
+
+    model.add( layers.Flatten())
+    model.add( layers.Dense(64) )
+    model.add( layers.BatchNormalization())
+    model.add( layers.Activation('relu'))
+
+    model.add(layers.Dense(1, activation='sigmoid'))
+    #optimizer = tf.keras.optimizers.Adam(clipnorm=clipnorm)
+    optimizer = tf.keras.optimizers.Adam()
+    #optimizer = tf.keras.optimizers.RMSprop(0.001)
+
+    loss = 'binary_crossentropy'
+    model.compile(optimizer=optimizer
+                  ,loss = loss
+                  ,metrics=['accuracy']
+                 )
+
+    return model 
+
 
 
 def build_model_2d(lunits):
@@ -141,10 +179,12 @@ def my_unit(x,Min,Max):
 #    return ( x - np.min(x,0) )/( np.max(x,0) - np.min(x,0) )
 
 
-def split_data(X,Y, trainfrac=0.8):
+def split_data(X,Y, trainfrac=0.9, seed=None):
 
     a1idx = np.arange(X.shape[0]).astype('int32')
-    np.random.seed(0)
+    if seed is not None:
+        np.random.seed(seed)
+
     np.random.shuffle(a1idx)
 
     nrec = X.shape[0]
@@ -159,7 +199,53 @@ def split_data(X,Y, trainfrac=0.8):
 
     return trainX, trainY, validX, validY
 
+def shuffle_data(X,Y, seed=None):
+
+    a1idx = np.arange(X.shape[0]).astype('int32')
+    if seed is not None:
+        np.random.seed(seed)
+
+    np.random.shuffle(a1idx)
+
+    X = X[a1idx]
+    Y = Y[a1idx]
+
+    return X,Y
+
+
+
+
 print 'Define functions'
+
+def read_x_image(lDTime, lch):
+    a4out = None
+    for DTime in lDTime:
+        Year,Mon,Day = DTime.timetuple()[:3]
+
+        ssearch = '/home/utsumi/mnt/lab_tank/utsumi/PMM/himawari/obt.ptype/%04d/%02d/%02d/*'%(Year,Mon,Day)
+        lsrcDir = glob(ssearch)
+        
+        for srcDir in lsrcDir:
+            a4tmp = None
+            for [ch,chnum] in lch:
+                srcPath = srcDir + '/%s.%02d.npy'%(ch, chnum)
+                ain = np.load(srcPath)
+                nl,ny,nx = ain.shape
+                ain = ain.reshape(nl,ny,nx,1)
+                if a4tmp is None:
+                    a4tmp = ain
+                else:
+                    a4tmp = np.concatenate([a4tmp, ain],axis=3)
+
+            #-- Extend ----
+            if a4out is None:
+                a4out = a4tmp
+            else:
+                a4out = np.concatenate([a4out, a4tmp], axis=0) 
+    return a4out
+
+
+
 
 def read_x_point(lDTime, lch):
     a2out = None
@@ -229,25 +315,62 @@ a1std = np.array([dstd[ch,chnum] for (ch,chnum) in lch])
 #*********************************************
 # Read data
 #-----------------
-trainx = read_x_point(lDTime, lch)
-trainy = read_y(lDTime)
+if expr=='pnt':
+    trainx = read_x_point(lDTime, lch)
+    trainy = read_y(lDTime)
+    
+    #-- Data screening --
+    a1flagx = ma.masked_not_equal(trainx, miss).mask.all(axis=1)
+    a1flagy = ma.masked_not_equal(trainy, miss).mask
+    
+    a1flag = a1flagx * a1flagy
+    
+    trainx = trainx[a1flag]
+    trainy = trainy[a1flag]
+    
+    #-- Normalize --
+    trainx = (trainx -a1ave.reshape(1,-1))/a1std.reshape(1,-1)
 
-#-- Data screening --
-a1flagx = ma.masked_not_equal(trainx, miss).mask.all(axis=1)
-a1flagy = ma.masked_not_equal(trainy, miss).mask
 
-a1flag = a1flagx * a1flagy
+elif expr=='cnv':
+    trainx = read_x_image(lDTime, lch)
+    trainy = read_y(lDTime)
 
-trainx = trainx[a1flag]
-trainy = trainy[a1flag]
+    #-- Data screening --
+    a1flagx = ma.masked_not_equal(trainx, miss).mask.all(axis=(1,2,3))
+    a1flagy = ma.masked_not_equal(trainy, miss).mask
+    
+    a1flag = a1flagx * a1flagy
+    
+    trainx = trainx[a1flag]
+    trainy = trainy[a1flag]
+    
+    #-- Normalize --
+    trainx = (trainx -a1ave.reshape(1,1,1,-1))/a1std.reshape(1,1,1,-1)
 
-#-- Normalize --
-trainx = (trainx -a1ave.reshape(1,-1))/a1std.reshape(1,-1)
+
+else:
+    print 'check expr=',expr
+    sys.exit()
+
+
 #-- set convective to 1 and strat/others to 0 ---
 trainy = ma.masked_equal(trainy,2).mask.astype('int32')
 
-#-- Split ------
-trainx, trainy, testx, testy = split_data(trainx,trainy,trainfrac=0.9)
+#-- Split test data ------
+trainx, trainy, testx, testy = split_data(trainx,trainy,trainfrac=0.9, seed=0)
+
+#-- Correct imbalance ----
+nrec = trainx.shape[0]
+a1keepflag = np.array([True]*nrec)
+a1idxstrat = ma.masked_where(trainy !=0, np.arange(nrec).astype('int32')).compressed()
+
+a1idxremove= np.random.choice(a1idxstrat, int(len(a1idxstrat)*0.6), replace=False)
+
+a1keepflag[a1idxremove] = False
+
+trainx = trainx[a1keepflag]
+trainy = trainy[a1keepflag]
 
 #***************************************
 # Builad model
@@ -255,9 +378,13 @@ trainx, trainy, testx, testy = split_data(trainx,trainy,trainfrac=0.9)
 cpDir = tankbaseDir + '/utsumi/PMM/himawari/obt.ptype/cp/%s-%s'%(expr,act)
 util.mk_dir(cpDir)
 #cpPath= cpDir + '/cp.ckpt'
-restcpPath = ''
+#restcpPath = cpDir + '/cp-093.ckpt'
+restcpPath = tf.train.latest_checkpoint(cpDir)
 
-model = build_model_2d(lunits)
+if expr=='pnt':
+    model = build_model_2d(lunits)
+elif expr=='cnv':
+    model = build_model_Conv2D()
 
 if savemodel==1:
     modelPath = cpDir + '/model.json'
@@ -266,23 +393,47 @@ if savemodel==1:
         f.write(json_string)
 
 if (restmodel ==1)or(onlypred==1): 
+    print '**************************'
+    print 'Prediction only'
+    print '**************************'
     #latest = tf.train.latest_checkpoint(cpDir)
-    if os.path.exists(cpPath):
-        print ''
-        print 'Load weights'
-        print restcpPath
-        print ''
-        model.load_weights(restcpPath)
-    else:
-        print ''
-        print 'No weight filea'
-        print cpPath
-        print ''
+    print ''
+    print 'Load weights'
+    print restcpPath
+    print ''
+    model.load_weights(restcpPath)
+
 
 #***********************************************************
-# Main loop start
+# Only prediction
+#***********************************************************
+if onlypred ==1:
+    pred = model.predict(testx)  # 0-1
+    predy= ma.masked_less(pred,0.5).filled(0)
+    predy= ma.masked_greater_equal(predy,0.5).filled(1)
+    predy=predy.astype('int32')
+
+    Cc  = ((testy==1)&(predy==1)).sum()
+    Cs  = ((testy==1)&(predy==0)).sum()
+    Sc  = ((testy==0)&(predy==1)).sum()
+    Ss  = ((testy==0)&(predy==0)).sum()
+
+    print 'CC\tSc'
+    print 'Cs\tSs'
+    print Cc,Sc
+    print Cs,Ss
+    print pred
+    print predy
+    print ''
+    print testy
+    sys.exit()
+#***********************************************************
+# Training Main loop start
 #***********************************************************
 for iloop in range(nloop):
+    #-- Shuffle -----
+    trainx, trainy = shuffle_data(trainx, trainy)
+    #----------------
     cpPath= cpDir + '/cp-%03d.ckpt'%(iloop)
 
     cp_callback = tf.keras.callbacks.ModelCheckpoint(cpPath, save_weights_only=True, verbose=1, monitor='accuracy', save_best_only=True, mode='min')
@@ -296,6 +447,7 @@ for iloop in range(nloop):
         batch_size=128,
         #epochs=EPOCHS, validation_data=(validX, validY),
         epochs=EPOCHS, validation_split=0.2,
+        shuffle=True,
         callbacks = [cp_callback, early_stop],
         verbose=1)
 

@@ -28,16 +28,17 @@ else:
 lch = [['tir',1],['tir',2],['tir',3],['tir',4],['tir',5],['tir',6],['tir',7],['tir',8],['tir',9],['tir',10],['sir',1],['sir',2]]
 #lch = [['sir',1],['sir',2]]
 miss = -9999.
-ldy   = [-3,-2,-1,0,1,2,3]
-ldx   = [-3,-2,-1,0,1,2,3]
+ldy   = np.arange(-10,10+1)
+ldx   = np.arange(-10,10+1)
+
 ny,nx = len(ldy),len(ldx)
 cy,cx = int(ny/2), int(nx/2)
 ldydx = [[dy,dx] for dy in ldy for dx in ldx]
 iabin = 12  # extracted angle bin (start)
 eabin = 36  # extracted angle bin (end)
  
-iDTime = datetime(2017,7,4)
-eDTime = datetime(2017,7,31)
+iDTime = datetime(2017,1,1)
+eDTime = datetime(2017,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 #Year,Mon,Day = 2017,7,1
@@ -75,7 +76,7 @@ for Year,Mon in lYM:
 for orbit in lorbit:
     Year,Mon,Day,oid,iy,ey = orbit
     print 'orbit-info=',orbit
-    if oid <= 19024: continue  # test
+    #if oid <= 19002: continue  # test
 
     dprDir = workbaseDir + '/hk02/PMM/NASA/GPM.Ku/2A/V06/%04d/%02d/%02d'%(Year,Mon,Day)
     ssearch = dprDir + '/2A.GPM.Ku.*.%06d.V06A.HDF5'%(oid)

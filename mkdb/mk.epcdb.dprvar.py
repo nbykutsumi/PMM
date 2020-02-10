@@ -15,7 +15,7 @@ verDPR    = '06'
 subverDPR = 'A'
 fullverDPR= '%s%s'%(verDPR, subverDPR)
 
-iYM = [2017,12]
+iYM = [2017,1]
 eYM = [2017,12]
 #eYM = [2017,11]
 lYM = util.ret_lYM(iYM,eYM)
@@ -44,12 +44,14 @@ worg= 221  # GMI total angle bins
 #lvar = [['Ku','NS/PRE/elevation'],['Ku','NS/CSF/typePrecip'],['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','NS/CSF/typePrecip'],['Ku','NS/PRE/heightStormTop']]
-lvar = [['Ku','NS/PRE/heightStormTop']]
+#lvar = [['Ku','NS/PRE/heightStormTop']]
 #lvar = [['DPRGMI','NS/precipTotWaterCont']]
 #lvar = [['DPRGMI','NS/surfPrecipTotRate']]
 #lvar = [['DPRGMI','MS/surfPrecipTotRate']]
 #lvar = [['DPRGMI','NS/surfPrecipTotRate'],['DPRGMI','NS/precipTotWaterCont']]
 #lvar = [['DPRGMI','NS/Input/zeroDegAltitude']]
+#lvar = [['DPRGMI','NS/Input/surfaceRangeBin']]
+lvar = [['DPRGMI','NS/Input/lowestClutterFreeBin']]
 #lvar = [['DPRGMI','NS/vfracConv']]
 
 
@@ -69,6 +71,8 @@ dattype={
 ,'NS/CSF/typePrecip':       'int16'  # convert to int16 (-32768, 32767)
 ,'NS/PRE/heightStormTop':   'int16'  # save as int16 (-32768, 32767)
 ,'NS/Input/zeroDegAltitude':'float32'
+,'NS/Input/surfaceRangeBin':'int16'
+,'NS/Input/lowestClutterFreeBin':'int16'
 
 ,'NS/SLV/precipRateNearSurface': 'float32'
 ,'MS/SLV/precipRateNearSurface': 'float32'
@@ -94,6 +98,8 @@ dnvect ={
 ,'NS/CSF/typePrecip':       1
 ,'NS/PRE/heightStormTop':   1
 ,'NS/Input/zeroDegAltitude': 1
+,'NS/Input/surfaceRangeBin': 1
+,'NS/Input/lowestClutterFreeBin': 1
 
 ,'NS/precipTotWaterCont':  60
 ,'MS/precipTotWaterCont':  60
@@ -192,6 +198,42 @@ def ave_9grids_3d(a3in, a1y, a1x, miss):
     a2datTmp = ma.masked_equal(a3datTmp,miss).mean(axis=0)
     a2datTmp[a1dprmask,:] = miss
     return a2datTmp
+
+
+def min_9grids_2d(a2in, a1y, a1x, miss):
+    '''
+    returns 1-d array with the size of (nl)
+    a2in: (ny,nx)
+    nl = len(a1y)=len(a1x)
+    output: (nl)
+    '''
+
+    dattype = a2in.dtype
+
+    if ma.is_masked(a2in):
+        a2in = a2in.filled(miss)   # 2019/12/02
+    #-- Average 9 grids (over Linearlized Z)--
+    nydpr,nxdpr = a2in.shape
+    ldydx = [[dy,dx] for dy in [-1,0,1] for dx in [-1,0,1]]
+
+    a1dprmask   = False
+
+    a2datTmp    = empty([9,len(a1y)], dattype)
+
+    for itmp, [dy,dx] in enumerate(ldydx):
+        a1yTmp  = ma.masked_outside(a1y + dy, 0,nydpr-1)
+        a1xTmp  = ma.masked_outside(a1x + dx, 0,nxdpr-1)
+        a1dprmask= a1dprmask + a1yTmp.mask + a1xTmp.mask
+        
+        a1datTmp= a2in[a1yTmp.filled(0),a1xTmp.filled(0)]
+
+        a2datTmp[itmp,:] = a1datTmp
+
+
+    a1datTmp = ma.masked_equal(a2datTmp,miss).min(axis=0)
+    a1datTmp[a1dprmask] = miss
+    return a1datTmp
+
 
 
 def ave_9grids_2d(a2in, a1y, a1x, miss):
@@ -388,9 +430,14 @@ for Year,Mon in lYM:
 
                     Dat     = ave_9grids_2d(Dat0, a1dpry, a1dprx, miss=-9999.9)
 
+                elif varName in ['lowestClutterFreeBin']:
+                    with h5py.File(srcPath) as h:
+                        Dat0 = (h[var][:]).astype(dattype[var])
+
+                    Dat     = min_9grids_2d(Dat0, a1dpry, a1dprx, miss=-9999)
 
 
-                elif varName in ['elevation']:
+                elif varName in ['elevation','surfaceRangeBin']:
                     with h5py.File(srcPath) as h:
                         Dat0 = (h[var][:]).astype(dattype[var])
 

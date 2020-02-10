@@ -62,21 +62,36 @@ elif len(argv)==1:
     #clat    = 14 # Africa case
     #clon    = 2  # -180 - +180
     
-    # SE.US case, oid=003556, 2014/10/14
-    oid = 3556
-    Year,Mon,Day = 2014,10,14
+    ## SE.US case, oid=003556, 2014/10/14
+    #oid = 3556
+    #Year,Mon,Day = 2014,10,14
+    #iy, ey = -9999,-9999
+    ##iy, ey = 987, 1047
+    ##iy,ey = 917,1117
+    ##clat    = 34    # SE.US case. oid = 003556
+    #clat    = 31    # SE.US case. oid = 003556
+    #clon    = -86   # 2014/10/14  05:42:03 UTC
+    #DB_MAXREC = 10000
+    #DB_MINREC = 1000
+    ##expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+    #expr = 'glb.v04.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+    #xpos    = 100  # x-position for cross section
+    ##xpos    = 107  # x-position for cross section
+
+    # Colorado case
+    oid = 1574
+    Year,Mon,Day = 2014,6,8
     iy, ey = -9999,-9999
-    #iy, ey = 987, 1047
-    #iy,ey = 917,1117
-    #clat    = 34    # SE.US case. oid = 003556
-    clat    = 31    # SE.US case. oid = 003556
-    clon    = -86   # 2014/10/14  05:42:03 UTC
+    clat    = 40    # SE.US case. oid = 003556
+    clon    = 256-360   # 2014/10/14  05:42:03 UTC
     DB_MAXREC = 10000
     DB_MINREC = 1000
     #expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-    expr = 'glb.v04.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+    expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
     xpos    = 100  # x-position for cross section
     #xpos    = 107  # x-position for cross section
+
+
 
 
     ## Europe just to check batch-version
@@ -316,11 +331,13 @@ def load_gprof_prwat(gprofPath,miss_out=-9999.):
 srcDir = srcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
 stamp = '%06d.y%04d-%04d.nrec%d'%(oid, iy, ey, DB_MAXREC)
 
-a2topprwatNS = np.load(srcDir + '/top-prwatprofNS.%s.npy'%(stamp))[:, xpos, :]
-#a2topprwatMS = a2topprwatNS*0 - 9999.  # test
-
 a2prwatNS= np.load(srcDir + '/prwatprofNS.%s.npy'%(stamp))[:, xpos, :]
 #a2prwatMS= a2prwatNS*0 -9999. # test
+
+a2topprwatNS = a2prwatNS*0 - 9999.  # test
+#a2topprwatNS = np.load(srcDir + '/top-prwatprofNS.%s.npy'%(stamp))[:, xpos, :]
+#a2topprwatMS = a2topprwatNS*0 - 9999.  # test
+
 
 
 print srcDir + '/prwatprofNS.%s.npy'%(stamp)
@@ -484,7 +501,7 @@ for i in range(4):
     im = ax.imshow(a2dat, interpolation='none', aspect=aspect, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower')
     ax.grid()
     stime = '%04d/%02d/%02d '%(Year,Mon,Day)
-    ax.set_title(stime + stype+' '+stamp)
+    ax.set_title(stime + stype+' '+ expr)
     #plt.yticks(tick_locs, tick_lbls, fontsize=14)
     #plt.yticks([0,5],['a','b'])
     ax.set_yticks(tick_locs)
@@ -494,7 +511,7 @@ for i in range(4):
     cbar.set_label(cbarlbl)
 
 ##------------
-outPath  = figDir + '/prof.precipTotWater.%06d.y%04d-%04d.nrec%d.png'%(oid,iy,ey,DB_MAXREC)
+outPath  = figDir + '/prof.precipTotWater.%s.%06d.y%04d-%04d.nrec%d.png'%(expr,oid,iy,ey,DB_MAXREC)
 plt.savefig(outPath)
 print outPath
 plt.clf()

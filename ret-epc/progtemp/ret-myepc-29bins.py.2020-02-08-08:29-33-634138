@@ -968,10 +968,7 @@ np.save(outDir + '/nsurfNScmb.%s.npy'%(stamp), a2nsurfNScmb)
 
 #np.save(outDir + '/prprofNS.%s.npy'%(stamp), a3prprofNS)
 #np.save(outDir + '/prprofNScmb.%s.npy'%(stamp), a3prprofNScmb)
-if flag_rel_surf==0:
-    np.save(outDir + '/prwatprofNS.%s.npy'%(stamp), a3prwatprofNS)
-elif flag_rel_surf==1:
-    np.save(outDir + '/prwatprofNS-rs.%s.npy'%(stamp), a3prwatprofNS)
+np.save(outDir + '/prwatprofNS.%s.npy'%(stamp), a3prwatprofNS)
 
 np.save(outDir + '/lat.%s.npy'%(stamp), a2lat)
 np.save(outDir + '/lon.%s.npy'%(stamp), a2lon)

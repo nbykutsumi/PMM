@@ -12,15 +12,15 @@ import shutil
 from numpy import *
 import EPCDB
 
-iDTime = datetime(2014,10,14)
-eDTime = datetime(2014,10,14)
+iDTime = datetime(2014,6,8)
+eDTime = datetime(2014,6,8)
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime,eDTime,dDTime)
-#lvar = ['zmNS','prwatprofNS']
+lvar = ['zmNS','prwatprofNS']
 #lvar = ['zmNS']
 #lvar = ['prwatprofNS']
 #lvar = ['tbNS']
-lvar = ['heightStormTopNS']
+#lvar = ['heightStormTopNS']
 
 
 #** Constants ******
@@ -39,7 +39,7 @@ NLEV_DPR = 50    # extract this number of layers
 NLEV_PRECIP = 50
 
 expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-#expr = 'glb.v04.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 
 myhost  = socket.gethostname()

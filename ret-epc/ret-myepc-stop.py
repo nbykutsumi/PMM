@@ -293,7 +293,7 @@ else:
     MAX_STOP_DIFF=float(dargv['MAX_STOP_DIFF'])  # stop
     MAX_TB_RMSD = float(dargv['MAX_TB_RMSD'])
     MAX_RMA_0   = float(dargv['MAX_RMA_0'])
-    MIN_PRECIP_RNR = float(dargv['MIN_PRECIP_RNR'])   # stop
+    MIN_RNR     = float(dargv['MIN_RNR'])   # stop
     STD_STORMTOP   = float(dargv['STD_STORMTOP'])  # stop
 
     flag_top_var= int(dargv['flag_top_var'])
@@ -307,7 +307,7 @@ else:
     tqvPath   = dargv['tqvPath']   
     elevPath  = dargv['elevPath']
     stopPath  = dargv['stopPath']
-    fguessPath= dargv['fguessPath']   # stop
+    rnrPath   = dargv['rnrPath']   # stop
     
 
 
@@ -409,8 +409,8 @@ else:
         a2elev= a2elev[iscan: escan+1]
     if stopPath !='': 
         a2stop= a2stop[iscan: escan+1]
-    if fguessPath !='': 
-        a2fguess= a2fguess[iscan: escan+1]
+    if rnrPath !='': 
+        a2rnr = a2rnr[iscan: escan+1]
 
 
 #****************************************************
@@ -426,9 +426,9 @@ print ''
 print ''
 print 'Before',a2mask.flatten().shape,a2mask.sum()
 print ''
-if fguessPath !='':
-    a2fguess = np.load(fguessPath)
-    a2mask = a2mask + ma.masked_less(a2fguess, MIN_PRECIP_RNR).mask
+if rnrPath !='':
+    a2rnr = np.load(rnrPath)
+    a2mask = a2mask + ma.masked_less(a2rnr, MIN_RNR).mask
 
 print ''
 print ''

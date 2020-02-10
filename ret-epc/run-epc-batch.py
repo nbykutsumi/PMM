@@ -8,15 +8,15 @@ import numpy.ma as ma
 import h5py
 import shutil
 
-#iDTime = datetime(2014,10,14)
-#eDTime = datetime(2014,10,14)
-iDTime = datetime(2014,6,1)
-eDTime = datetime(2014,8,31)
+#iDTime = datetime(2014,6,14)
+#eDTime = datetime(2014,9,30)
+#iDTime = datetime(2014,10,15)
+#eDTime = datetime(2015,1,31)
+#iDTime = datetime(2015,2,1)
+#eDTime = datetime(2015,3,31)
+iDTime = datetime(2015,4,1)
+eDTime = datetime(2015,5,31)
 
-#iDTime = datetime(2014,12,16)
-#eDTime = datetime(2014,12,31)
-#iDTime = datetime(2015,1,1)
-#eDTime = datetime(2015,1,1)
 
 
 dDTime = timedelta(days=1)
@@ -31,7 +31,8 @@ DB_MINREC = 1000
 
 #--- Storm top parameter ----
 #stoptype = 'ret'
-stoptype = 'cor'
+#stoptype = 'cor'
+stoptype = 'no'
 #stoptype = 'obs'
 #stopstamp = 'wtpdf01-LTQZ-ssn0'
 if stoptype=='ret':
@@ -45,13 +46,16 @@ elif stoptype=='cor':
 #expr = 'glb.stop-wgt-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 #expr = 'glb.stop-rng-obs-01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 #expr = 'glb.stop-wgt-%s-01.minrec%d.maxrec%d'%(stoptype,DB_MINREC,DB_MAXREC)
-expr = 'glb.stop-rng-%s-01.minrec%d.maxrec%d'%(stoptype,DB_MINREC,DB_MAXREC)
+#expr = 'glb.stop-rng-%s-01.minrec%d.maxrec%d'%(stoptype,DB_MINREC,DB_MAXREC)
+expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
-type_stop = expr.split('.')[1].split('-')[1]
+if stoptype !='no':
+    type_stop = expr.split('.')[1].split('-')[1]
+else:
+    type_stop = ''
 
-
-#prog = 'ret-myepc-29bins.py'
-prog = 'ret-myepc-stop.py'
+prog = 'ret-myepc-29bins.py'
+#prog = 'ret-myepc-stop.py'
 #prog = 'ret-test.py'
 
 sensor  = 'GMI'
@@ -92,6 +96,17 @@ for DTime in lDTime:
     if len(lgmiPathAll)==0:
         continue
 
+    ##** Screen oid ********
+    #lgmiPathAllTmp = []
+    #for gmiPath in lgmiPathAll:
+    #    oid = int(gmiPath.split('.')[-3])
+    #    if oid <= 3574:   # test
+    #        continue   
+
+    #    lgmiPathAllTmp.append(gmiPath)
+
+    #lgmiPathAll = lgmiPathAllTmp
+
     #** Make batch list ***   
     llgmiPath = [lgmiPathAll[i*batchsize:(i+1)*batchsize] for i in range(int(len(lgmiPathAll)/batchsize) +1)]
 
@@ -112,7 +127,7 @@ for DTime in lDTime:
         a2tqv = []
         a2elev= []
         a2stop= []
-        a2fguess= []
+        a2rnr = []
         loid  = []
         lny   = [] 
 
@@ -137,12 +152,17 @@ for DTime in lDTime:
                     stopPath = glob.glob(matchbaseDir + '/S1.ABp083-137.Ku.V06A.9ave.heightStormTop/%04d/%02d/%02d/heightStormTop.%06d.npy'%(Year,Mon,Day,oid))[0]
                 elif stoptype in ['ret','cor']:
                     stopPath = glob.glob(tankDir + '/utsumi/PMM/stop/orbit/%s/%04d/%02d/%02d/stop.%06d.npy'%(stopstamp,Year,Mon,Day,oid))[0]
+                elif stoptype == 'no':
+                    stopPath = ''
+
             except IndexError:
                 print 'skip oid=',oid
                 loid.pop(-1)
                 continue
-            fguessPath=glob.glob(tankDir + '/utsumi/PMM/retepc/glb.v03.minrec1000.maxrec10000/%04d/%02d/%02d/nsurfNScmb.%06d.y-9999--9999.nrec10000.npy'%(Year,Mon,Day,oid))[0]
+            rnrPath=glob.glob(tankDir + '/utsumi/PMM/retepc/glb.v03.minrec1000.maxrec10000/%04d/%02d/%02d/nsurfNScmb.%06d.y-9999--9999.nrec10000.npy'%(Year,Mon,Day,oid))[0]
             print srcPath
+
+
     
             #-- Append HDF file contents-----
             with h5py.File(srcPath,'r') as h: 
@@ -165,8 +185,8 @@ for DTime in lDTime:
                 a2elev.append(np.load(elevPath))
             if stopPath !='':
                 a2stop.append(np.load(stopPath))
-            if fguessPath !='':
-                a2fguess.append(np.load(fguessPath))
+            if rnrPath !='':
+                a2rnr.append(np.load(rnrPath))
 
             #-- Renew yoffset ---------------
             yoffset = yoffset + a3tb1[-1].shape[0]
@@ -200,8 +220,8 @@ for DTime in lDTime:
                 #a2stopTmp[:,103:117+1] = a2stop
                 a2stopTmp[:,83:137+1] = a2stop
                 a2stop = a2stopTmp
-        if fguessPath !='':
-            a2fguess=np.concatenate(a2fguess, axis=0)
+        if rnrPath !='':
+            a2rnr=np.concatenate(a2rnr, axis=0)
 
         #----------------------- 
         dargv = {}
@@ -227,10 +247,10 @@ for DTime in lDTime:
             stopPathTmp= outDirTmp + '/stop.%06d.npy'%(oid)
         else:
             stopPathTmp = ''
-        if fguessPath !='':
-            fguessPathTmp= outDirTmp + '/fguess.%06d.npy'%(oid)
+        if rnrPath !='':
+            rnrPathTmp= outDirTmp + '/rnr.%06d.npy'%(oid)
         else:
-            fguessPathTmp = ''
+            rnrPathTmp = ''
 
 
         #-- Save HDF file -------
@@ -253,8 +273,8 @@ for DTime in lDTime:
             np.save(elevPathTmp, a2elev)
         if stopPath !='':
             np.save(stopPathTmp, a2stop)
-        if fguessPath !='':
-            np.save(fguessPathTmp, a2fguess)
+        if rnrPath !='':
+            np.save(rnrPathTmp, a2rnr)
 
 
         #***** Set parameter dictionary *************
@@ -309,11 +329,13 @@ for DTime in lDTime:
         dargv['MAX_TB_RMSD'] = -9999 # max TB RMS difference between observed and DB pixel 
         dargv['MAX_RMA_0'] = 0.05 # Maximum Ratio of missing amount (0>=mm/h) acceptable for rain / no-rain classification # -9999. --> No screening
 
-        dargv['MIN_PRECIP_RNR'] = 0.2  # [mm/h] for Rain/No-rain based on first guess precipitation
+        #dargv['MIN_RNR'] = 0.2  # [mm/h] for Rain/No-rain based on first guess precipitation
+        dargv['MIN_RNR'] = 0.1  # [mm/h] for Rain/No-rain based on first guess precipitation
         dargv['STD_STORMTOP'] = 2100 # [m] stop
 
 
         dargv['flag_top_var'] = 0  # 0: No top-ranked vars. 1: Retrieve top-ranked vars.
+        dargv['flag_rel_surf'] = 1  # 0: Not relative to surface 1: Profiles that are relative to surface
         #dargv['flag_top_var'] = 1  # 0: No top-ranked vars. 1: Retrieve top-ranked vars.
         dargv['type_stop'] = type_stop  # stop
 
@@ -328,7 +350,7 @@ for DTime in lDTime:
         dargv['tqvPath'] = tqvPathTmp
         dargv['elevPath']= elevPathTmp
         dargv['stopPath']= stopPathTmp
-        dargv['fguessPath']=fguessPathTmp 
+        dargv['rnrPath'] = rnrPathTmp 
         #-------------
         sargv = ['%s=%s'%(key, dargv[key]) for key in dargv.keys()]
         sargv = ' '.join(sargv)
