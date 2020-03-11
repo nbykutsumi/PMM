@@ -25,15 +25,16 @@ lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 lskipdates = [[2014,12,9],[2014,12,10]]
 thpr   = 0.1
 miss_out= -9999.
+rettype = 'gprof-shift'
 
 #lvar = [['DPRGMI','NS/Input/zeroDegAltitude']]
 #lvar = [['Ku','NS/CSF/typePrecip']]
 #lvar = [['Ku','NS/CSF/typePrecip']]
-#lvar = [['Ku','NS/PRE/heightStormTop'],['Ku','NS/CSF/typePrecip'],['DPRGMI','NS/Input/zeroDegAltitude']]
+#lvar = [['Ku','NS/PRE/heightStormTop'],['Ku','NS/CSF/typePrecip'],['DPRGMI','NS/Input/zeroDegAltitude'],['DPRGMI','NS/vfracConv'],['DPRGMI','NS/Input/surfaceElevation']]
 #lvar = [['Ku','NS/CSF/typePrecip'],['DPRGMI','NS/Input/zeroDegAltitude'],['Ku','dprx']]
-#lvar = [['DPRGMI','NS/Input/surfaceElevation']]
+lvar = [['DPRGMI','NS/Input/surfaceElevation']]
 #lvar = [['DPRGMI','NS/vfracConv']]
-lvar = [['Ku','NS/PRE/heightStormTop']]
+#lvar = [['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','dprx'],['Ku','dpry']]
 #------------------------------------------------
 def ret_aprof(a4clusterProf, a2tIndex, a3profNum, a3profScale, lspecies=[0,2,3,4]):
@@ -360,7 +361,7 @@ for DTime in lDTime:
 
             #print davar[prod,varName].shape, a1flag.shape
             aout = davar[prod,varName][a1flag].astype(dtype)
-            outDir     = tankbaseDir + '/utsumi/PMM/validprof/pair/gprof/%04d/%02d/%02d'%(Year,Mon,Day)
+            outDir     = tankbaseDir + '/utsumi/PMM/validprof/pair/%s/%04d/%02d/%02d'%(rettype,Year,Mon,Day)
             util.mk_dir(outDir)
             outPath = outDir + '/%s.%06d.npy'%(outvarName,oid)
             np.save(outPath, aout)

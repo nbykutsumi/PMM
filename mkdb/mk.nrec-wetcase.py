@@ -1,0 +1,37 @@
+from numpy import *
+import myfunc.util as util
+import numpy as np
+import os,sys
+
+iYM = [2017,1]
+eYM = [2017,12]
+lYM = util.ret_lYM(iYM,eYM)
+varName = 'DPRGMI_NS_surfPrecipTotRate'  
+baseDir = '/work/hk01/utsumi/PMM/EPCDB/GMI.V05A.S1.ABp103-117/%s'%(varName)
+
+listDir = '/work/hk01/utsumi/PMM/EPCDB/list'
+
+#lepcid  = range(0,25*25*25) # 25*25*25=15625
+lepcid  = range(0,29*29*29) # 29*29*29 = 24389
+
+for (Year,Mon) in lYM:
+    lout   = []
+    for epcid in lepcid:
+        srcDir  = baseDir + '/%04d%02d'%(Year,Mon)
+        srcPath = srcDir + '/%s.%05d.npy'%(varName, epcid)
+        print Year,Mon,epcid
+        if os.path.exists(srcPath):
+            avar = np.load(srcPath)
+            avar = ma.masked_invalid(avar)
+            nrec = ma.masked_less_equal(avar,0).count()
+        else:
+            nrec = 0
+
+        lout.append([epcid,nrec])
+    #-- Output data --
+    sout = util.list2csv(lout)
+    
+    #-- Save to file --
+    outPath = listDir + '/nrec-wetcase.%04d%02d.csv'%(Year,Mon)
+    f=open(outPath,'w'); f.write(sout); f.close()
+    print outPath

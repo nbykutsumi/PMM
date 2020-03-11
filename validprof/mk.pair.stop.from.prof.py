@@ -27,10 +27,12 @@ lskipdates = [[2014,10,22],[2014,10,23],[2014,10,24],[2014,12,9],[2014,12,10],[2
 
 DB_MAXREC = 10000
 DB_MINREC = 1000
-expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 miss_out= -9999.
-lrettype = ['epc','gprof']
+#lrettype = ['epc','gprof']
+lrettype = ['epc']
 #lrettype = ['epc']
 #lrettype = ['gprof']
 lvar = ['profpmw','profrad']

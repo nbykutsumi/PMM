@@ -25,11 +25,11 @@ DB_MINREC = 1000
 #expr = 'glb.wprof.rnr'
 #expr = 'glb.nprof'
 #expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'test'
 prog = 'ret-myepc-29bins.py'
-#prog = 'ret-testrnr.py'
-#prog = 'ret-test.py'
 sensor  = 'GMI'
+
 myhost = socket.gethostname()
 if myhost =="shui":
     gmibaseDir  = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05'
@@ -147,11 +147,16 @@ for DTime in lDTime:
         dargv['DB_RAINFRAC'] = 0.0001 # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
         dargv['MAX_T2M_DIFF'] = 10
         dargv['MAX_TQV_DIFF'] = 10
+        dargv['MAX_STOP_DIFF'] = 2000  # [meter]
         dargv['MAX_TB_RMSD'] = -9999   #  max TB RMS difference between observed and DB pixel 
         dargv['MAX_RMA_0'] = 0.05   # Maximum Ratio of missing amount (0>=mm/h) acceptable for rain / no-rain classification # -9999. --> No screening
 
+        dargv['MIN_RNR'] = 0.1  # [mm/h] for Rain/No-rain based on first guess precipitation
+        dargv['STD_STORMTOP'] = 2100 # [m] stop
+
         dargv['flag_top_var'] = 0  # 0: No top-ranked vars. 1: Retrieve top-ranked vars.
-        #dargv['flag_top_var'] = 1  # 0: No top-ranked vars. 1: Retrieve top-ranked vars.
+        dargv['flag_rel_surf'] = 1  # 0: Not relative to surface 1: Profiles that are relative to surface
+        dargv['type_stop'] = ''
 
         dargv['outDir'] = outDir
 
@@ -166,6 +171,8 @@ for DTime in lDTime:
         dargv['tqvPath'] = ''
         #dargv['elevPath']= glob.glob(matchbaseDir + '/S1.ABp000-220.gtopo/%04d/%02d/%02d/gtopo.%06d.npy'%(Year,Mon,Day,oid))[0]
         dargv['elevPath']= ''
+        dargv['stopPath']= ''
+        dargv['rnrPath' ]= glob.glob(tankDir + '/utsumi/PMM/retepc/glb.v03.minrec1000.maxrec10000/%04d/%02d/%02d/nsurfNScmb.%06d.y-9999--9999.nrec10000.npy'%(Year,Mon,Day,oid))[0]
 
 
         #dargv['srcPath'] = glob.glob('/work/hk01/PMM/NASA/GPM.GMI/1C/V05/%04d/%02d/%02d/1C.GPM.GMI.XCAL2016-C.*.%06d.????.HDF5'%(Year,Mon,Day,oid))[0]

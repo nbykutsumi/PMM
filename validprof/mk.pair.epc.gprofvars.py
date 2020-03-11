@@ -26,7 +26,8 @@ eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 DB_MAXREC = 10000
 DB_MINREC = 1000
-expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 thpr = 0.1
 miss_out= -9999.

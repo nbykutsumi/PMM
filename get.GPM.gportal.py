@@ -9,8 +9,12 @@ from datetime import datetime, timedelta
 hostname = socket.gethostname()
 if  hostname =="mizu":
     orootDir   = "/home/utsumi/mnt/wellshare/data/GPM"
+elif myhost =="shui":
+    orootDir   = "/work/hk02/PMM/NASA"
+    #orootDir   = "/tank/utsumi/data/PMM/NASA"
 elif hostname=="well":
-    orootDir   = "/media/disk2/share/data/GPM"
+    #orootDir   = "/media/disk2/share/data/GPM"
+    orootDir   = '/home/utsumi/mnt/lab_tank/work/hk02/PMM/NASA'
 
 
 iDTime = datetime(2017,11,20)
@@ -20,12 +24,12 @@ lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
 
 #ow  = False # OverWrite
 ow  = True # OverWrite
-#prj	= ["TRMM","TRMM.PR","L3A25","07"]
+prj	= ['TRMM_GPMFormat','TRMM.PR','3A.PR.M','06A']
 #prj	= ["TRMM","TRMM.PR","L2A23","07"]
 #prj	= ["TRMM","TRMM.PR","L2A25","07"]
 #prj	= ["TRMM","TRMM.TMI","L2A12","07"]
 #prj	= ["GPM","GPM.KuPR","L2","05"]
-prj	= ["GPM","GPM.DPR","2A.DPR","05A"]
+#prj	= ["GPM","GPM.DPR","2A.DPR","05A"]
 #prj	= ["GPM","GPM.GMI","L2","05"]
 sate	= prj[0]
 sensor	= prj[1]
@@ -36,8 +40,6 @@ host        = 'ftp.gportal.jaxa.jp'
 username    = 'nbyk.utsumi'
 passwd      = 'anonymous'
 port        = 21
-ibaseDir    = os.path.join("/" 'standard', sate, sensor, prdName, version)
-obaseDir    = os.path.join(orootDir, sensor, prdName, version)
 
 ftp	= FTP(host=host,user=username, passwd=passwd)
 ftp.cwd(ibaseDir)
@@ -47,6 +49,14 @@ print ftp.nlst()
 
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
+
+
+    '''/standard/TRMM_GPMFormat/TRMM.PR/3A.PR.D/06A/2014'''
+    ibaseDir    = os.path.join("/" 'standard', sate, sensor, prdName, version)
+    obaseDir    = os.path.join(orootDir, sensor, prdName, version)
+    #obaseDir    = orootDir + "/%s/%s/%s/%04d/%02d/%02d"%(sate,sensor,prdName,ver,Year,Mon,Day)
+
+
 
     srcDir = os.path.join(ibaseDir, "%04d"%(Year), "%02d"%(Mon), "%02d"%(Day))
     outDir = os.path.join(obaseDir, "%04d"%(Year), "%02d"%(Mon), "%02d"%(Day))

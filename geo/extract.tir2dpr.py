@@ -37,8 +37,8 @@ ldydx = [[dy,dx] for dy in ldy for dx in ldx]
 iabin = 12  # extracted angle bin (start)
 eabin = 36  # extracted angle bin (end)
  
-iDTime = datetime(2017,1,1)
-eDTime = datetime(2017,5,31)
+iDTime = datetime(2017,9,1)
+eDTime = datetime(2017,12,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 #Year,Mon,Day = 2017,7,1

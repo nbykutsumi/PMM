@@ -1,3 +1,4 @@
+# %%
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -74,7 +75,7 @@ elif len(argv)==1:
     #DB_MAXREC = 10000
     #DB_MINREC = 1000
     ##expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-    #expr = 'glb.v04.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+    #expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
     #xpos    = 100  # x-position for cross section
     ##xpos    = 107  # x-position for cross section
 
@@ -88,10 +89,8 @@ elif len(argv)==1:
     DB_MINREC = 1000
     #expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
     expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-    xpos    = 100  # x-position for cross section
-    #xpos    = 107  # x-position for cross section
-
-
+    #xpos    = 100  # x-position for cross section
+    xpos    = 115  # x-position for cross section
 
 
     ## Europe just to check batch-version
@@ -135,6 +134,28 @@ else:
 miss = -9999.
 #--------------------------------
 #*********************************************
+def rs2relip(a3prof, a2elev, miss_out=-9999.):
+    ''' a3prof: bottom to top order in vertical axis '''
+    vres = 500  # m
+    tmpbottom = -1000  # m
+    nl,nx,nz = a3prof.shape  # 36 layers (500m)
+    tmpnz = 2*nz + 2  # 2=tmpbottom/500
+    a2surfbin = ((a2elev-tmpbottom)/ vres).astype('int16')
+
+    a3tmp = np.ones([nl,nx,tmpnz], float32) * miss_out 
+    X,Y = np.meshgrid( np.arange(nx), np.arange(nl))
+    #print X.shape, a3prof.shape, a2surfbin.shape
+    #print ''
+    a1x = X.flatten().astype('int32')
+    a1y = Y.flatten().astype('int32')
+    a1surfbin = a2surfbin.flatten()
+    for iz in range(nz):
+        a1k = a1surfbin + iz  # if iz=0 --> a1k=a1surfbin
+        a3tmp[a1y,a1x,a1k] = a3prof[:,:,iz].flatten()
+
+    return a3tmp[:,:,2:nz+2].astype('float32')
+ 
+
 def ret_domain_cy(a2lat, a2lon, clat, clon, dlatlon):
     nyTmp, nxTmp = a2lat.shape
     a1lat = a2lat[:,nxTmp/2]
@@ -320,6 +341,26 @@ def load_gprof_prwat(gprofPath,miss_out=-9999.):
     a3profg = ma.masked_less(a4profg,0).sum(axis=0).filled(miss_out)
 
     a3profg = gprofLayerconversion(a3profg)
+
+    #-- Shift to relative to elipsoid ----
+    oid = int(gprofPath.split('.')[-3])
+    elevDir = tankbaseDir + '/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.gtopo/%04d/%02d/%02d'%(Year,Mon,Day)
+    elevPath = elevDir + '/gtopo.%06d.npy'%(oid)
+    a2elev   = np.load(elevPath)[:,83:137+1]
+    a3profg = rs2relip(a3profg, a2elev, miss_out=-9999.)
+
+    #a3tmp0 = np.array([[[0.5, 1, 1.5]]])
+    #a2elev = np.array([[750]])
+    #a3tmp1 = rs2relip(a3tmp0, a2elev, miss_out=-9999.)
+    #print ''
+    #print a3tmp0
+    #print ''
+    #print a3tmp1
+    #sys.exit()
+
+
+    #-------------------------------------
+
     a3profg = layer500m_to_250m(a3profg)
     a3profg = a3profg[:,:,::-1]   # reverse: Bottom to Top --> Top to Bottom
     return a3profg
@@ -402,12 +443,13 @@ cmbDir  = workbaseDir + '/hk01/PMM/NASA/GPM.DPRGMI/2B/V06/%04d/%02d/%02d'%(Year,
 dprPath = glob.glob(cmbDir + '/2B.GPM.DPRGMI.*.%06d.V06A.HDF5'%(oid))[0]
 with h5py.File(dprPath, 'r') as h:
     a3cmbprwatNS = h['NS/precipTotWaterCont'][:]
+    a2cmbelev    = h['NS/Input/surfaceElevation'][:]
 #- extract lower levels --
 a3cmbprwatNS = a3cmbprwatNS[:,:,-50:]
 
 #- Extract Radar pixels that correspond GMI ---
 a2cmbprwatNS = a3cmbprwatNS[a1ydpr,a1xdpr]
-
+a1cmbelev    = a2cmbelev[a1ydpr,a1xdpr]
 
 #-- Read GPROF -----------
 gprofDir = workbaseDir + '/hk01/PMM/NASA/GPM.GMI/2A/V05/%04d/%02d/%02d'%(Year,Mon,Day)
@@ -499,6 +541,7 @@ for i in range(4):
     ax = fig.add_axes([x0, y0, w, h])
     cax= fig.add_axes([x0+w+0.01, y0, 0.03, h*0.9])
     im = ax.imshow(a2dat, interpolation='none', aspect=aspect, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower')
+
     ax.grid()
     stime = '%04d/%02d/%02d '%(Year,Mon,Day)
     ax.set_title(stime + stype+' '+ expr)
@@ -510,6 +553,12 @@ for i in range(4):
     cbar = plt.colorbar(im, cax=cax, orientation='vertical')
     cbar.set_label(cbarlbl)
 
+    #-- Surface elevation line ------
+    print a1cmbelev.shape, a2dat.shape
+    x = np.arange(a2dat.shape[1])
+    y = a1cmbelev / 250.  # convert to imshow axis scale
+    ax.plot(x,y,'-',color='k')
+
 ##------------
 outPath  = figDir + '/prof.precipTotWater.%s.%06d.y%04d-%04d.nrec%d.png'%(expr,oid,iy,ey,DB_MAXREC)
 plt.savefig(outPath)
@@ -518,3 +567,6 @@ plt.clf()
 
 
 
+
+
+# %%

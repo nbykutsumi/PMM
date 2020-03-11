@@ -20,15 +20,17 @@ else:
     sys.exit()
 #*******************************
 
-iDTime = datetime(2014,6,4)
+iDTime = datetime(2014,6,1)
 eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 thpr = 0.1
 miss_out= -9999.
+rettype = 'gprof-shift'
+
 #lvar  = ['S1/Latitude', 'S1/Longitude'] 
-#lvar  = ['S1/Latitude', 'S1/Longitude']+ ['S1/qualityFlag','S1/surfaceTypeIndex']
-lvar  = ['S1/vfracConv']
+lvar  = ['S1/Latitude', 'S1/Longitude']+ ['S1/qualityFlag','S1/surfaceTypeIndex']+['S1/vfracConv']
+#lvar  = ['S1/vfracConv']
 #------------------------------------------------
 
 def ave_9grids_2d(a2in, a1y, a1x, miss):
@@ -172,7 +174,7 @@ for DTime in lDTime:
             a1var = a2var.flatten() 
             a1var = a1var[a1flag] 
    
-            outbaseDir = tankbaseDir + '/utsumi/PMM/validprof/pair/gprof'
+            outbaseDir = tankbaseDir + '/utsumi/PMM/validprof/pair/%s'%(rettype)
             outDir     = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
             util.mk_dir(outDir)
             np.save(outDir + '/%s.%06d.npy'%(varName, oid), a1var)

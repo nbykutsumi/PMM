@@ -1,5 +1,4 @@
 import sys, os, shutil, socket
-import myfunc.util as util
 import glob
 import subprocess
 from datetime import datetime, timedelta
@@ -14,7 +13,7 @@ import shutil
 #eDTime = datetime(2015,1,31)
 #iDTime = datetime(2015,2,1)
 #eDTime = datetime(2015,3,31)
-iDTime = datetime(2015,4,1)
+iDTime = datetime(2015,5,19)
 eDTime = datetime(2015,5,31)
 
 
@@ -76,6 +75,15 @@ elif myhost =="well":
     #outbaseDir = '/media/disk2/share/PMM/retepc/%s'%(expr)
     outbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/%s'%(expr)
     tankDir = '/home/utsumi/mnt/lab_tank'
+
+#*******************
+# Function
+#*******************
+def mk_dir(sdir):
+  try:
+    os.makedirs(sdir)
+  except OSError:
+    pass
 
 #*******************
 # Copy program
@@ -226,7 +234,7 @@ for DTime in lDTime:
         #----------------------- 
         dargv = {}
         outDirTmp  = outbaseDir + '/%04d/%02d/%02d/temp'%(Year,Mon,Day)
-        util.mk_dir(outDirTmp)
+        mk_dir(outDirTmp)
     
 
         #-- Batch file names ----
@@ -284,7 +292,7 @@ for DTime in lDTime:
     
         #** Save program ******
         progDir = outbaseDir + '/prog'
-        util.mk_dir(progDir)
+        mk_dir(progDir)
         stime    = datetime.now().strftime('%Y.%m.%d_%H:%M:%S')
     
         iprog    = os.path.basename(__file__)

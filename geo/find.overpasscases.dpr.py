@@ -33,7 +33,7 @@ sateName= 'GPM'
 #BBox   = [[20,-130],[55,-55]] # MRMS
 BBox   = [[-55,90],[55,200]] # MRMS
 [[lllat,lllon],[urlat,urlon]] = BBox
-iYM    = [2017,1]
+iYM    = [2017,9]
 eYM    = [2017,12]
 #iYM    = [2014,10]
 #eYM    = [2014,10]
@@ -79,6 +79,9 @@ for (Year,Mon) in lYM:
 
             a2latTmp = ma.masked_outside(a2lat, lllat, urlat)
             a2lonTmp = ma.masked_outside(a2lon, lllon, urlon)
+            if a2latTmp.shape[0]==0:
+                continue
+
             a1latmask = a2latTmp.mask.any(axis=1)
             a1lonmask = a2lonTmp.mask.any(axis=1)
    

@@ -35,7 +35,8 @@ else:
 lseason = ['ALL']
 DB_MAXREC = 10000
 DB_MINREC = 1000
-expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 ny,nx = 120,360
 nz    = 25 
@@ -49,7 +50,7 @@ thorog = 500
 lvar = ['profpmw','profrad']
 #lstype= ['sea','land','veg','snow','coast','all']
 #lstype = ['veg','sea','snow','coast']
-lstype = ['sea']
+lstype = ['veg']
 #lstype = ['all','snow','veg']
 lptype= ['conv','stra']
 #lptype= ['stra']

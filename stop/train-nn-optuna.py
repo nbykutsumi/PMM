@@ -454,8 +454,10 @@ def load_data_2d(lDTime, shuffleflag=True, samplerate=None):
     #****************************************************
     # Screen invalid data
     #****************************************************
-    a1flag = ma.masked_inside(trainTc, tcmin, tcmax).all(axis=1).mask
-    a1flag = a1flag * ~ma.masked_invalid(trainTc).all(axis=1).mask
+    #a1flag = ma.masked_inside(trainTc, tcmin, tcmax).all(axis=1).mask
+    a1flag = ma.masked_inside(trainTc, tcmin, tcmax).mask.all(axis=1)
+    #a1flag = a1flag * ~ma.masked_invalid(trainTc).all(axis=1).mask
+    a1flag = a1flag * ~ma.masked_invalid(trainTc).mask.any(axis=1)
     a1flag = a1flag * ~ma.masked_invalid(trainStop).mask
 
     

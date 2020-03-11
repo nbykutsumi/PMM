@@ -27,7 +27,8 @@ lskipdates = [[2014,6,4],[2014,10,22],[2014,10,23],[2014,10,24],[2014,12,9],[201
 
 DB_MAXREC = 10000
 DB_MINREC = 1000
-expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 miss_out= -9999.
 #lrettype = ['gprof']
@@ -50,7 +51,8 @@ lat0 = -60.
 lon0 = -180.
 dlatlon=1.0
 ny,nx = 120,360
-thwat = 0.01  # g/m3 for defining stop
+#thwat = 0.01  # g/m3 for defining stop
+thwat = 0.033  # g/m3 for defining stop
 ##********************************
 #def mk_stop(a2prof, thwat):
 #    a2bin  = np.ones(a2prof.shape).astype(int16) * np.arange(36).astype(int16)
@@ -125,7 +127,8 @@ for Year,Mon in lYM:
                     a1ptype= np.load(srcDir + '/typePreciprad.%06d.npy'%(oid)) 
                     #a1ph   = np.load(srcDir + '/stoprad.%06d.npy'%(oid)) 
                     #a1ph   = np.load(srcDir + '/heightStormToprad.%06d.npy'%(oid))
-                    a1ph   = np.load(srcDir + '/stop-profrad.%06d.npy'%(oid))
+                    #a1ph   = np.load(srcDir + '/stop-profrad.%06d.npy'%(oid))
+                    a1ph   = np.load(srcDir + '/stop-profrad.th%05.3fq.%06d.npy'%(thwat, oid))
                     a1freez= np.load(srcDir + '/zeroDegAltituderad.%06d.npy'%(oid)) 
                     a1dprx = np.load(srcDir + '/dprx.%06d.npy'%(oid)) 
 

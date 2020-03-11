@@ -1,3 +1,4 @@
+# %%
 #import matplotlib
 #matplotlib.use('Agg')
 #import matplotlib.pyplot as plt
@@ -18,13 +19,14 @@ import random
 #lidx_db = [14155]  # N ~3500
 #lidx_db = [4721]
 #lidx_db = range(29*29*29)[1:]
-#lidx_db = range(10000,20000)
-lidx_db = range(23516,29*29*29)[1:]
+lidx_db = range(29*29*29)[4731:]
+#lidx_db = range(3000,3500)
+#lidx_db = range(23516,29*29*29)[1:]
 #lidx_db = range(23543,29*29*29)[1:]
 #lidx_db = range(1000)
-#lidx_db = [1365]
+#lidx_db = [5810]
+#lidx_db = [3005]
 nsample = 1000
-#fracsample= 0.1  # used if nsample <0
 
 #dbtype  = 'my'
 dbtype  = 'jpl'
@@ -33,55 +35,35 @@ DB_MAXREC    = 10000
 DB_MINREC    = 1000
 #sensor  = 'GMI'
 #sensor  = 'AMSR2'
-#sensor  = 'SSMIS'
+sensor  = 'SSMIS'
 #sensor  = 'ATMS'
 #sensor  = 'MHS'
-expr = 'org.%s.smp%d'%(sensor,nsample)
+#expr = 'org.%s.smp%d'%(sensor,nsample)
+expr = 'prf.%s.smp%d'%(sensor,nsample)
 #expr = 'no-same-rev.smp%d'%(nsample)
 
 #** Constants ******
 myhost = socket.gethostname()
 if myhost =='shui':
-    if dbtype=='jpl':  
-        dbDir   = '/tank/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE_TEST29'%(sensor)
-        coefDir = '/tank/utsumi/PMM/JPLDB/EPC_COEF/%s'%(sensor)
-        countDir= '/tank/utsumi/PMM/EPCDB/list'
-        outbaseDir = '/tank/utsumi/PMM/retsynt/%s'%(expr)
-
-    elif dbtype=='my':
-        dbDir   = '/tank/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
-        coefDir = '/tank/utsumi/PMM/EPCDB/EPC_COEF/%s'%(sensor)
-        countDir= '/tank/utsumi/PMM/EPCDB/list'
-        outbaseDir = '/tank/utsumi/PMM/retsynt/%s'%(expr)
+    dbDir   = '/tank/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE'%(sensor)
+    coefDir = '/tank/utsumi/PMM/JPLDB/EPC_COEF/%s'%(sensor)
+    outbaseDir = '/tank/utsumi/PMM/retsynt/%s'%(expr)
 
 elif myhost == 'well':
-    if dbtype=='jpl':  
-        dbDir   = '/home/utsumi/mnt/lab_tank/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE_TEST29'%(sensor)
-        coefDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/JPLDB/EPC_COEF/%s'%(sensor)
-        countDir= '/home/utsumi/mnt/lab_tank/utsumi/PMM/EPCDB/list'
-        outbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retsynt/%s'%(expr)
+    #dbDir   = '/home/utsumi/mnt/lab_tank/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE'%(sensor)
+    #coefDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/JPLDB/EPC_COEF/%s'%(sensor)
+    #countDir= '/home/utsumi/mnt/lab_tank/utsumi/PMM/EPCDB/list'
+    dbDir   = '/media/disk2/share/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE'%(sensor)
+    coefDir = '/media/disk2/share/PMM/JPLDB/EPC_COEF/%s'%(sensor)
+    relprofDir = '/media/disk2/share/PMM/JPLDB/EPC_DB/%s_rs_precip_water_prof_NS'%(sensor)
 
+    outbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retsynt/%s'%(expr)
 
-    elif dbtype=='my':
-        dbDir   = '/media/disk2/share/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
-        coefDir = '/media/disk2/share/PMM/EPCDB/EPC_COEF/%s'%(sensor)
-        countDir= '/media/disk2/share/PMM/EPCDB/list'
-        outbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retsynt/%s'%(expr)
 else:
     print 'check dtype',dtype
     sys.exit()
 
 
-#** Read histogram of EPC DB records **
-if nsample <0:
-    countPath = countDir +'/count.epc.csv'
-    f=open(countPath,'r'); lines=f.readlines(); f.close()
-    ncol = len(lines[0].strip().split(',')) - 1
-    a2hist = np.zeros([29*29*29, ncol], int32)
-    for line in lines[1:]:
-        line =  map(int,line.strip().split(','))
-        epcid= line[0]
-        a2hist[epcid] = line[1:]
 #** Parameters ************    
 
 tqvflag = 0
@@ -114,7 +96,7 @@ NEM_USE = 3
 #NPCHIST = 25
 NPCHIST = 29
 if dbtype=='jpl':
-    NLEV_PRECIP = 1
+    NLEV_PRECIP = 50
 elif dbtype=='my':
     NLEV_PRECIP = 50
 
@@ -133,7 +115,7 @@ MAX_T2M_DIFF= 10  # K
 MAX_TQV_DIFF= 10  # kg/m2
 MAX_RMA_0   = 0.05
 flag_top_var= 0
-flag_prof   = 0 
+flag_prof   = 1
 DB_MAX_INC_DIFF = 20  # degree
 #-- functions -----
 def mk_dir(sdir):
@@ -159,7 +141,7 @@ def read_nrain(idx_db):
      /* second six= same for when T2m > 278K */
     '''
     #srcPath = dbDir + '/db_%05d.bin.nrain.txt'%(idx_db)
-    nrainDir= dbDir + '/nrain'
+    nrainDir= dbDir 
     srcPath = nrainDir + '/db_%05d.bin.nrain.txt'%(idx_db)
     a1nrain = read_table(srcPath,type=int32)[0]
     a1nrain_cold = a1nrain[:6]
@@ -327,7 +309,11 @@ for idx_db in lidx_db:
         a1nsurfNSTmp    = db.get_var('precip_nsfc_NS')
 
         if flag_prof == 1:
-            a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.)  # 2019/11/12
+            #a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.)  # 2019/11/12
+
+            a2prwatprofNSTmp = ma.masked_invalid(np.load(relprofDir + '/%05d.npy'%(idx_db_expand))[:,-NLEV_PRECIP:])
+            a2prwatprofNSTmp = (ma.masked_less(a2prwatprofNSTmp,0)/1000.).filled(-9999.)
+
         elif flag_prof==0:
             nrecTmp = a1nsurfNScmbTmp.shape[0] 
             a2prwatprofNSTmp = np.ones(nrecTmp).reshape(-1,NLEV_PRECIP)*-9999.
@@ -425,10 +411,15 @@ for idx_db in lidx_db:
     a1nsurfNScmbObs = db.get_var('precip_NS_cmb')
     a1nsurfMSObs    = db.get_var('precip_nsfc_MS')
     a1nsurfNSObs    = db.get_var('precip_nsfc_NS')
-    
     #a2prwatprofNSObs = db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]
     if flag_prof==1:
-        a2prwatprofNSObs = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.) # 2019/11/12
+        #a2prwatprofNSObs = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.) # 2019/11/12
+
+        a2prwatprofNSObs = ma.masked_invalid(np.load(relprofDir + '/%05d.npy'%(idx_db))[:,-NLEV_PRECIP:])
+        a2prwatprofNSObs = (ma.masked_less(a2prwatprofNSObs,0)/1000.).filled(-9999.)
+
+        print relprofDir + '/%05d.npy'%(idx_db)
+
     elif flag_prof==0:
         nrecTmp = a1nsurfNScmbObs.shape[0] 
         a2prwatprofNSObs = np.ones(nrecTmp).reshape(-1,NLEV_PRECIP)*-9999.
@@ -499,12 +490,8 @@ for idx_db in lidx_db:
     random.seed(0)
     lirecOrg = np.arange(a2epcObs.shape[0]).astype(int32)
     lirecOrg = ma.masked_where(a1maskObs, lirecOrg).compressed()
-    if nsample >=0:
-        nsampleTmp = min(nsample, len(lirecOrg))
-        lirec = np.sort(random.sample(lirecOrg, nsampleTmp)) # No duplication
-    else:
-        nsampleTmp = int(fracsample * a2hist[idx_db,0])
-        lirec = np.sort(np.random.choice(lirecOrg, nsampleTmp, replace=True)) # Allow dupulication
+    nsampleTmp = min(nsample, len(lirecOrg))
+    lirec = np.sort(random.sample(lirecOrg, nsampleTmp)) # No duplication
 
     nrecTmp = len(lirec)
 
@@ -520,10 +507,19 @@ for idx_db in lidx_db:
     a1nsurfMScmbest  = np.ones(len(lirec), float32)*miss
     a2prwatprofNSest = np.ones([len(lirec),NLEV_PRECIP], float32)*miss
 
-    a1nsurfNSobs     = ma.masked_invalid(a1nsurfNS).filled(miss)[lirec]
-    a1nsurfMSobs     = ma.masked_invalid(a1nsurfMS).filled(miss)[lirec]
-    a1nsurfNScmbobs  = ma.masked_invalid(a1nsurfNScmb).filled(miss)[lirec]
-    a1nsurfMScmbobs  = ma.masked_invalid(a1nsurfMScmb).filled(miss)[lirec]
+    # Comment out 2020/03/07
+    #a1nsurfNSobs     = ma.masked_invalid(a1nsurfNS).filled(miss)[lirec]
+    #a1nsurfMSobs     = ma.masked_invalid(a1nsurfMS).filled(miss)[lirec]
+    #a1nsurfNScmbobs  = ma.masked_invalid(a1nsurfNScmb).filled(miss)[lirec]
+    #a1nsurfMScmbobs  = ma.masked_invalid(a1nsurfMScmb).filled(miss)[lirec]
+
+    # 2020/03/07
+    a1nsurfNSObs     = ma.masked_invalid(a1nsurfNSObs).filled(miss)[lirec]
+    a1nsurfMSObs     = ma.masked_invalid(a1nsurfMSObs).filled(miss)[lirec]
+    a1nsurfNScmbObs  = ma.masked_invalid(a1nsurfNScmbObs).filled(miss)[lirec]
+    a1nsurfMScmbObs  = ma.masked_invalid(a1nsurfMScmbObs).filled(miss)[lirec]
+    a2prwatprofNSObs = ma.masked_invalid(a2prwatprofNSObs).filled(miss)[lirec]
+    #
 
     a1irec           = np.array(lirec).astype(int32)
     a1topirec        = np.ones(len(lirec), int32)*miss
@@ -628,6 +624,50 @@ for idx_db in lidx_db:
     a1nsurfMScmbest  = ma.masked_invalid(a1nsurfMScmbest  ).filled(miss)
     a2prwatprofNSest = ma.masked_invalid(a2prwatprofNSest ).filled(miss)
 
+    #**********************************
+    # Convert bottom=surface to bottom=elipsoid
+    #----------------------------------
+    dbPath = dbDir + '/db_%05d.bin'%(idx_db)
+    if   dbtype == 'jpl':
+        db.set_file(dbPath)
+    elif dbtype == 'my':
+        db.set_idx_db(dbDir, idx_db)
+    else:
+        print 'check dtype', dbtype
+        sys.exit()
+
+
+    vres     = 250 # m
+    tmpbottom = -1000 # m
+    tmpnz     = 2*NLEV_PRECIP + 4  # 104
+
+    a1elev = db.get_var('elev')[a1irec]
+    a1surfbin = ((a1elev - tmpbottom) / vres).astype('int16')
+    a1surfbin = tmpnz - 1 - a1surfbin # top = 0, bottom = tmpnz -1
+
+    ny = a2prwatprofNSest.shape[0]
+
+    #-- Est ----
+    a2tmp = np.ones([ny,tmpnz], float32) * miss
+    a1y   = range(ny)
+    for iz in range(NLEV_PRECIP):
+        a1k = a1surfbin - NLEV_PRECIP +1 + iz
+        a2tmp[a1y,a1k] = a2prwatprofNSest[:,iz]
+    a2prwatprofNSest = a2tmp[:,NLEV_PRECIP:2*NLEV_PRECIP] 
+
+    #-- Obs ----
+    a2tmp = np.ones([ny,tmpnz], float32) * miss
+    a1y   = range(ny)
+    for iz in range(NLEV_PRECIP):
+        a1k = a1surfbin - NLEV_PRECIP +1 + iz
+        a2tmp[a1y,a1k] = a2prwatprofNSObs[:,iz]
+    a2prwatprofNSObs = a2tmp[:,NLEV_PRECIP:2*NLEV_PRECIP] 
+
+    #for i in range(a2tmp.shape[0]):
+    #    elev= a1elev[i]
+    #    print ''
+    #    print i,elev, a2prwatprofNSObs[i]
+    #    print i,elev, a2pr
 
 
     #**********************************
@@ -637,15 +677,12 @@ for idx_db in lidx_db:
     mk_dir(outDir)
 
     np.save(outDir + '/nsurfNS.est.%05d.npy'%(idx_db), a1nsurfNSest) 
-    #np.save(outDir + '/nsurfMS.est.%05d.npy'%(idx_db), a1nsurfMSest)
     np.save(outDir + '/nsurfNScmb.est.%05d.npy'%(idx_db), a1nsurfNScmbest) 
-    #np.save(outDir + '/nsurfMScmb.est.%05d.npy'%(idx_db), a1nsurfMScmbest) 
     np.save(outDir + '/precip_water_prof_NS.est.%05d.npy'%(idx_db), a2prwatprofNSest) 
 
-    np.save(outDir + '/nsurfNS.obs.%05d.npy'%(idx_db), a1nsurfNSobs) 
-    #np.save(outDir + '/nsurfMS.obs.%05d.npy'%(idx_db), a1nsurfMSobs)
-    np.save(outDir + '/nsurfNScmb.obs.%05d.npy'%(idx_db), a1nsurfNScmbobs) 
-    #np.save(outDir + '/nsurfMScmb.obs.%05d.npy'%(idx_db), a1nsurfMScmbobs) 
+    np.save(outDir + '/nsurfNS.obs.%05d.npy'%(idx_db), a1nsurfNSObs) 
+    np.save(outDir + '/nsurfNScmb.obs.%05d.npy'%(idx_db), a1nsurfNScmbObs) 
+    np.save(outDir + '/precip_water_prof_NS.obs.%05d.npy'%(idx_db), a2prwatprofNSObs) 
 
     np.save(outDir + '/irec.obs.%05d.npy'%(idx_db), a1irec) 
     np.save(outDir + '/irec.top.%05d.npy'%(idx_db), a1topirec)
@@ -658,3 +695,6 @@ for idx_db in lidx_db:
 
 
 
+
+
+# %%

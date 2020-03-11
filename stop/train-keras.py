@@ -22,18 +22,18 @@ import calendar
 import socket
 import pickle
 import random
+import epcfunc
 #get_ipython().magic(u'matplotlib inline')
 
 
 hostname = socket.gethostname()
 if hostname == 'shui':
-    #stopbaseDir= '/work/hk01/utsumi/PMM/stop'
+    tankbaseDir = '/tank'
     stopbaseDir= '/tank/utsumi/PMM/stop'
-    #figDir = '/home.rainbow/utsumi/public_html/tempfig/stop'
     figDir = '/home/utsumi/temp/stop'
 elif hostname == 'well':
+    tankbaseDir = '/home/utsumi/mnt/lab_tank'
     stopbaseDir= '/home/utsumi/mnt/lab_tank/utsumi/PMM/stop'
-    #figDir = '/home/utsumi/mnt/lab_home_rainbow/utsumi/public_html/tempfig/stop'
     figDir = '/home/utsumi/temp/stop'
 
 else:
@@ -122,6 +122,7 @@ exprOrg  = 'mse10-01' # 3-layers, 1X1, batch-norm, mse, (64,64,64)  # Adam, clip
 #lact = ['H','L','LT']
 #lact = ['L','LT']
 #lact = ['LTQZ']
+#lact = ['HTQZ']
 lact = ['HTQZ']
 #lact = ['L']
 
@@ -203,6 +204,16 @@ lunits = [64,64,64]
 #***********************************************************
 # Functions
 #***********************************************************
+def read_table(srcPath, type=float):
+    f=open(srcPath,'r'); lines=f.readlines(); f.close()
+    lout = []
+    for line in lines:
+        line = line.strip().split()
+        line = map(type, line)
+        lout.append(line)
+    return np.array(lout)
+
+
 def ret_lisurf(surf):
     if surf in ['ocean','seaice','vege','snow','swater','coast','siedge']:
         if   surf=='ocean':  lisurf=[1]
@@ -540,7 +551,8 @@ def load_data_2d(lDTime, surf=None, shuffleflag=True, samplerate=None):
     # Screen invalid data
     #****************************************************
     a1flag = ma.masked_inside(trainTc, tcmin, tcmax).all(axis=1).mask
-    a1flag = a1flag * ~ma.masked_invalid(trainTc).all(axis=1).mask
+    #a1flag = a1flag * ~ma.masked_invalid(trainTc).all(axis=1).mask
+    a1flag = a1flag * ~ma.masked_invalid(trainTc).mask.any(axis=1)   # 2020/02/12
     a1flag = a1flag * ~ma.masked_invalid(trainStop).mask
 
     
@@ -562,13 +574,23 @@ def load_data_2d(lDTime, surf=None, shuffleflag=True, samplerate=None):
     #print 'trainTc.min, max=',trainTc.min(), trainTc.max()
     #print 'stop.min, max=', trainStop.min(), trainStop.max()
     
+
+    #***********************************************************
+    # EPC
+    #***********************************************************
+    if 'P' in act:
+        atrainTc = epcfunc.mk_epc_12pc(atrainTc, a2coef)
+    
     
     #***********************************************************
     # Normalize
     #***********************************************************
-    
-    trainTc = my_unit(trainTc, tcmin, tcmax)          
-    
+    if 'P' in act: 
+        trainTc = my_unit(trainTc, a1pc_min, a1pc_max)
+    else:
+        trainTc = my_unit(trainTc, tcmin, tcmax)          
+   
+    sys.exit() 
     #trainStop = my_unit(trainStop, stopmin, stopmax)
     
      
@@ -707,6 +729,30 @@ for surf in lsurf:
     dpdfparam[surf] = param[:-1]
     dpdfmax[surf]   = param[-1]
     print surf,dpdfparam[surf] 
+
+#***********************************************************
+# Read EPC parameter
+#***********************************************************
+#-- Read PC coefficient file --
+coefDir  = tankbaseDir + '/utsumi/PMM/EPCDB/EPC_COEF/GMI'
+coefPath = coefDir + '/coef_pc.txt'
+a2coef   = read_table(coefPath)
+a2coef   = a2coef[:,1:]
+#-- Read EPC range files --
+rangePath = coefDir + '/PC_MIN_MAX_29.txt'
+a2pc_edge = read_table(rangePath)
+
+a1pc_min = a2pc_edge[:,0]
+a1pc_max = a2pc_edge[:,-1]
+
+
+#-- Read PC ave and std file --
+pcavePath  = coefDir + '/ave_pc.txt'
+#pcavePath  = '/home/utsumi/bin/ENSPR/ave_pc.txt'
+a2pc_avestd= read_table(pcavePath)
+a1pc_ave   = a2pc_avestd[:,1]
+a1pc_std   = a2pc_avestd[:,2]
+
 
 ##-- test ---
 #x = np.arange(200,16000+1,200)

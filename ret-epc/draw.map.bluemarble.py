@@ -49,6 +49,24 @@ reftype = 'dpr'
 #expr = 'glb.minrec1000.maxrec10000'
 
 
+# Colorado case
+oid = 1574
+Year,Mon,Day = 2014,6,8
+iy, ey = -9999,-9999
+clat    = 40    # SE.US case. oid = 003556
+clon    = 256-360   # 2014/10/14  05:42:03 UTC
+DB_MAXREC = 10000
+DB_MINREC = 1000
+#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#xpos    = 100  # x-position for cross section
+#xpos    = 107  # x-position for cross section
+xpos    = 115  # x-position for cross section
+
+
+
+
+
 ## West of Great lakes (Underestimation)
 #oid = 1871
 #Year,Mon,Day = 2014,6,27
@@ -187,19 +205,19 @@ reftype = 'dpr'
 #DB_MINREC = 1000
 #expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
-# SE.US case, oid=003556, 2014/10/14
-oid = 3556
-Year,Mon,Day = 2014,10,14
-#iy, ey = 987, 1047
-#iy, ey = 917,1117
-iy,ey = -9999,-9999
-clat    = 34    # SE.US case. oid = 003556
-clon    = -86   # 2014/10/14  05:42:03 UTC
-DB_MINREC = 1000
-DB_MAXREC = 10000
-#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-#expr = 'glb.stop-wgt-obs-01.minrec1000.maxrec10000'
-expr = 'glb.stop-rng-obs-01.minrec1000.maxrec10000'
+## SE.US case, oid=003556, 2014/10/14
+#oid = 3556
+#Year,Mon,Day = 2014,10,14
+##iy, ey = 987, 1047
+##iy, ey = 917,1117
+#iy,ey = -9999,-9999
+#clat    = 34    # SE.US case. oid = 003556
+#clon    = -86   # 2014/10/14  05:42:03 UTC
+#DB_MINREC = 1000
+#DB_MAXREC = 10000
+##expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+##expr = 'glb.stop-wgt-obs-01.minrec1000.maxrec10000'
+#expr = 'glb.stop-rng-obs-01.minrec1000.maxrec10000'
 
 ## SW.Japan typhoon case, oid=019015, 2017/07/03
 #oid = 19015
@@ -444,7 +462,7 @@ for i in range(6):
     M.drawcoastlines(color='0.8')
 
     #--- cross-section line ---
-    xpos = 100
+    #xpos = 100
     a1latTmp= a2latMy[:,xpos]
     a1lonTmp= a2lonMy[:,xpos]
     M.plot(a1lonTmp, a1latTmp, '--', color='w')

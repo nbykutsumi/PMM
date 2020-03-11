@@ -78,6 +78,7 @@ elif len(argv)==1:
     DB_MAXREC = 10000
     DB_MINREC = 1000
     expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+    #expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
     xpos    = 100  # x-position for cross section
 
 
@@ -247,13 +248,13 @@ a1lonMy  = a2latMy[:,xpos]
 if ((iy<0) or (ey<0)):
     cy = ret_domain_cy(a2latMy, a2lonMy, clat, clon, dlatlon)
     #dscan = 90
-    dscan = 60
+    dscan = 50
 
     print a2latMy.shape[0],cy,dscan
     iyTmp = max(0, cy-dscan)
     eyTmp = min(a2latMy.shape[0], cy+dscan)
     iyMy  = iyTmp
-    eyMy  = ixTmp
+    eyMy  = eyTmp
 
 else:
     iyTmp = iy

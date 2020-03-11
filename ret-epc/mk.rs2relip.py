@@ -4,9 +4,17 @@ import myfunc.util as util
 from datetime import datetime, timedelta 
 import glob
 import os, sys
+import socket
 
-iDTime = datetime(2014,6,8)
-eDTime = datetime(2014,6,8)
+myhost = socket.gethostname()
+if myhost =="shui":
+    tankDir = '/tank'
+elif myhost =="well":
+    tankDir = '/home/utsumi/mnt/lab_tank'
+
+
+iDTime = datetime(2015,3,1)
+eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 DB_MAXREC = 10000
 DB_MINREC = 1000
@@ -21,8 +29,10 @@ miss = -9999.
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
 
-    baseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/%s'%(expr)
-    matchbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.gtopo'    
+    #baseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/%s'%(expr)
+    baseDir = tankDir + '/utsumi/PMM/retepc/%s'%(expr)
+    #matchbaseDir = #'/home/utsumi/mnt/lab_tank/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.gtopo' 
+    matchbaseDir = tankDir + '/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.gtopo'    
 
     srcDir  = baseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
     elevDir = matchbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
@@ -39,8 +49,8 @@ for DTime in lDTime:
 
         a2surfbin = ((a2elev-tmpbottom) / vres).astype('int16')
         a2surfbin = tmpnz - 1 - a2surfbin  # top = 0, bottom = tmpnz-1
-        print a2surfbin.min(), a2surfbin.max(), a2elev.min()
-        print a3in.shape
+        #print a2surfbin.min(), a2surfbin.max(), a2elev.min()
+        #print a3in.shape
 
         nl,nx = a3in.shape[:2]
 

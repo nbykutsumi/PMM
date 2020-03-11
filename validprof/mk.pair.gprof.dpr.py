@@ -1,3 +1,5 @@
+# %%
+
 from numpy import *
 import myfunc.util as util
 import os, sys
@@ -19,12 +21,14 @@ else:
     print 'check myhost'
     sys.exit()
 #*******************************
-iDTime = datetime(2014,6,1)
+iDTime = datetime(2015,3,1)
 eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
+lDTime = [DTime for lDTime if DTime.timetiple()[:3] not in [(2014,12,8),(2014,12,9),(2014,12,10)]]
 
 thpr   = 0.1
 miss_out= -9999.
+rettype='gprof-shift'
 #------------------------------------------------
 def ret_aprof(a4clusterProf, a2tIndex, a3profNum, a3profScale, lspecies=[0,2,3,4]):
     nh = 28
@@ -60,8 +64,33 @@ def prof250mTo500m(a3prof, miss_out):
 
     return a3out
 
+def rs2relip(a3prof, a2elev, miss_out=-9999.):
+    ''' a3prof: bottom to top order in vertical axis '''
+    vres = 500  # m
+    tmpbottom = -1000  # m
+    nl,nx,nz = a3prof.shape  # 36 layers (500m)
+    tmpnz = 2*nz + 2  # 2=tmpbottom/500
+    a2surfbin = ((a2elev-tmpbottom)/ vres).astype('int16')
+
+    a3tmp = np.ones([nl,nx,tmpnz], float32) * miss_out 
+    X,Y = np.meshgrid( np.arange(nx), np.arange(nl))
+    #print X.shape, a3prof.shape, a2surfbin.shape
+    #print ''
+    a1x = X.flatten().astype('int32')
+    a1y = Y.flatten().astype('int32')
+    a1surfbin = a2surfbin.flatten()
+    for iz in range(nz):
+        a1k = a1surfbin + iz  # if iz=0 --> a1k=a1surfbin
+        a3tmp[a1y,a1x,a1k] = a3prof[:,:,iz].flatten()
+
+    return a3tmp[:,:,2:nz+2].astype('float32')
+ 
+
+
+
 
 def gprofLayerconversion(a3prof): 
+    ''' Convert GPROF 1km layers at the high altitude to 500m layers '''
     ny,nx,nz = a3prof.shape
     a3outTop = zeros([ny,nx, (nz-20)*2],float32)
     a3outTop[:,:,0::2] = a3prof[:,:,20:]
@@ -147,7 +176,8 @@ for DTime in lDTime:
     if len(lgprofPath)==0:
         print 'no flies'
         print ssearch
-    
+
+
     for gprofPath in lgprofPath: 
         oid = int(gprofPath.split('/')[-1].split('.')[-3])
         #print gprofPath
@@ -187,10 +217,23 @@ for DTime in lDTime:
             a3profScale= h['S1/profileScale'][:,83:137+1,:]  # (Y,X, nspecies)
     
         a4profg = ret_aprof(a4clusterProf, a2tIndex, a3profNum, a3profScale)
-        a3profg = ma.masked_less(a4profg,0).sum(axis=0).filled(miss_out)
-    
-        a3profg = gprofLayerconversion(a3profg)
-    
+        a3profg = ma.masked_less(a4profg,0).sum(axis=0).filled(miss_out)  # Bottom to top
+
+        ''' Convert GPROF 1km layers at the high altitude to 500m layers '''
+
+        a3profg = gprofLayerconversion(a3profg)  # Bottom to top
+
+
+        #-- Shift profiles ----------
+        if rettype=='gprof-shift':
+            #-- Read elevation (gtopo) -----
+            elevDir = tankbaseDir + '/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.gtopo/%04d/%02d/%02d'%(Year,Mon,Day)
+            elevPath = elevDir + '/gtopo.%06d.npy'%(oid)
+            a2elev   = np.load(elevPath)[:,83:137+1]
+
+            #-- Shift --
+            a3profg = rs2relip(a3profg, a2elev, miss_out=miss_out)
+
         #-- Reshape GPROF --
         a1sfcprecg=a2sfcprecg.flatten()
         a2profg = a3profg.reshape(-1,36)
@@ -209,10 +252,8 @@ for DTime in lDTime:
             a2sfcprecd = h['NS/surfPrecipTotRate'][:]
             a3profd = h['NS/precipTotWaterCont'][:,:,16:]     # g/m3  (0-18 g/m3), 250m layers, missing=-9999.9,  Cut-off first 16 layers (22km-18km)
     
-    
         a3profd = prof250mTo500m(a3profd, miss_out=miss_out)[:,:,::-1] # convert to 500m layers up to 18km (36-layers): From bottom to top. 
-    
-    
+
         #-- Read GMI-DPR matching index file ----------------------
         xyDir = tankbaseDir + '/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.IDX/%04d/%02d/%02d'%(Year,Mon,Day)
         xPath = xyDir + '/Xpy.1.%06d.npy'%(oid)
@@ -264,14 +305,17 @@ for DTime in lDTime:
 
         a1sfcprecd = a1sfcprecd[a1flag] 
         a1sfcprecg = a1sfcprecg[a1flag] 
-        a2profd    = a2profd[a1flag]   # Bottom to top
-        a2profg    = a2profg[a1flag]   # Bottom to top
+        a2profd    = a2profd[a1flag]   # Bottom to top, 500m layers
+        a2profg    = a2profg[a1flag]   # Bottom to top, 500m layers
    
         print oid, a1flag.sum(), a1sfcprecd.shape
-        outDir     = tankbaseDir + '/utsumi/PMM/validprof/pair/gprof/%04d/%02d/%02d'%(Year,Mon,Day)
+        outDir     = tankbaseDir + '/utsumi/PMM/validprof/pair/%s/%04d/%02d/%02d'%(rettype,Year,Mon,Day)
         util.mk_dir(outDir)
         np.save(outDir + '/profpmw.%06d.npy'%(oid), a2profg.astype('float32'))
         np.save(outDir + '/profrad.%06d.npy'%(oid), a2profd.astype('float32'))
         np.save(outDir + '/precpmw.%06d.npy'%(oid), a1sfcprecg.astype('float32'))    
         np.save(outDir + '/precrad.%06d.npy'%(oid), a1sfcprecd.astype('float32'))
         print outDir , oid
+
+
+# %%

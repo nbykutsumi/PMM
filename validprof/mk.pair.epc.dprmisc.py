@@ -8,14 +8,15 @@ from datetime import datetime, timedelta
 import socket
 import EPCDB
 #*******************************
-iDTime = datetime(2014,7,23)
+iDTime = datetime(2014,6,1)
 eDTime = datetime(2015,5,31)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 lskipdates = [[2014,12,9],[2014,12,10]]
 
 DB_MAXREC = 10000
 DB_MINREC = 1000
-expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 myhost = socket.gethostname()
 if myhost =='shui':
@@ -39,8 +40,8 @@ NLEV_PREC = 50
 miss_out= -9999.
 
 #lvar = [['DPRGMI','NS/Input/zeroDegAltitude']]
-#lvar = [['DPRGMI','NS/Input/surfaceElevation'],['DPRGMI','NS/Input/zeroDegAltitude'],['Ku','NS/PRE/heightStormTop'],['Ku','dprx']]
-lvar = [['Ku','NS/PRE/heightStormTop']]
+lvar = [['DPRGMI','NS/Input/surfaceElevation'],['DPRGMI','NS/Input/zeroDegAltitude'],['Ku','NS/PRE/heightStormTop'],['Ku','dprx']]
+#lvar = [['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','dpry'],['Ku','dprx']]
 #lvar = [['DPRGMI','NS/vfracConv']] 
 

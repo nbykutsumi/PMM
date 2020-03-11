@@ -37,17 +37,33 @@ reftype = 'dpr'
 #reftype = 'mrms'
 
 
-# Illinois (RNS)
-oid = 1456
-Year,Mon,Day = 2014,6,1
+## Illinois (RNS)
+#oid = 1456
+#Year,Mon,Day = 2014,6,1
+#iy, ey = -9999,-9999
+##iy,ey = 1311, 1351
+#clat    = 28.3
+#clon    = 133.0
+#DB_MAXREC = 10000
+#DB_MINREC = 1000
+#expr = 'glb.v03.minrec1000.maxrec10000'
+##expr = 'glb.stop-wgt-obs-01.minrec1000.maxrec10000'
+
+# Colorado case
+oid = 1574
+Year,Mon,Day = 2014,6,8
 iy, ey = -9999,-9999
-#iy,ey = 1311, 1351
-clat    = 28.3
-clon    = 133.0
+clat    = 40    # SE.US case. oid = 003556
+clon    = 256-360   # 2014/10/14  05:42:03 UTC
 DB_MAXREC = 10000
 DB_MINREC = 1000
-expr = 'glb.v03.minrec1000.maxrec10000'
-#expr = 'glb.stop-wgt-obs-01.minrec1000.maxrec10000'
+#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+xpos    = 100  # x-position for cross section
+#xpos    = 107  # x-position for cross section
+
+
+
 
 
 ## Amazon (Underestimation)

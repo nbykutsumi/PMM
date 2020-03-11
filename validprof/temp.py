@@ -1,38 +1,22 @@
-from numpy import *
+# %%
+%matplotlib inline
 import numpy as np
+from numpy import *
+import pandas as pd
+import matplotlib.pyplot as plt
 
-axis =2
-x = np.arange(2*2*3).reshape(2,2,3)
-y = x + 1
+s=pd.Series([1,3,5, np.nan, 6, 8])
+print s
+dates = pd.date_range('20130101', periods=6)
+print dates
 
-xnumprof = np.ones([2,2,3]).astype('int32') 
+df = pd.DataFrame(np.random.randn(6,4), index=dates, columns=list('ABCD'))
+# %%
+df2 = pd.DataFrame({'A':1,
+                    'B': pd.Timestamp('20130102'),
+                    'C':pd.Series(1, index=list(range(4)), dtype='float32'),
+                    'D':np.array([3]*4, dtype='int32'),
+                    'E':pd.Categorical(['test','train','test','train']),
+                    'F':'foo'})
 
-xnumprof[0,0,0] = 0.5
-xnumprof[0,1,:] = 0.5
-ynumprof = xnumprof
-
-ny,nx,nz = x.shape
-xnummax = xnumprof.max(axis=2).reshape(ny,nx,1)
-ynummax = ynumprof.max(axis=2).reshape(ny,nx,1)
-a3xnumprof = ma.masked_invalid(xnumprof / xnummax )
-a3ynumprof = ma.masked_invalid(ynumprof / ynummax )
-
-x = ma.masked_where(a3xnumprof<0.9, x)
-y = ma.masked_where(a3ynumprof<0.9, y)
-
-xm = x.mean(axis=axis).reshape(ny,nx,1)
-ym = y.mean(axis=axis).reshape(ny,nx,1)
-A  = ((x-xm)*(y-ym)).sum(axis=axis)
-B  = ((x-xm)**2).sum(axis=axis)
-C  = ((y-ym)**2).sum(axis=axis)
-
-
-CC= A/( np.sqrt(B*C) )
-
-print 'x',x
-print ''
-print 'xm',xm
-print ''
-print 'A',A
-print ''
-print CC
+# %%

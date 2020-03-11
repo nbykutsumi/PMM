@@ -252,7 +252,8 @@ for DTime in lDTime:
             #******************************************
             # Screen invalid Tc
             #******************************************
-            a1flagtc  = ma.masked_inside(aTcOrg, 50, 350).all(axis=1).mask
+            #a1flagtc  = ma.masked_inside(aTcOrg, 50, 350).all(axis=1).mask
+            a1flagtc  = ma.masked_inside(aTcOrg, 50, 350).mask.all(axis=1)
     
             #******************************************
             # Screen invalid data

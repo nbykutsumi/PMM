@@ -1,3 +1,6 @@
+# %%
+#%matplotlib inline
+
 import matplotlib
 matplotlib.use('Agg')
 import numpy as np
@@ -36,7 +39,8 @@ lseason=['ALL','DJF','JJA']
 #lseason = [7]
 DB_MAXREC = 10000
 DB_MINREC = 1000
-expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 ny,nx = 120,360
 nz    = 25 
@@ -52,12 +56,12 @@ lvar = ['profpmw','profrad']
 lstype = ['veg','sea','snow','coast']
 #lstype = ['veg','snow']
 #lstype = ['all']
-#lstype = ['sea']
+#lstype = ['veg']
 lptype= ['conv','stra']
-#lptype= ['stra']
+#lptype= ['conv']
 #lph   = ['L','H','A']
-#lph   = ['A','L']
-lph   = ['H']
+lph   = ['A','L']
+#lph   = ['A']
 #lprrange=[[0.5,999],[1,3],[8,12]]
 #lprrange=[[1,3],[8,12]]
 lprrange=[[0.5,999]]
@@ -339,8 +343,8 @@ for season in lseason:
         #a3mask[:] = False  # test
         ##*****************************
  
-        ymin,ymax = 2,12
-        #ymin,ymax = 0,12
+        #ymin,ymax = 2,12
+        ymin,ymax = 0,12
         stampOut  = 's-%s.p-%s.ph-%s.pr-%.1f-%.1f.%s'%(stype,ptype,ph,thpr0,thpr1,season)
         for region in lregion:
             if region == 'TRO':
@@ -358,22 +362,22 @@ for season in lseason:
             #********************************************** 
             # mean profile
             #********************************************** 
-            #a1radsum = ma.masked_where(a3mask, dsum['epc',  'profrad'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
-            #a1pmwsum = ma.masked_where(a3mask, dsum['epc',  'profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
-            #a1gprsum = ma.masked_where(a3mask, dsum['gprof','profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            a1radsum = ma.masked_where(a3mask, dsum['epc',  'profrad'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            a1pmwsum = ma.masked_where(a3mask, dsum['epc',  'profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            a1gprsum = ma.masked_where(a3mask, dsum['gprof','profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
 
-            #a1radnumprof = ma.masked_where(a3mask, dnumprof['epc',  'profrad'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
-            #a1pmwnumprof = ma.masked_where(a3mask, dnumprof['epc',  'profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
-            #a1gprnumprof = ma.masked_where(a3mask, dnumprof['gprof','profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            a1radnumprof = ma.masked_where(a3mask, dnumprof['epc',  'profrad'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            a1pmwnumprof = ma.masked_where(a3mask, dnumprof['epc',  'profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            a1gprnumprof = ma.masked_where(a3mask, dnumprof['gprof','profpmw'])[y0:y1+1,x0:x1+1].sum(axis=(0,1))
 
 
-            a1radsum = dsum['epc',  'profrad'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
-            a1pmwsum = dsum['epc',  'profpmw'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
-            a1gprsum = dsum['gprof','profpmw'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            #a1radsum = dsum['epc',  'profrad'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            #a1pmwsum = dsum['epc',  'profpmw'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            #a1gprsum = dsum['gprof','profpmw'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
 
-            a1radnumprof = dnumprof['epc',  'profrad'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
-            a1pmwnumprof = dnumprof['epc',  'profpmw'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
-            a1gprnumprof = dnumprof['gprof','profpmw'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            #a1radnumprof = dnumprof['epc',  'profrad'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            #a1pmwnumprof = dnumprof['epc',  'profpmw'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
+            #a1gprnumprof = dnumprof['gprof','profpmw'][y0:y1+1,x0:x1+1].sum(axis=(0,1))
 
             print a1radsum
             print ''

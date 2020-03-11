@@ -20,13 +20,14 @@ else:
     print 'check myhost'
     sys.exit()
 #*******************************
-iYM  = [2015,3]
+iYM  = [2014,6]
 eYM  = [2015,5]
 lYM  = util.ret_lYM(iYM,eYM)
 
 DB_MAXREC = 10000
 DB_MINREC = 1000
-expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 miss_out= -9999.
 lrettype = ['epc']
@@ -35,14 +36,15 @@ lrettype = ['epc']
 #lvar= ['stop-profrad','stop-profpmw']
 #lvar= ['stop-profrad.th0.033q','stop-profpmw.th0.033q']
 #lvar= ['stop-profpmw']
-lvar= ['stoprad','top-stoppmw']
+#lvar= ['stoprad','top-stoppmw','zeroDegAltituderad']
+#lvar = ['zeroDegAltituderad']
 #lvar = ['precrad','precpmw','zeroDegAltituderad']
-#lvar = ['precpmw','precrad']
+lvar = ['precpmw','precrad']
 #lvar = ['convfreqrad','stratfreqrad','convfreqpmw','stratfreqpmw']
 #lvar = ['precrad','precpmw','stoprad','top-stoppmw','convfreqrad','stratfreqrad','convfreqpmw','stratfreqpmw']
 #lvar = ['convfreqpmw','stratfreqpmw']
+#lvar = ['convfreqpmw','stratfreqpmw']
 #lvar = ['zeroDegAltituderad']
-
 lat0 = -60.
 lon0 = -180.
 dlatlon=1.0
@@ -51,16 +53,19 @@ lskipdates = [[2014,10,22],[2014,10,23],[2014,10,24],[2014,12,9],[2014,12,10],[2
 
 
 #lstype= ['all','sea','land','veg','snow','coast']
-#lstype= ['all','sea','veg','snow','coast']
-lstype= ['all']
+lstype= ['all','sea','veg','snow','coast']
+#lstype= ['all']
 #lstype= ['coast']
-#lptype= ['all','conv','stra']
-lptype= ['all']
-#lph   = ['H','L','A']
-lph   = ['A']
+lptype= ['all','conv','stra']
+#lptype= ['all']
+#lptype= ['conv','stra']
+lph   = ['H','L','A']
+#lph   = ['A']
 #lprrange=[[0.5,999],[1,3],[8,12]]
 lprrange=[[0.5,999]]
 lprrange= map(tuple, lprrange)
+thwat = 0.033  # g/m3 for defining stop
+
 #-----------------
 def ret_var_filename(var):
     if var in ['convfreqrad','stratfreqrad']:
@@ -134,7 +139,8 @@ for Year,Mon in lYM:
                     a1stype= np.load(srcDir + '/surfaceTypeIndex.%06d.npy'%(oid))
                     a1ptype= np.load(srcDir + '/typePreciprad.%06d.npy'%(oid))
                     #a1ph   = np.load(srcDir + '/stoprad.%06d.npy'%(oid))
-                    a1ph   = np.load(srcDir + '/stop-profrad.%06d.npy'%(oid))
+                    #a1ph   = np.load(srcDir + '/stop-profrad.%06d.npy'%(oid))
+                    a1ph   = np.load(srcDir + '/stop-profrad.th%05.3fq.%06d.npy'%(thwat, oid))
                     a1freez= np.load(srcDir + '/zeroDegAltituderad.%06d.npy'%(oid))
 
                     if var.split('.')[0][-3:] =='rad':

@@ -15,7 +15,7 @@ myhost = socket.gethostname()
 if  myhost =="mizu":
     orootDir   = "/home/utsumi/mnt/wellshare/data/GPM"
 elif myhost =="shui":
-    orootDir   = "/work/hk01/PMM/NASA"
+    orootDir   = "/work/hk02/PMM/NASA"
     #orootDir   = "/tank/utsumi/data/PMM/NASA"
 elif myhost =="well":
     #orootDir   = "/media/disk2/share/data/GPM"

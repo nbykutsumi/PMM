@@ -17,9 +17,11 @@ import random
 #lidx_db = [5498]   # N ~10,000
 #lidx_db = [14155]  # N ~3500
 #lidx_db = [4721]
-lidx_db = range(29*29*29)[1:]
+#lidx_db = range(29*29*29)[1:]
 #lidx_db = [1365]
-nsample = 1000
+lidx_db = [5810]
+
+insample = 1000
 #fracsample= 0.1  # used if nsample <0
 
 dbtype  = 'my'
@@ -277,8 +279,8 @@ for idx_db in lidx_db:
     for iidx_db, idx_db_expand in enumerate(lidx_db_expand):
         #-- Read database file --
         #print 'set file'   
-        dbPath = dbDir + '/db_%05d.bin'%(idx_db_expand)
         if   dbtype == 'JPL':
+            dbPath = dbDir + '/db_%05d.bin'%(idx_db_expand)
             db.set_file(dbPath)
         elif dbtype == 'my':
             db.set_idx_db(dbDir, idx_db_expand)
@@ -462,10 +464,19 @@ for idx_db in lidx_db:
     a1nsurfMScmbest  = np.ones(len(lirec), float32)*miss
     a2prwatprofNSest = np.ones([len(lirec),NLEV_PRECIP], float32)*miss
 
-    a1nsurfNSobs     = ma.masked_invalid(a1nsurfNS).filled(miss)[lirec]
-    a1nsurfMSobs     = ma.masked_invalid(a1nsurfMS).filled(miss)[lirec]
-    a1nsurfNScmbobs  = ma.masked_invalid(a1nsurfNScmb).filled(miss)[lirec]
-    a1nsurfMScmbobs  = ma.masked_invalid(a1nsurfMScmb).filled(miss)[lirec]
+    ## Comment out 2020/03/07
+    #a1nsurfNSObs     = ma.masked_invalid(a1nsurfNS).filled(miss)[lirec]
+    #a1nsurfMSObs     = ma.masked_invalid(a1nsurfMS).filled(miss)[lirec]
+    #a1nsurfNScmbObs  = ma.masked_invalid(a1nsurfNScmb).filled(miss)[lirec]
+    #a1nsurfMScmbObs  = ma.masked_invalid(a1nsurfMScmb).filled(miss)[lirec]
+
+    # 2020/03/07
+    a1nsurfNSObs     = ma.masked_invalid(a1nsurfNSObs).filled(miss)[lirec]
+    a1nsurfMSObs     = ma.masked_invalid(a1nsurfMSObs).filled(miss)[lirec]
+    a1nsurfNScmbObs  = ma.masked_invalid(a1nsurfNScmbObs).filled(miss)[lirec]
+    a1nsurfMScmbObs  = ma.masked_invalid(a1nsurfMScmbObs).filled(miss)[lirec]
+
+
 
     a1irec           = np.array(lirec).astype(int32)
     a1topirec        = np.ones(len(lirec), int32)*miss
@@ -565,10 +576,10 @@ for idx_db in lidx_db:
     np.save(outDir + '/nsurfMScmb.est.%05d.npy'%(idx_db), a1nsurfMScmbest) 
     np.save(outDir + '/precip_water_prof_NS.est.%05d.npy'%(idx_db), a2prwatprofNSest) 
 
-    np.save(outDir + '/nsurfNS.obs.%05d.npy'%(idx_db), a1nsurfNSobs) 
-    np.save(outDir + '/nsurfMS.obs.%05d.npy'%(idx_db), a1nsurfMSobs)
-    np.save(outDir + '/nsurfNScmb.obs.%05d.npy'%(idx_db), a1nsurfNScmbobs) 
-    np.save(outDir + '/nsurfMScmb.obs.%05d.npy'%(idx_db), a1nsurfMScmbobs) 
+    np.save(outDir + '/nsurfNS.obs.%05d.npy'%(idx_db), a1nsurfNSObs) 
+    np.save(outDir + '/nsurfMS.obs.%05d.npy'%(idx_db), a1nsurfMSObs)
+    np.save(outDir + '/nsurfNScmb.obs.%05d.npy'%(idx_db), a1nsurfNScmbObs) 
+    np.save(outDir + '/nsurfMScmb.obs.%05d.npy'%(idx_db), a1nsurfMScmbObs) 
 
     np.save(outDir + '/irec.obs.%05d.npy'%(idx_db), a1irec) 
     np.save(outDir + '/irec.top.%05d.npy'%(idx_db), a1topirec)
