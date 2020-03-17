@@ -1,3 +1,4 @@
+# %%
 from numpy import *
 import myfunc.util as util
 import os, sys
@@ -32,10 +33,10 @@ rettype = 'gprof-shift'
 #lvar = [['Ku','NS/CSF/typePrecip']]
 #lvar = [['Ku','NS/PRE/heightStormTop'],['Ku','NS/CSF/typePrecip'],['DPRGMI','NS/Input/zeroDegAltitude'],['DPRGMI','NS/vfracConv'],['DPRGMI','NS/Input/surfaceElevation']]
 #lvar = [['Ku','NS/CSF/typePrecip'],['DPRGMI','NS/Input/zeroDegAltitude'],['Ku','dprx']]
-lvar = [['DPRGMI','NS/Input/surfaceElevation']]
-#lvar = [['DPRGMI','NS/vfracConv']]
+#lvar = [['DPRGMI','NS/Input/surfaceElevation']]
+lvar = [['DPRGMI','NS/vfracConv']]
 #lvar = [['Ku','NS/PRE/heightStormTop']]
-#lvar = [['Ku','dprx'],['Ku','dpry']]
+#lvar = [['Ku','dprx']]
 #------------------------------------------------
 def ret_aprof(a4clusterProf, a2tIndex, a3profNum, a3profScale, lspecies=[0,2,3,4]):
     nh = 28
@@ -183,7 +184,7 @@ for DTime in lDTime:
     
     for gprofPath in lgprofPath: 
         oid = int(gprofPath.split('/')[-1].split('.')[-3])
-        #print gprofPath
+        print gprofPath
  
         #-- Read and Save profile database of GPROF (Only once) ----
         if not os.path.exists(gprofPath):
@@ -311,12 +312,20 @@ for DTime in lDTime:
                 
 
             elif varName in ['NS/vfracConv']:
-                pconv = ma.masked_less(davarorg[prod,varName],0)
-                pall  = ma.masked_less(aprec,0) 
-                pconv = sum_9grids_2d(pconv, a1y, a1x, miss=0).filled(0)
-                pall  = sum_9grids_2d(pall , a1y, a1x, miss=0).filled(0)
+                avar0= ma.masked_less(aprec,0).filled(0)
+                avar1= (avarorg/10000000).astype('int32')
 
-                davar[prod,varName] = (ma.masked_less(pall==0, pconv) / pall).filled(0.0)
+                avar1= ma.masked_where(avar1 !=2, aprec).filled(0.0)
+
+                avar0= sum_9grids_2d(avar0, a1y, a1x, miss=0).filled(0)
+                avar1= sum_9grids_2d(avar1, a1y, a1x, miss=0).filled(0)
+                avar = (ma.masked_where(avar0==0, avar1)/avar0).filled(0.0)
+
+                avar[a1mask] = -9999.
+                davar[prod,varName] = avar
+
+
+
 
             elif varName in ['NS/CSF/typePrecip']:
                 Dat0 = (davarorg[prod,varName]/10000000).astype('int16')
@@ -366,3 +375,6 @@ for DTime in lDTime:
             outPath = outDir + '/%s.%06d.npy'%(outvarName,oid)
             np.save(outPath, aout)
             print outPath
+
+
+# %%

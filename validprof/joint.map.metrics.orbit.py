@@ -22,14 +22,14 @@ else:
 #*******************************
 
 iy =30 # top
-ey = -60
-ix =10
-ex = -10
+ey = -50
+ix =1
+ex = -1
 
-llkey = [['epc.peakhrad','epc.dpeakh','epc.dpeakh'],
-         ['epc.peakvrad','epc.dpeakv','epc.dpeakv'],
-         ['epc.stoprad', 'epc.dstop' ,'epc.dstop'],
-         ['epc.condrad', 'epc.dcond' ,'epc.dcond'],
+llkey = [['epc.peakhrad','epc.dpeakh','gprof-shift.dpeakh'],
+         ['epc.peakvrad','epc.dpeakv','gprof-shift.dpeakv'],
+         ['epc.stoprad', 'epc.dstop' ,'gprof-shift.dstop'],
+         ['epc.condrad', 'epc.dcond' ,'gprof-shift.dcond'],
 ]
 
 

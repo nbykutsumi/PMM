@@ -38,10 +38,10 @@ miss   = -9999.
 thpr = 0.5  # mm/h
 #thpr = 3.0  # mm/h
 thwat = 0.033  # g/m3 for storm top
-lrettype= ['epc']
-#lrettype= ['gprof-shift']
+#lrettype= ['epc']
+lrettype= ['epc','gprof-shift']
 lvar = ['cc','dpeakh','dpeakv','dstop','dcond','rmse']+['peakhrad','peakhpmw','peakvrad','peakvpmw','stoprad','stoppmw','condrad','condpmw']
-#lvar = ['dcond']
+#lvar = ['dstop','dpeakh']
 dexpr = {'epc':'glb.relsurf01.minrec1000.maxrec10000','gprof-shift':'v01'}
 
 
@@ -82,7 +82,7 @@ def draw_map(a2dat, a2cont=None, a1contlev=None, figPath=None, textcbartop=None,
     res = 2.5
     fig = plt.figure(figsize=(6,3))
     #fig = plt.figure(figsize=(5,2.5))
-    ax  = fig.add_axes([0.08,0.1,0.8,0.8])
+    ax  = fig.add_axes([0.08,0.1,0.8,0.7])
     a1lat = np.arange(-60+res*0.5,60-res*0.5+0.1,res)
     a1lon = np.arange(-180+res*0.5,180-res*0.5+0.01,res)
     X,Y = np.meshgrid(a1lon,a1lat)
@@ -140,7 +140,7 @@ def draw_map(a2dat, a2cont=None, a1contlev=None, figPath=None, textcbartop=None,
     M.drawmeridians(np.arange(-180,180+1,30), labels=[0,0,0,1], fontsize=10, linewidth=0.5, fmt='%d',rotation=50, yoffset=7)
     M.drawparallels(np.arange(-60,60+1,30), labels=[1,0,0,0], fontsize=10, linewidth=0.5, fmt='%d')
 
-    cax = fig.add_axes([0.89,0.25,0.02,0.50])
+    cax = fig.add_axes([0.89,0.2,0.02,0.50])
     cbar= plt.colorbar(im, orientation='vertical', cax=cax)
 
     if bounds is not None:
@@ -239,7 +239,7 @@ for rettype in lrettype:
         a1sfcbin = (a1elev /vres).astype('int16')
         a1cltbin = a1sfcbin + 2  # surface + 1km
         a1cltbin = ma.masked_less(a1cltbin,0).filled(0)
-        a1cltbin = ma.masked_greater(a1cltbin,24).filled(24)
+        a1cltbin = ma.masked_greater(a1cltbin,nz-1).filled(nz-1)
         setcltbin= set(list(a1cltbin))
 
         for cltbin in setcltbin:
@@ -264,6 +264,7 @@ for rettype in lrettype:
         a2profpmwtmp = ma.masked_less(a2profpmw[a1idx],0)
         a1lattmp     = a1lattmp[a1idx]
         a1lontmp     = a1lontmp[a1idx]
+        a1elevtmp    = a1elev[a1idx]
 
         a1lat.extend(list(a1lattmp)) 
         a1lon.extend(list(a1lontmp)) 
@@ -280,16 +281,19 @@ for rettype in lrettype:
         a1cc.extend(list(a1cctmp))
 
         #-- peakh difference -----
-        a1peakhradtmp = a2profradtmp.argmax(axis=1)
-        a1peakhpmwtmp = a2profpmwtmp.argmax(axis=1)
-        a1dpeakhtmp   = (a1peakhpmwtmp - a1peakhradtmp)*0.5  # km
+        a1peakhradtmp = a2profradtmp.argmax(axis=1)*0.5 - a1elevtmp*0.001 + 0.5
+        a1peakhpmwtmp = a2profpmwtmp.argmax(axis=1)*0.5 - a1elevtmp*0.001 + 0.5
+        a1dpeakhtmp   = (a1peakhpmwtmp - a1peakhradtmp)  # km
         a1dpeakh.extend(list(a1dpeakhtmp))
-        a1peakhrad.extend(list(a1peakhradtmp*0.5))
-        a1peakhpmw.extend(list(a1peakhpmwtmp*0.5))
+        a1peakhrad.extend(list(a1peakhradtmp))
+        a1peakhpmw.extend(list(a1peakhpmwtmp))
 
         #-- peak condensed water content --
-        a1peakvradtmp = a2profradtmp[range(nltmp),a1peakhradtmp]
-        a1peakvpmwtmp = a2profpmwtmp[range(nltmp),a1peakhpmwtmp]
+        a1peakhbinradtmp = a2profradtmp.argmax(axis=1)
+        a1peakhbinpmwtmp = a2profpmwtmp.argmax(axis=1)
+
+        a1peakvradtmp = a2profradtmp[range(nltmp),a1peakhbinradtmp]
+        a1peakvpmwtmp = a2profpmwtmp[range(nltmp),a1peakhbinpmwtmp]
         a1dpeakvtmp= (a1peakvpmwtmp - a1peakvradtmp)/a1peakvradtmp
         a1dpeakv.extend(list(a1dpeakvtmp))
         a1peakvrad.extend(list(a1peakvradtmp))
@@ -298,8 +302,13 @@ for rettype in lrettype:
 
         #-- storm top height ------
         a2iz  = np.array(range(nz)*nltmp).reshape(-1,nz)
-        a1stopradtmp = ma.masked_where(a2profradtmp<thwat, a2iz).argmax(axis=1)*0.5
-        a1stoppmwtmp = ma.masked_where(a2profpmwtmp<thwat, a2iz).argmax(axis=1)*0.5
+        a1stopradtmp = ma.masked_where(a2profradtmp<thwat, a2iz).argmax(axis=1)*0.5 - a1elevtmp*0.001 + 0.5
+        a1stoppmwtmp = ma.masked_where(a2profpmwtmp<thwat, a2iz).argmax(axis=1)*0.5 - a1elevtmp*0.001 + 0.5
+
+
+        #a1tmp = ma.masked_where(a2profradtmp<thwat, a2iz).argmax(axis=1)*0.5 + 0.5
+        #sys.exit()
+
         a1dstoptmp= a1stoppmwtmp - a1stopradtmp
         a1dstop.extend(list(a1dstoptmp))
         a1stoprad.extend(list(a1stopradtmp))
@@ -367,11 +376,11 @@ for key in lkey:
 
     rettype,var = key
     expr = dexpr[rettype]
-    odir = tankbaseDir + '/utsumi/PMM/validprof/map-orbit/%s.%s'%(rettype,expr)
+    srcdir = tankbaseDir + '/utsumi/PMM/validprof/map-orbit/%s.%s'%(rettype,expr)
 
     dbndave = {'cc':np.arange(0,1+0.01,0.1),
-               'dpeakv':np.arange(-0.5,0.5+0.01,0.2),
-               'dcond':np.arange(-0.5,0.5+0.01,0.2),
+               'dpeakv':[-9999] + np.arange(-0.5,0.5+0.01,0.2).tolist() + [9999],
+               'dcond': [-9999,-0.5,-0.2,0.2,0.5,9999],
                'rmse':np.arange(0,1.6+0.01,0.4),
                'peakhrad':np.arange(0,8+0.1,1),
                'peakhpmw':np.arange(0,8+0.1,1),
@@ -403,14 +412,14 @@ for key in lkey:
                'dstop':np.arange(0,3+0.1,0.5),
                }
     dcmave = {'cc':'rainbow','dpeakh':'RdBu_r','dpeakv':'RdBu_r','dstop':'RdBu_r','dcond':'RdBu_r','rmse':'rainbow'}
-    dcmstd = {'cc':'rainbow','dpeakh':'rainbow' ,'dpeakv':'rainbow' ,'dstop':'rainbow' ,'dcond':'rainbow','rmse':'rainbow'}
+    dcmstd = {'cc':'hot_r','dpeakh':'hot_r' ,'dpeakv':'hot_r' ,'dstop':'hot_r' ,'dcond':'hot_r','rmse':'hot_r'}
 
     if var in ['peakhrad','peakhpmw','stoprad','stoppmw']:
         dcmave[var] = 'rainbow'
-        dcmstd[var] = 'rainbow'
+        dcmstd[var] = 'hot_r'
     elif var in ['peakvrad','peakvpmw','condrad','condpmw']:
         dcmave[var] = 'gist_stern_r'
-        dcmstd[var] = 'gist_stern_r'
+        dcmstd[var] = 'hot_r'
 
     dretname = {'epc':'EPC','gprof-shift':'GPROF','gprof':'GPROF'}
     dvarname = {'cc':'corr. coef',
@@ -418,7 +427,7 @@ for key in lkey:
                 'dpeakh':'Peak condensed water height diff.[km]',
                 'peakhrad':'Peak condensed water height [km]',
                 'peakhpmw':'Peak condensed water height [km]',
-                'dpeakv':'Peak condened waater cont. diff. [g/m3]',
+                'dpeakv':'Peak condened water cont. diff. (Normed)',
                 'peakvrad':'Peak condensed water cont. [g/m3]',
                 'peakvpmw':'Peak condensed water cont. [g/m3]',
                 'dstop':'Storm top height diff. [km]',
@@ -444,25 +453,39 @@ for key in lkey:
         avemin,avemax=cntave[0],cntave[-1]
         stdmin,stdmax=cntstd[0],cntstd[-1]
 
-    a2ave = np.load(odir + '/ave.%s.npy'%(var))
-    a2std = np.load(odir + '/std.%s.npy'%(var))
-    a2num = np.load(odir + '/num.%s.npy'%(var))
+    if var in ['dpeakv','dcond']:
+        extend = 'both'
+    else:
+        extend = None
+
+    a2ave = np.load(srcdir + '/ave.%s.npy'%(var))
+    a2std = np.load(srcdir + '/std.%s.npy'%(var))
+    a2num = np.load(srcdir + '/num.%s.npy'%(var))
 
     a2ave = ma.masked_invalid(a2ave)
     a2std = ma.masked_invalid(a2std)
+
+    if var[-3:]=='rad':
+        datname='CMB'
+    elif rettype=='epc':
+        datname='EPC'
+    elif rettype in ['gprof','gprof-shift']:
+        datname='GPROF'
+    else:
+        datname='XXX'
 
     #-- Ave ---
     figPath = figDir + '/map.%s.%s.ave.png'%(rettype,var)
     mycm = dcmave[var]
     vmin,vmax = avemin,avemax
-    stitle = '%s %s'%(dretname[rettype],dvarname[var])
-    draw_map(a2dat=a2ave, figPath=figPath, bounds=bndave, centers=cntave)
+    stitle = '%s %s'%(datname,dvarname[var])
+    draw_map(a2dat=a2ave, figPath=figPath, bounds=bndave, centers=cntave, extend=extend)
 
 
     figPath = figDir + '/map.%s.%s.std.png'%(rettype,var)
     mycm = dcmstd[var]
     vmin,vmax = stdmin,stdmax
-    stitle = '%s %s STD'%(dretname[rettype],dvarname[var])
+    stitle = '%s %s STD'%(datname,dvarname[var])
     draw_map(a2dat=a2std, figPath=figPath, bounds=bndstd, centers=cntstd)
 
 

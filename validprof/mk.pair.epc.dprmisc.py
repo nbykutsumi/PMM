@@ -40,10 +40,10 @@ NLEV_PREC = 50
 miss_out= -9999.
 
 #lvar = [['DPRGMI','NS/Input/zeroDegAltitude']]
-lvar = [['DPRGMI','NS/Input/surfaceElevation'],['DPRGMI','NS/Input/zeroDegAltitude'],['Ku','NS/PRE/heightStormTop'],['Ku','dprx']]
+#lvar = [['DPRGMI','NS/Input/surfaceElevation'],['DPRGMI','NS/Input/zeroDegAltitude'],['Ku','NS/PRE/heightStormTop'],['Ku','dprx']]
 #lvar = [['Ku','NS/PRE/heightStormTop']]
 #lvar = [['Ku','dpry'],['Ku','dprx']]
-#lvar = [['DPRGMI','NS/vfracConv']] 
+lvar = [['DPRGMI','NS/vfracConv']] 
 
 db = EPCDB.EPCDB()
 #------------------------------------------------
