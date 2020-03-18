@@ -967,16 +967,13 @@ for i,idx_db in enumerate(lidxset):
             cnvnsurfNScmb = (a1cnvnsurfNScmbSC[a1boolwtNS] * a1wtNS).sum() / wtsumNS
             a2cnvnsurfNScmb[y,x] = cnvnsurfNScmb
 
-            #print '*'*50
-            #print '--------- test ---------'
-            #print 'a1cnvfracdbSC.mean()', ma.masked_less(a1cnvfrcdbSC,0).mean()
-            #print 'a1cnvnsurfNScmbSC.mean()',ma.masked_less(a1cnvnsurfNScmbSC,0).mean()
-            #print 'a1cnvnsurfNScmbSC[a1boolwtNS].mean()',a1cnvnsurfNScmbSC[a1boolwtNS].mean()
-            #print 'cnvnsurfNScmb', cnvnsurfNScmb
-            #print 'nsurfNScmb', nsurfNScmb
-            #print 'a2nsurfNScmb[y,x], a2cnvnsurfNScmb[y,x]',a2nsurfNScmb[y,x], a2cnvnsurfNScmb[y,x]
-            #print '*'*50
-            #sys.exit()
+            print '*'*50
+            print '--------- test ---------'
+            print 'a1cnvfracdbSC.mean()', ma.masked_less(a1cnvfrcdbSC,0).mean()
+            print 'a1cnvnsurfNScmbSC.mean()',ma.masked_less(a1cnvnsurfNScmbSC,0).mean()
+            print 'cnvnsurfNScmb', cnvnsurfNScmb
+            print '*'*50
+            sys.exit()
         #prprofNS   = (a2prprofNSSC[a1boolwtNS] * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
         #prprofNScmb= (a2prprofNScmbSC[a1boolwtNS] * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
         #a3prprofNS[y,x,:]    = prprofNS

@@ -303,7 +303,7 @@ else:
     t2mPath   = dargv['t2mPath']   
     tqvPath   = dargv['tqvPath']   
     elevPath  = dargv['elevPath']
-    cnvfrcinPath= dargv['cnvfrcinPath']
+    #cnvfrcinPath= dargv['cnvfrcinPath']
     rnrPath   = dargv['rnrPath']  # 2020/02/07 rain/no-rain index file
     outDir    = dargv['outDir']
 
@@ -688,7 +688,7 @@ for i,idx_db in enumerate(lidxset):
                 a1tqvdb = a1tqvdbTmp
             if elevPath !='':
                 a1elevdb= a1elevdbTmp
-            if (cnvfrcinPath !='')or(flag_out_conv==1):
+            if (cnvfrcPath !='')or(flag_out_conv==1):
                 a1cnvfrcdb= a1cnvfrcdbTmp
 
             a1idxdb = a1idxdbTmp
@@ -715,7 +715,7 @@ for i,idx_db in enumerate(lidxset):
                 a1tqvdb  = concatenate([a1tqvdb,  a1tqvdbTmp], axis=0) 
             if elevPath !='':
                 a1elevdb= concatenate([a1elevdb, a1elevdbTmp], axis=0) 
-            if (cnvfrcinPath !='')or(flag_out_conv==1):
+            if (cnvfrcPath !='')or(flag_out_conv==1):
                 a1cnvfrcdb= concatenate([a1cnvfrcdb, a1cnvfrcdbTmp], axis=0)
 
             a1idxdb = concatenate([a1idxdb,  a1idxdbTmp], axis=0)
@@ -963,20 +963,10 @@ for i,idx_db in enumerate(lidxset):
         a2nsurfNScmb[y,x] = nsurfNScmb
 
         if flag_out_conv==1:
-            a1cnvnsurfNScmbSC = a1nsurfNScmbSC * ma.masked_outside(a1cnvfrcdbSC,0,1)
-            cnvnsurfNScmb = (a1cnvnsurfNScmbSC[a1boolwtNS] * a1wtNS).sum() / wtsumNS
-            a2cnvnsurfNScmb[y,x] = cnvnsurfNScmb
+            a1cnvnsurfNSSCcmb = a1nsurfNSSCcmb * ma.masked_outside(a1cnvfrc,0,1)
+            cnvnsurfNScmb = a1cnvnsurfNSSCcmb[a1boolwtNS] * a1wtNS).sum() / wtsumNS
+            a2cnvnsurfNScmb[y,x] = cnvnsurfNScnv
 
-            #print '*'*50
-            #print '--------- test ---------'
-            #print 'a1cnvfracdbSC.mean()', ma.masked_less(a1cnvfrcdbSC,0).mean()
-            #print 'a1cnvnsurfNScmbSC.mean()',ma.masked_less(a1cnvnsurfNScmbSC,0).mean()
-            #print 'a1cnvnsurfNScmbSC[a1boolwtNS].mean()',a1cnvnsurfNScmbSC[a1boolwtNS].mean()
-            #print 'cnvnsurfNScmb', cnvnsurfNScmb
-            #print 'nsurfNScmb', nsurfNScmb
-            #print 'a2nsurfNScmb[y,x], a2cnvnsurfNScmb[y,x]',a2nsurfNScmb[y,x], a2cnvnsurfNScmb[y,x]
-            #print '*'*50
-            #sys.exit()
         #prprofNS   = (a2prprofNSSC[a1boolwtNS] * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
         #prprofNScmb= (a2prprofNScmbSC[a1boolwtNS] * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
         #a3prprofNS[y,x,:]    = prprofNS
