@@ -31,7 +31,9 @@ else:
     sys.exit()
 
 
-expr = 'glb.wprof.org'
+#expr = 'glb.wprof.org'
+#expr = 'glb.wprof.org'
+#expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 argv = sys.argv
 if len(argv)==2:
@@ -77,8 +79,8 @@ elif len(argv)==1:
     clon    = -86   # 2014/10/14  05:42:03 UTC
     DB_MAXREC = 10000
     DB_MINREC = 1000
-    expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-    #expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+    #expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+    expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
     xpos    = 100  # x-position for cross section
 
 
@@ -232,6 +234,7 @@ srcDir = srcbaseDir + '/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
 stamp = '%06d.y%04d-%04d.nrec%d'%(oid, iy, ey, DB_MAXREC)
 #a2topzmMS  = np.load(srcDir + '/top-zmMS.%s.npy'%(stamp))[:, xpos, :]
 a2topzmNS  = np.load(srcDir + '/top-zmNS.%s.npy'%(stamp))[:, xpos, :]
+#print srcDir + '/top-zmNS.%s.npy'%(stamp)
 #a2topprNS  = np.load(srcDir + '/top-prprofNS.%s.npy'%(stamp))[:, xpos, :]
 #a2topprNScmb= np.load(srcDir + '/top-prprofNScmb.%s.npy'%(stamp))[:, xpos, :]
 a2toptbNS  = np.load(srcDir + '/top-tbNS.%s.npy'%(stamp))[:, xpos, :][:,::-1]  # Flip

@@ -1,5 +1,7 @@
+# %%
 import matplotlib
 matplotlib.use('Agg')
+#%matplotlib inline
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from matplotlib.ticker import ScalarFormatter
@@ -8,6 +10,7 @@ import os, sys
 from numpy import ma
 import myfunc.util as util
 from numpy import *
+from collections import deque
 import calendar, glob
 from datetime import datetime, timedelta
 import random
@@ -16,33 +19,37 @@ import scipy.stats as stats
 import pickle
 import string
 
-season = 'ALL'
-#season = 'JJADJF'
-#season = 6
-#calcflag = True
-calcflag = False
-lrettype = ['epc','gprof']
+useorblist = True
+calcflag = True
+#calcflag = False
 #lrettype = ['epc']
-#lrettype = ['gprof']
+lrettype = ['epc','gprof-shift']
+nsample = 1000
+#nsample = 10
+
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2015,5,31)
+lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
+lskipdates = [[2014,8,29],[2014,9,16],[2014,10,1],[2014,10,2],[2014,11,5],[2014,12,8],[2014,12,9],[2014,12,10]]
+
 DB_MAXREC = 10000
 DB_MINREC = 1000
-expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-#nsample = 18 # sampling orbits per day
-nsample = 4 # sampling orbits per day
+dexpr = {'epc':'glb.relsurf01.minrec1000.maxrec10000','gprof-shift':'v01'}
 
-lskipdates = [[2014,6,4],[2014,6,6],[2014,10,22],[2014,10,23],[2014,10,24],[2014,12,9],[2014,12,10],[2014,11,25]]
-
-
+thpr = 0.5 # mm/h
+thwat = 0.033  # g/m3 for storm top
+nz    = 20
+miss  = -9999.
 #xymetric = ['dvfracConv','ndprec']
 #xymetric = ['dwatNorm','ndprec']
 #xymetric = ['cc','ndprec']
 #xymetric = ['dstop-prof','ndprec']
 #xymetric = ['dstop','ndprec']
 
-#xymetric = ['ndprec','cc']
+xymetric = ['ndprec','cc']
 #xymetric = ['ndprec','dwatNorm']
 #xymetric = ['ndprec','dstop-prof']
-xymetric = ['ndprec','dstop']
+#xymetric = ['ndprec','dstop']
 #xymetric = ['ndprec','dvfracConv']
 #xymetric = ['ndprec','rmse']
 
@@ -101,7 +108,6 @@ dxbnd = {
         ,'rmse':np.arange(0, 1.0+0.01, 0.05) # km
         }
 #lbias = np.arange(-10,10+0.1,1.0)
-nz    = 25
 
 
 dminmax = {
@@ -117,6 +123,49 @@ dminmax = {
         ,'rmse':[-1,1]
         }
 
+
+#*******************
+# oid list
+#*******************
+if useorblist is True:
+    orblistPath= tankbaseDir + '/utsumi/PMM/retepc/list-orbit/list.GMI.well.201406-201505.1000obts.txt'
+    #orblistPath= tankbaseDir + '/utsumi/PMM/retepc/list-orbit/list.GMI.well.201406-201505.2obts.txt'
+
+    f=open(orblistPath,'r'); lines=f.readlines(); f.close()
+    loid = []
+    for gmiPath in lines:
+        gmiPath = gmiPath.strip()
+        oid = int(os.path.basename(gmiPath).split('.')[-3])
+        Year,Mon,Day= map(int, os.path.dirname(gmiPath).split('/')[-3:])
+        if [Year,Mon,Day] in lskipdates:
+            continue
+        DTimeTmp = datetime(Year,Mon,Day)
+        if DTimeTmp < iDTime: continue
+        if DTimeTmp > eDTime: continue
+        loid.append([oid,Year,Mon,Day])
+
+
+else:
+    loid = []
+    lYM = util.ret_lYM(iYM,eYM)
+    for DTime in lDTime:
+        Year,Mon,Day = DTime.timetuple()[:3]
+        if [Year,Mon,Day] in lskipdates:
+            continue
+        tempbaseDir  = workbaseDir + '/hk02/PMM/NASA/GPM.GMI/1C/V05'
+        lpath = sorted(glob.glob(tempbaseDir + '/%04d/%02d/%02d/1C.GPM.GMI.XCAL2016-C.*.??????.????.HDF5'%(Year,Mon,Day)))
+
+        if len(lpath) == 0:
+            continue
+        for tmppath in lpath:
+            oid = int(os.path.basename(int(tmppath)).split('.')[-4])
+            loid.append([oid,Year,Mon,Day])
+
+random.seed(0)
+print len(loid)
+a1idxtmp = range(len(loid))
+a1idxtmp = sorted(random.sample(a1idxtmp, min(nsample, len(loid))))
+loid = (np.array(loid)[a1idxtmp]).tolist()
 
 
 #*****************************************
@@ -143,8 +192,8 @@ def calc_cc(x,y,axis):
     return A/( np.sqrt(B*C) )
 
 def calc_dwatNorm(a2ref, a2dat):
-    a1ref = ma.masked_less(a2ref,0).filled(0).sum(axis=1)
-    a1dat = ma.masked_less(a2dat,0).filled(0).sum(axis=1)
+    a1ref = a2ref.sum(axis=1)
+    a1dat = a2dat.sum(axis=1)
     return ma.masked_where(a1ref==0, a1dat - a1ref)/a1ref
 
 def calc_ptypefrac(avar, ptype='conv'):
@@ -170,36 +219,6 @@ def calc_dptypefrac(a1ref, a1dat, ptype='conv'):
     return ma.masked_less(a1datfrac,0) - ma.masked_less(a1reffrac,0)
 
 
-def ret_lmon(season):
-    if   season=='ALL':
-        lYM = util.ret_lYM([2014,6],[2015,5])
-
-    elif season=='JJADJF':
-        lYM = util.ret_lYM([2014,6],[2014,8]) + util.ret_lYM([2014,12],[2015,2])
-
-    elif season=='JJA':
-        lYM = util.ret_lYM([2014,6],[2014,8])
-    elif season=='SON':
-        lYM = util.ret_lYM([2014,9],[2014,11])
-    elif season=='DJF':
-        lYM = util.ret_lYM([2014,12],[2015,2])
-    elif season=='MAM':
-        lYM = util.ret_lYM([2015,3],[2015,5])
-    elif type(season)==int:
-        if season <6:
-            lYM = [[2015,season]]
-        else:
-            lYM = [[2014,season]]
-    elif season =='JJ':
-        lYM = util.ret_lYM([2014,6],[2014,7])
-    elif season =='DJ':
-        lYM = util.ret_lYM([2014,12],[2015,1])
-
-    else:
-        print 'check season',season
-        sys.exit()
-    return lYM
-
 
 def get_mycm(cmap=plt.cm.jet):
     cm = cmap
@@ -207,280 +226,287 @@ def get_mycm(cmap=plt.cm.jet):
     return ListedColormap(cm_list)
 
 #*****************************************
-lYM = ret_lmon(season)
 xmetric, ymetric = xymetric
 for rettype in lrettype:
+    if calcflag is not True: continue
 
-    #-- Initialize ------
-    da1sum = {}
-    da1sum2= {}
-    da1num = {}
-    da2hist= {}
-    lxbnd = dxbnd[xmetric]
-    lybnd = dxbnd[ymetric]
-    for surf in lsurf:
-        for preclev in dprecrange.keys():
-            da1sum [surf,preclev]= np.zeros(len(lxbnd)-1, float32)
-            da1sum2[surf,preclev]= np.zeros(len(lxbnd)-1, float32)
-            da1num [surf,preclev]= np.zeros(len(lxbnd)-1, int32)
-            da2hist[surf,preclev]= np.zeros([len(lybnd)-1, len(lxbnd)-1], float32)
+    #**** File list ********************
+    expr = dexpr[rettype]
+    if rettype=='epc': 
+        pairbaseDir = tankbaseDir + '/utsumi/PMM/validprof/pair/%s.%s'%(rettype, expr)
+    elif rettype=='gprof-shift':
+        pairbaseDir = tankbaseDir + '/utsumi/PMM/validprof/pair/%s'%(rettype)
+    else:
+        print 'check rettype',rettype
+        sys.exit()
+
+
+
+    ##-- Initialize ------
+    o1precrad = deque([])
+    o1precpmw = deque([])
+    o1xmetric = deque([])
+    o1ymetric = deque([])
+    o1lat     = deque([])
+    o1lon     = deque([])
+    dout      = {}
+
     #--------------------
+    for (oid,Year,Mon,Day) in loid:
+        pairDir = pairbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
 
-    for Year,Mon in lYM:
-        if calcflag ==False: continue
+        a1lat = np.load(pairDir + '/Latitude.%06d.npy'%(oid))
+        a1lon = np.load(pairDir + '/Longitude.%06d.npy'%(oid))
     
+        a1precpmw = np.load(pairDir+ '/precpmw.%06d.npy'%(oid))
+        a1precrad = np.load(pairDir+ '/precrad.%06d.npy'%(oid))
+        a1surftype= np.load(pairDir + '/surfaceTypeIndex.%06d.npy'%(oid))
+        a1elev    = np.load(pairDir + '/surfaceElevationrad.%06d.npy'%(oid))
+
+        a2pmw = np.load(pairDir+ '/profpmw.%06d.npy'%(oid))[:,:nz]  # nz(500m) layers, bottom to top
+        a2rad = np.load(pairDir+ '/profrad.%06d.npy'%(oid))[:,:nz]  # nz(500m) layers, bottom to top
+
+        #-- Set missing to the lower levels -------
+        a1idx = np.arange(len(a1precpmw))
+        vres = 500  # m
+        a1sfcbin = (a1elev /vres).astype('int16')
+        a1cltbin = a1sfcbin + 2  # surface + 1km
+        a1cltbin = ma.masked_less(a1cltbin,0).filled(0)
+        a1cltbin = ma.masked_greater(a1cltbin,nz-1).filled(nz-1)
+        setcltbin= set(list(a1cltbin))
+
+        for cltbin in setcltbin:
+            a1idxtmp = ma.masked_where(a1cltbin !=cltbin, a1idx).compressed()
+            a2pmw[a1idxtmp, :cltbin] = miss
+            a2rad[a1idxtmp, :cltbin] = miss
+
+        #*****************************************
+        # Screen input data
+        #*****************************************
+        if rettype == 'gprof':
+            a1qflag = np.load(pairDir + '/qualityFlag.%06d.npy'%(oid))
+            a1flagQ = ma.masked_equal(a1qflag,0).mask   # Good quality (flag=0)
+        else:
+            a1flagQ = np.array([True])
+
+        #--- Screen Sea-ice(2), Snow(8-11), Sea-ice edge(14) ---
+        a1flagS = ma.masked_equal(np.load(pairDir + '/surfaceTypeIndex.%06d.npy'%(oid)) ,2)
+        a1flagS = ma.masked_inside(a1flagS,8,11)
+        a1flagS = ma.masked_equal(a1flagS,14)
+        a1flagS = ~(a1flagS.mask)
     
-        eDay = calendar.monthrange(Year,Mon)[1]
-        iDTime = datetime(Year,Mon,1)
-        eDTime = datetime(Year,Mon,eDay)
-        dDTime = timedelta(days=1)
-        lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
-        #lDTime = lDTime[:10]  # test 
-        for DTime in lDTime:
-            Year,Mon,Day = DTime.timetuple()[:3]
-            if [Year,Mon,Day] in lskipdates: continue
-    
-            if rettype =='epc':
-                pairDir = tankbaseDir + '/utsumi/PMM/validprof/pair/epc.%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
-            elif rettype=='gprof':
-                pairDir = tankbaseDir + '/utsumi/PMM/validprof/pair/gprof/%04d/%02d/%02d'%(Year,Mon,Day)
+        #--- Screen missing surface precipitation ---
+        a1flagP1 = ma.masked_invalid(ma.masked_greater_equal(a1precpmw,thpr)).mask
+        a1flagP2 = ma.masked_invalid(ma.masked_greater_equal(a1precrad,thpr)).mask
+        a1flagP  = a1flagP1 * a1flagP2 
+
+        ##--- Screen high mountains ------------------
+        a1flagE = np.array([True])
+        #a1flagE  = ma.masked_less(a1elev, 1000).mask
+
+        #--- Check quality flag --
+        a1flag  = a1flagS * a1flagP *a1flagQ * a1flagE
+        
+        ##---------------------
+        if a1flag.sum()==0:
+            continue
+
+        a1precpmw = a1precpmw[a1flag]
+        a1precrad = a1precrad[a1flag]
+        a1surftype= a1surftype[a1flag]
+        a1elev    = a1elev[a1flag]
+        a1lat     = a1lat[a1flag]
+        a1lon     = a1lon[a1flag]
+        a2pmw     = a2pmw[a1flag]
+        a2rad     = a2rad[a1flag]
+
+        #-- mask missing values ----
+        a2mask1 = ma.masked_less(a2pmw,0).mask
+        a2mask2 = ma.masked_invalid(a2pmw).mask
+        a2mask3 = ma.masked_less(a2rad,0).mask
+        a2mask4 = ma.masked_invalid(a2rad).mask
+        a2mask  = a2mask1 + a2mask2 + a2mask3 + a2mask4
+
+        a2pmw = ma.masked_where(a2mask, a2pmw)
+        a2rad = ma.masked_where(a2mask, a2rad)
+
+
+        a1flagM   = np.array([True])
+        for imetric,metric in enumerate(xymetric):
+
+            if metric=='dprec':
+                a1metric = ma.masked_less(a1precpmw,0) - ma.masked_less(a1precrad,0)
+                a1flagM = ~ma.masked_invalid(a1metric).mask
+
+            elif metric=='ndprec':
+                a1metric = ma.masked_less(a1precpmw,0) - ma.masked_less(a1precrad,0)
+                a1metric = ma.masked_where(a1precrad==0, a1metric)/a1precrad
+                a1flagM = ~ma.masked_invalid(a1metric).mask
+
+            elif metric=='rmse':
+                a1metric = calc_rmse(a2rad, a2pmw)
+
+            elif metric=='cc':
+                a1metric = calc_cc(a2rad[:,:15], a2pmw[:,:15], axis=1)  # to 7.5km
+                a1flagM  = a1flagM * ~ma.masked_invalid(a1metric).mask
+
+            elif metric=='dwatNorm':
+                a1metric = calc_dwatNorm(a2ref=a2rad, a2dat=a2pmw)
+                a1flagM  = a1flagM * ~ma.masked_invalid(a1metric).mask
+
+            elif metric=='dconvfrac':
+                a1pmw=np.load(pairDir + '/top-typePrecippmw.%06d.npy'%(oid))
+                a1rad=np.load(pairDir + '/typePreciprad.%06d.npy'%(oid))
+ 
+                a1metric = calc_dptypefrac(a1rad, a1pmw, ptype='conv')
+
+
+            elif metric=='dvfracConv':
+                if rettype=='epc':
+                    a1pmw=np.load(pairDir + '/top-vfracConvpmw.%06d.npy'%(oid))
+                elif rettype=='gprof':
+                    a1pmw=np.load(pairDir + '/vfracConvpmw.%06d.npy'%(oid))
+
+                a1rad=np.load(pairDir + '/vfracConvrad.%06d.npy'%(oid))
+                a1metric = ma.masked_less(a1pmw,0) - ma.masked_less(a1rad,0)
+
+            elif metric=='dstop-prof':
+                #a1metric = (ma.masked_less_equal(a1pmw,0) - ma.masked_less_equal(a1rad,0)) * 0.001  # [km]
+                nltmp = a2rad.shape[0]
+                a2iz  = np.array(range(nz)*nltmp).reshape(-1,nz)
+                a1stoprad = ma.masked_where(a2rad < thwat, a2iz).argmax(axis=1)*0.5 - a1elev*0.001 + 0.5
+                a1stoppmw = ma.masked_where(a2pmw < thwat, a2iz).argmax(axis=1)*0.5 - a1elev*0.001 + 0.5
+                a1metric = a1stoppmw - a1stoprad
+                a1flagM  = a1flagM * ~ma.masked_invalid(a1metric).mask
+
+
+            elif metric=='dstop':
+                a1pmw = np.load(pairDir + '/top-heightStormToppmw.%06d.npy'%(oid))
+                a1rad = np.load(pairDir + '/heightStormToprad.%06d.npy'%(oid))
+
+                a1metric = (ma.masked_less_equal(a1pmw,0) - ma.masked_less_equal(a1rad,0)) * 0.001  # [km]
+
+
+
+            elif metric=='dtqv':
+                a1pmw =np.load(pairDir + '/top-tqvpmw.%06d.npy'%(oid))
+                a1rad =np.load(pairDir + '/tqv.%06d.npy'%(oid))
+                a1metric = ma.masked_less(a1pmw,0) - ma.masked_less(a1rad,0)
+        
+
             else:
-                print 'check rettype',rettype
+                print 'check metric',metric
                 sys.exit()
 
-            ssearch= pairDir + '/Latitude.*.npy'
-            llatPath= sort(glob.glob(ssearch))
-            #-- random sampling -----
-            if len(llatPath)>=nsample:
-                llatPath = random.sample(llatPath, nsample)
-            else:
-                pass
-            #------------------------
-            
-            for latPath in llatPath:
-                #print latPath
-                oid = int(latPath.split('.')[-2])
-                print rettype, xymetric , DTime
-                #if oid !=1918: continue  # test
 
-                a1lat = np.load(pairDir + '/Latitude.%06d.npy'%(oid))
-                a1lon = np.load(pairDir + '/Longitude.%06d.npy'%(oid))
+            a1flagM = a1flagM * ~ma.masked_invalid(a1metric).mask
+            #----------------
+            if imetric==0:
+                a1xmetric = a1metric
+            elif imetric==1:
+                a1ymetric = a1metric
+
+        #-------------------------------
+        o1precpmw.extend(list(a1precpmw))
+        o1precrad.extend(list(a1precrad))
+        o1xmetric.extend(list(a1xmetric))
+        o1ymetric.extend(list(a1ymetric))
+        o1lat    .extend(list(a1lat))
+        o1lon    .extend(list(a1lon))
+
+    #--- Screen by metrics -----
+    a1flagM1 = ma.masked_invalid(o1xmetric).mask
+    a1flagM2 = ma.masked_invalid(o1ymetric).mask
+    a1flagM  = ~( a1flagM1 * a1flagM2 )
+
+    a1precpmw = np.array(o1precpmw)[a1flagM]
+    a1precrad = np.array(o1precrad)[a1flagM]
+    a1xmetric = np.array(o1xmetric)[a1flagM]
+    a1ymetric = np.array(o1ymetric)[a1flagM]
+    a1lat     = np.array(o1lat    )[a1flagM]
+    a1lon     = np.array(o1lon    )[a1flagM]
+
+    #--- Classify by surface --- 
+    d1flagS = {} 
+    d1flagS['sea'] = ma.masked_equal(a1surftype,1).mask
+    d1flagS['veg'] = ma.masked_inside(a1surftype,3,7).mask
+    d1flagS['snow']= ma.masked_inside(a1surftype,8,11).mask
+    d1flagS['coast']=ma.masked_equal(a1surftype,13).mask
+    d1flagS['land'] =d1flagS['veg'] + d1flagS['snow']
+    d1flagS['all'] = np.array([True])
+
+    for surf in lsurf:
+        a1flagS = d1flagS[surf]
+
+        #--- Classify by prec ------
+        for preclev in dprecrange.keys():
+            iprec,eprec = dprecrange[preclev]
+            a1flagP = ma.masked_inside(a1precrad, iprec, eprec).mask
+
+            a1flag  = a1flagS * a1flagP       
+            if a1flag.sum()==0: continue
     
-                a1precrad = np.load(pairDir+ '/precrad.%06d.npy'%(oid))
-                a1precpmw = np.load(pairDir+ '/precpmw.%06d.npy'%(oid))
-                a1surftype= np.load(pairDir + '/surfaceTypeIndex.%06d.npy'%(oid))
-                a1elev    = np.load(pairDir + '/surfaceElevationrad.%06d.npy'%(oid))
-
-                a1flagM   = np.array([True])
-                for imetric,metric in enumerate(xymetric):
-
-                    if metric=='dprec':
-                        a1metric = ma.masked_less(a1precpmw,0) - ma.masked_less(a1precrad,0)
-                        a1flagM = ~ma.masked_invalid(a1metric).mask
-
-                    elif metric=='ndprec':
-                        a1metric = ma.masked_less(a1precpmw,0) - ma.masked_less(a1precrad,0)
-                        a1metric = ma.masked_where(a1precrad==0, a1metric)/a1precrad
-                        a1flagM = ~ma.masked_invalid(a1metric).mask
-
-                    elif metric=='rmse':
-                        a2rad = np.load(pairDir+ '/profrad.%06d.npy'%(oid))[:,4:nz]  # bottom to top
-                        a2pmw = np.load(pairDir+ '/profpmw.%06d.npy'%(oid))[:,4:nz]  # bottom to top
-                        a1metric = calc_rmse(a2rad, a2pmw)
-
-                    elif metric=='cc':
-                        a2rad= np.load(pairDir+ '/profrad.%06d.npy'%(oid))[:,4:nz]  # bottom to top
-                        a2pmw= np.load(pairDir+ '/profpmw.%06d.npy'%(oid))[:,4:nz]  # bottom to top
-                        a1metric = calc_cc(a2rad, a2pmw, axis=1)
-
-
-                    elif metric=='dwatNorm':
-                        a2pmw = np.load(pairDir+ '/profrad.%06d.npy'%(oid))[:,4:nz]  # bottom to top
-                        a2rad = np.load(pairDir+ '/profpmw.%06d.npy'%(oid))[:,4:nz]  # bottom to top
-                        a1metric = calc_dwatNorm(a2pmw, a2rad)
-                        a1flagM  = a1flagM * ~ma.masked_invalid(a1metric).mask
-
-                    elif metric=='dconvfrac':
-                        a1pmw=np.load(pairDir + '/top-typePrecippmw.%06d.npy'%(oid))
-                        a1rad=np.load(pairDir + '/typePreciprad.%06d.npy'%(oid))
- 
-                        a1metric = calc_dptypefrac(a1rad, a1pmw, ptype='conv')
-
-
-                    elif metric=='dvfracConv':
-                        if rettype=='epc':
-                            a1pmw=np.load(pairDir + '/top-vfracConvpmw.%06d.npy'%(oid))
-                        elif rettype=='gprof':
-                            a1pmw=np.load(pairDir + '/vfracConvpmw.%06d.npy'%(oid))
-
-                        a1rad=np.load(pairDir + '/vfracConvrad.%06d.npy'%(oid))
-                        a1metric = ma.masked_less(a1pmw,0) - ma.masked_less(a1rad,0)
-
-                    elif metric=='dstop-prof':
-                        a1pmw = np.load(pairDir + '/stop-profpmw.%06d.npy'%(oid))
-                        a1rad = np.load(pairDir + '/stop-profrad.%06d.npy'%(oid))
-
-                        a1metric = (ma.masked_less_equal(a1pmw,0) - ma.masked_less_equal(a1rad,0)) * 0.001  # [km]
-
-                    elif metric=='dstop':
-                        a1pmw = np.load(pairDir + '/top-heightStormToppmw.%06d.npy'%(oid))
-                        a1rad = np.load(pairDir + '/heightStormToprad.%06d.npy'%(oid))
-
-                        a1metric = (ma.masked_less_equal(a1pmw,0) - ma.masked_less_equal(a1rad,0)) * 0.001  # [km]
-
-
-
-                    elif metric=='dtqv':
-                        a1pmw =np.load(pairDir + '/top-tqvpmw.%06d.npy'%(oid))
-                        a1rad =np.load(pairDir + '/tqv.%06d.npy'%(oid))
-                        a1metric = ma.masked_less(a1pmw,0) - ma.masked_less(a1rad,0)
-               
-
-                    else:
-                        print 'check metric',metric
-                        sys.exit()
-
-
-                    a1flagM = a1flagM * ~ma.masked_invalid(a1metric).mask
-                    #----------------
-                    if imetric==0:
-                        a1xmetric = a1metric
-                    elif imetric==1:
-                        a1ymetric = a1metric
-                #*****************************************
-                if rettype == 'gprof':
-                    a1qflag   = np.load(pairDir + '/qualityFlag.%06d.npy'%(oid))
-
-                    a1flagS = ma.masked_equal(np.load(pairDir + '/surfaceTypeIndex.%06d.npy'%(oid)) ,2)
-                    a1flagS = ma.masked_inside(a1flagS,8,11)
-                    a1flagS = ma.masked_equal(a1flagS,14)
-                    a1flagS = ~(a1flagS.mask)
-
+            a1xmetricTmp = a1xmetric[a1flag]
+            a1ymetricTmp = a1ymetric[a1flag]
     
-                #--- Screen missing surface precipitation ---
-                a1flagP1 = ma.masked_greater_equal(a1precpmw,0).mask
-                a1flagP2 = ma.masked_greater_equal(a1precrad,0).mask
-                a1flagP  = a1flagP1 * a1flagP2 
+            lxbnd = dxbnd[xmetric]
+            lybnd = dxbnd[ymetric]
 
-                #--- Screen high mountains ------------------
-                a1flagE  = ma.masked_less(a1elev, 1000).mask
+            #-- 2-D Histogram --
+            H,xedges,yedges = np.histogram2d(a1xmetricTmp, a1ymetricTmp, bins = [lxbnd,lybnd])
+            H = H.T
+            dout['hist2d',surf,preclev] = H
 
-                #--- Check quality flag --
-                if rettype == 'gprof':
-                    a1flagQ = ma.masked_equal(a1qflag,0).mask   # Good quality (flag=0)
+            #--- Mean of y binned by x ---
+            bins = np.sort(lxbnd)
+            a1ave,a1bnd,_ = stats.binned_statistic(x=a1xmetricTmp, values=a1ymetricTmp, statistic='mean', bins=bins)
+
+            a1xhist,a1bnd,_ = stats.binned_statistic(x=a1xmetricTmp, values=None, statistic='count', bins=bins)
+            a1yhist,a1bnd,_ = stats.binned_statistic(x=a1ymetricTmp, values=None, statistic='count', bins=bins)
+
+            dout['yave',surf,preclev] = a1ave
+            dout['xhist',surf,preclev]= a1xhist
+            dout['yhist',surf,preclev]= a1yhist
+            #--- Mean of x binned by y ---
+            bins = np.sort(lybnd)
+            a1ave,a1bnd,_ = stats.binned_statistic(x=a1ymetricTmp, values=a1xmetricTmp, statistic='mean', bins=bins)
+
+            dout['xave',surf,preclev] = a1ave
 
 
-                    #print a1flagM.shape, a1flagS.shape, a1flagP.shape, a1flagQ.shape, a1flagE.shape
-                    a1flag  = a1flagM * a1flagS * a1flagP *a1flagQ * a1flagE
-                else:
-                    a1flag  = a1flagM * a1flagP * a1flagE
-            
-                ##---------------------
-                if a1flag.sum()==0:
-                    continue
+    #--- Other parameters ----
+    dout['dprecrange'] = dprecrange
+    dout['xbnd'] = lxbnd
+    dout['ybnd'] = lybnd
 
-                a1precpmw = a1precpmw[a1flag]
-                a1precrad = a1precrad[a1flag]
-                a1xmetric = a1xmetric[a1flag]
-                a1ymetric = a1ymetric[a1flag]
-
-                a1surftype= a1surftype[a1flag]
-  
-                #--- Classify by surface --- 
-                d1flagS = {} 
-                d1flagS['sea'] = ma.masked_equal(a1surftype,1).mask
-                d1flagS['veg'] = ma.masked_inside(a1surftype,3,7).mask
-                d1flagS['snow']= ma.masked_inside(a1surftype,8,11).mask
-                d1flagS['coast']=ma.masked_equal(a1surftype,13).mask
-                d1flagS['land'] =d1flagS['veg'] + d1flagS['snow']
-                d1flagS['all'] = np.array([True])
-
-                for surf in lsurf:
-                    a1flagS = d1flagS[surf]
-
-                    #--- Classify by prec ------
-                    for preclev in dprecrange.keys():
-                        iprec,eprec = dprecrange[preclev]
-                        a1flagP = ma.masked_inside(a1precrad, iprec, eprec).mask
-
-                        a1flag  = a1flagS * a1flagP       
-                        if a1flag.sum()==0: continue
-     
-                        a1xmetricTmp = a1xmetric[a1flag]
-                        a1ymetricTmp = a1ymetric[a1flag]
-      
-                        #-- bin by x-bnd --
-                        bins = np.sort(lxbnd)
-                        a1sum,a1bnd,_ = stats.binned_statistic(a1xmetricTmp, a1ymetricTmp, statistic='sum', bins=bins)
-                        a1num,a1bnd,_ = stats.binned_statistic(a1xmetricTmp, a1ymetricTmp, statistic='count', bins=bins)
-                        a1sum2    = a1sum**2
-       
-                        a1sum  = ma.masked_invalid(a1sum).filled(0.0)
-                        a1sum2 = ma.masked_invalid(a1sum2).filled(0.0)
-                        a1num  = ma.masked_invalid(a1num).filled(0.0)
-                       
-                        da1sum [surf,preclev] = da1sum [surf,preclev] + a1sum
-                        da1sum2[surf,preclev] = da1sum2[surf,preclev] + a1sum2
-                        da1num [surf,preclev] = da1num [surf,preclev] + a1num
-
-                        H,xedges,yedges = np.histogram2d(a1xmetricTmp, a1ymetricTmp, bins = [lxbnd,lybnd])
-                        H = H.T
-                        da2hist[surf,preclev] = da2hist[surf,preclev] + H
-
-      
     #--- Save -----
-    xmetric,ymetrci = xymetric
     outDir  = tankbaseDir + '/utsumi/PMM/validprof/metrix.vs.metrix/pickle'
     print outDir
     util.mk_dir(outDir)
-    sumPath = outDir + '/sum.%s.%s.%s.%s.binned.bfile'%(xmetric,ymetric,rettype,season)
-    numPath = outDir + '/num.%s.%s.%s.%s.binned.bfile'%(xmetric,ymetric,rettype,season) 
-    sum2Path = outDir + '/sum2.%s.%s.%s.%s.binned.bfile'%(xmetric,ymetric,rettype,season)
-    precrangePath = outDir + '/precrange.%s.%s.%s.%s.bfile'%(xmetric,ymetric,rettype,season)
-    xbndPath= outDir + '/xbnd.%s.%s.%s.%s.npy'%(xmetric,ymetric,rettype,season) 
-    ybndPath= outDir + '/ybnd.%s.%s.%s.%s.npy'%(xmetric,ymetric,rettype,season) 
 
-    histPath= outDir + '/hist.%s.%s.%s.%s.binned.bfile'%(xmetric,ymetric,rettype,season)
+    histPath= outDir + '/hist2d.%s.%s.%s.pickle'%(xmetric,ymetric,rettype)
+
+    with open(histPath, 'wb') as f:
+        pickle.dump(dout, f)
+    print histPath
 
 
 
-    if calcflag == True:
-        with open(sumPath, 'wb') as f:
-            pickle.dump(da1sum, f)
-        with open(numPath, 'wb') as f:
-            pickle.dump(da1num, f)
-        with open(sum2Path, 'wb') as f:
-            pickle.dump(da1sum2, f) 
-        with open(precrangePath, 'wb') as f:
-            pickle.dump(dprecrange, f)
-        with open(histPath, 'wb') as f:
-            pickle.dump(da2hist, f)
-
-
-        lxbnd.tofile(xbndPath)
-        lybnd.tofile(ybndPath)
-        print sumPath
-
-    ##************************************
+##************************************
+# Figure
+#************************************
+for irettype,rettype in enumerate(lrettype):
+    #*************************************
     # Read
-    #************************************
-    with open(sumPath, 'rb') as f:
-        da1sum = pickle.load(f)
-    with open(numPath, 'rb') as f:
-        da1num = pickle.load(f)
-    with open(sum2Path,'rb') as f:
-        da1sum2 = pickle.load(f) 
-    with open(precrangePath, 'rb') as f:
-        dprecrange = pickle.load(f)
+    #*************************************
+    srcDir  = tankbaseDir + '/utsumi/PMM/validprof/metrix.vs.metrix/pickle'
+    histPath= srcDir + '/hist2d.%s.%s.%s.pickle'%(xmetric,ymetric,rettype)
     with open(histPath, 'rb') as f:
-        da2hist = pickle.load(f)
+        dvar = pickle.load(f)
 
-    #lxbnd = np.fromfile(xbndPath)
-    #lybnd = np.fromfile(ybndPath)
-
-    lxbnd = dxbnd[xmetric]
-    lybnd = dxbnd[ymetric]
-
+    lxbnd = dvar['xbnd']
+    lybnd = dvar['ybnd']
+    dprecrange = dvar['dprecrange']
     ##************************************
     ## Plot (xmetric vs ymetric)
     ##************************************
@@ -490,148 +516,62 @@ for rettype in lrettype:
              ,'cc'  :'Profile Correlation Coef.'
              ,'dwatNorm' :'Total condensed water \n difference (Normed)'
              ,'dconvfrac':'Convective fraction error'
-             ,'dstop-prof':'Storm top height error (km)\n(profile-based)'
-             ,'dstop':'Storm top height error (km)\n(top-weighted)'
+             ,'dstop-prof':'Storm top height error\n(profile-based) (km)'
+             ,'dstop':'Storm top height error\n(top-weighted) (km)'
              ,'dtqv' :'Total water vapor error (kg/m2)'
              ,'dvfracConv' :'convective fraction error'
              }
 
-    #for surf in lsurf:
-    #    fig = plt.figure(figsize=(6,6))
-    #    ax = fig.add_axes([0.25,0.20,0.7,0.7])
-    #
-    #    a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
-    #    for preclev in dprecrange.keys():
-    #        if preclev ==-1: continue
-
-    #        iprec,eprec = dprecrange[preclev]
-    #        slabel = '%d-%dmm/h'%(iprec,eprec)
-    #        linestyle= ['-', '--', '-'][preclev]
-    #        linewidth= [1, 2, 2][preclev]
-    #        #mycolor = ['darkblue','orange','crimson'][preclev]
-    #        mycolor = ['k','k','k'][preclev]
-    #
-    #        #a1y = ma.masked_invalid(da1sum[surf,preclev] / da1num[surf,preclev])
-    #        a1y = ma.masked_where(da1num[surf,preclev] <100, da1sum[surf,preclev]) / da1num[surf,preclev]
-
-    #        ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor, label=slabel)
-    #
-    #    stitle = '%s %s'%(string.upper(rettype), surf)
-    #    plt.title(stitle, fontsize=20)
-    #
-    #    xlabel = dlabel[xmetric]
-    #    ylabel = dlabel[ymetric]
-    #
-    #
-    #    ax.set_ylabel(ylabel, fontsize=20)
-    #    ax.set_xlabel(xlabel, fontsize=20)
-    #    ax.legend(fontsize=20)
-    #    ax.xaxis.set_tick_params(labelsize=16)
-    #    ax.yaxis.set_tick_params(labelsize=16)
-    #    ax.axvline(x=0, linestyle=':', color='gray', linewidth=3)
-    #    ax.axhline(y=0, linestyle=':', color='gray', linewidth=3)
-    #
-    #    if xmetric=='rmse':
-    #        xmin, xmax= 0, 0.7
-    #    elif xmetric=='dwatNorm':
-    #        xmin, xmax= -1.2, 5.5
-    #    else:
-    #        xmin, xmax= None,None
-    #    ax.set_xlim([xmin,xmax])
-    #
-    #    figDir = '/home/utsumi/temp/ret'
-    #    figPath = figDir + '/plot.%s.vs.%s.%s.%s.%s.png'%(xmetric,ymetric, rettype,surf,season)
-    #    plt.savefig(figPath)
-    #    plt.clf()
-    #    plt.close()
-    #    print figPath
-    
-    #************************************
-    # Plot (xmetric vs num)
-    #************************************
-    '''
-    for surf in lsurf:
-        fig = plt.figure(figsize=(6,6))
-        ax = fig.add_axes([0.25,0.20,0.7,0.7])
-    
-        a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
-        for preclev in dprecrange.keys():
-
-            if preclev ==-1: continue
-
-            iprec,eprec = dprecrange[preclev]
-            slabel = '%d-%dmm/h'%(iprec,eprec)
-            linestyle= ['-', '--', '-'][preclev]
-            linewidth= [1, 2, 2][preclev]
-            #mycolor = ['darkblue','orange','crimson'][preclev]
-            mycolor = ['k','k','k'][preclev]
-    
-            a1y = ma.masked_invalid(da1num[surf,preclev]) 
-    
-    
-            ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor, label=slabel)
-    
-        stitle = '%s %s'%(string.upper(rettype),surf)
-        plt.title(stitle, fontsize=20)
-    
-        xlabel = dlabel[xmetric]
-        ylabel = 'count'
-    
-    
-        ax.set_ylabel(ylabel, fontsize=20)
-        ax.set_xlabel(xlabel, fontsize=20)
-        ax.legend(fontsize=20)
-        ax.xaxis.set_tick_params(labelsize=16)
-        ax.yaxis.set_tick_params(labelsize=16)
-        ax.axvline(x=0, linestyle=':', color='gray', linewidth=2)
-        ax.axhline(y=0, linestyle=':', color='gray', linewidth=2)
-    
-        if xmetric=='rmse':
-            xmin, xmax= 0, 0.7
-        elif xmetric=='dwatNorm':
-            xmin, xmax= -1.2, 5.5
-        else:
-            xmin, xmax= None,None
-        ax.set_xlim([xmin,xmax])
-    
-        figDir = '/home/utsumi/temp/ret'
-        figPath = figDir + '/plot.num-%s.vs.%s.%s.%s.%s.png'%(xmetric,ymetric, rettype,surf,season)
-        plt.savefig(figPath)
-        plt.clf()
-        plt.close()
-        print figPath
-    '''
     #************************************
     # Plot 2D histogram + lines
     #************************************
-    a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
     for surf in lsurf:
-        H  = da2hist[surf,-1]
+        H  = dvar['hist2d',surf,-1]
         X,Y= np.meshgrid(lxbnd, lybnd)
 
         fig = plt.figure(figsize=(6,6))
         ax = fig.add_axes([0.25,0.20,0.45,0.45])
-       
-        vmax= H.max()
+
+        if irettype==0: 
+            vmax= H.max()
         im = ax.pcolormesh(X,Y,H, norm=matplotlib.colors.LogNorm(), cmap='jet', vmin=10, vmax=vmax)
 
-        #--- Lines ---
-        for preclev in dprecrange.keys():
-            if preclev ==-1: continue
+        ##--- Lines (y-mean) ---
+        #for preclev in dprecrange.keys():
+        #    if preclev ==-1: continue
 
-            iprec,eprec = dprecrange[preclev]
-            slabel = '%d-%dmm/h'%(iprec,eprec)
-            linestyle= ['-', '--', '-'][preclev]
-            linewidth= [1, 2, 2][preclev]
-            #mycolor = ['darkblue','orange','crimson'][preclev]
-            mycolor = ['k','k','k'][preclev]
+        #    iprec,eprec = dprecrange[preclev]
+        #    slabel = '%d-%dmm/h'%(iprec,eprec)
+        #    linestyle= ['-', '--', '-'][preclev]
+        #    linewidth= [1, 2, 2][preclev]
+        #    #mycolor = ['darkblue','orange','crimson'][preclev]
+        #    mycolor = ['k','k','k'][preclev]
     
-            a1y = ma.masked_where(da1num[surf,preclev] <100, da1sum[surf,preclev]) / da1num[surf,preclev]
+        #    a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
+        #    a1y = dout['yave',surf,preclev]
 
-            ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor, label=slabel)
+        #    ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor, label=slabel)
+
+        ##--- Lines (x-mean) ---
+        #for preclev in dprecrange.keys():
+        #    if preclev ==-1: continue
+
+        #    iprec,eprec = dprecrange[preclev]
+        #    slabel = '%d-%dmm/h'%(iprec,eprec)
+        #    linestyle= ['-', '--', '-'][preclev]
+        #    linewidth= [1, 2, 2][preclev]
+        #    #mycolor = ['darkblue','orange','crimson'][preclev]
+        #    mycolor = ['k','k','k'][preclev]
+    
+        #    a1x = dout['xave',surf,preclev]
+        #    a1y = (lybnd[:-1] + lybnd[1:])*0.5
+
+        #    ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor, label=slabel)
+        ##------------
+
         #------------
 
-        iprec,eprec = dprecrange[preclev]
+        #iprec,eprec = dprecrange[preclev]
  
         
         xlabel = dlabel[xmetric]
@@ -667,7 +607,7 @@ for rettype in lrettype:
         #axpdfx.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
         #axpdfx.ticklabel_format(style="sci",  axis="y",scilimits=(0,0))
         #-------------------------------
-        #-- PDF : hight
+        #-- PDF : Right
         #-------------------------------  
         a1y = (lybnd[:-1] + lybnd[1:])*0.5
         
@@ -684,7 +624,9 @@ for rettype in lrettype:
         #-------------------------------
         # Title
         #-------------------------------
-        stitle = '%s %s'%(string.upper(rettype), surf)
+        rettypename = {'epc':'EPC','gprof-shift':'GPROF'}[rettype]
+        #stitle = '%s %s'%(string.upper(rettype), surf)
+        stitle = '%s'%(rettypename)
         ax.set_title(stitle, fontsize=20, pad=10)
 
 
@@ -712,10 +654,10 @@ for rettype in lrettype:
 
 
         figDir = '/home/utsumi/temp/ret'
-        figPath = figDir + '/plot.scatter.%s.vs.%s.%s.%s.%s.png'%(xmetric,ymetric, rettype,surf,season)
+        figPath = figDir + '/plot.scatter.%s.vs.%s.%s.%s.png'%(xmetric,ymetric, rettype,surf)
         fig.savefig(figPath)
 
-        legPath = figDir + '/legend.plot.%s.vs.%s.%s.%s.%s.png'%(xmetric,ymetric, rettype,surf,season)
+        legPath = figDir + '/legend.plot.%s.vs.%s.%s.%s.png'%(xmetric,ymetric, rettype,surf)
         figleg.savefig(legPath)
 
 
@@ -724,69 +666,4 @@ for rettype in lrettype:
         print figPath
 
 
-    '''
-    #************************************
-    # Plot scatterplot (each prec-range)
-    #************************************
-    for surf in lsurf:
-        for preclev in dprecrange.keys():
-
-            H  = da2hist[surf,preclev]
-            X,Y= np.meshgrid(lxbnd, lybnd)
-
-            fig = plt.figure(figsize=(6,6))
-            ax = fig.add_axes([0.25,0.20,0.55,0.55])
-       
-            vmax= H.max()
-            im = ax.pcolormesh(X,Y,H, norm=matplotlib.colors.LogNorm(), cmap='jet', vmin=1, vmax=vmax)
-
-
-            a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
-            iprec,eprec = dprecrange[preclev]
-            slabel = '%d-%dmm/h'%(iprec,eprec)
-            #mycolor = ['darkblue','orange','crimson'][preclev]
-            a1y = ma.masked_where(da1num[surf,preclev] <100, da1sum[surf,preclev]) / da1num[surf,preclev]
-            ax.plot(a1x, a1y, linestyle='-', linewidth=2, color='k')
-
-
-            iprec,eprec = dprecrange[preclev]
- 
-            stitle = '%s %s %d-%dmm/h'%(string.upper(rettype),surf, iprec, eprec)
-
-            plt.title(stitle, fontsize=20)
-        
-            xlabel = dlabel[xmetric]
-            ylabel = dlabel[ymetric]
-        
-        
-            ax.set_ylabel(ylabel, fontsize=20)
-            ax.set_xlabel(xlabel, fontsize=20)
-
-            ax.xaxis.set_tick_params(labelsize=16)
-            ax.yaxis.set_tick_params(labelsize=16)
-            ax.axvline(x=0, linestyle=':', color='gray', linewidth=2)
-            ax.axhline(y=0, linestyle=':', color='gray', linewidth=2)
-        
-            if xmetric=='rmse':
-                xmin, xmax= 0, 0.7
-            elif xmetric=='dwatNorm':
-                xmin, xmax= -1.2, 5.5
-            else:
-                xmin, xmax= None,None
-            ax.set_xlim([xmin,xmax])
-
-            #-- colorbar ---
-            cax = fig.add_axes([0.82,0.15,0.02, 0.6])
-            cbar=plt.colorbar(im, orientation='vertical', cax=cax)
-            cbar.ax.tick_params(labelsize=16)
-            #---------------
-
-        
-            figDir = '/home/utsumi/temp/ret'
-            figPath = figDir + '/scatter.%s.vs.%s.%s.%s.%s.%d-%dmmh.png'%(xmetric,ymetric, rettype,surf,season,iprec,eprec)
-            plt.savefig(figPath)
-            plt.clf()
-            plt.close()
-            print figPath
-
-    '''
+# %%

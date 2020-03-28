@@ -30,6 +30,7 @@ llkey = [['epc.peakhrad','epc.dpeakh','gprof-shift.dpeakh'],
          ['epc.peakvrad','epc.dpeakv','gprof-shift.dpeakv'],
          ['epc.stoprad', 'epc.dstop' ,'gprof-shift.dstop'],
          ['epc.condrad', 'epc.dcond' ,'gprof-shift.dcond'],
+         ['epc.vfracconvrad', 'epc.dvfracconv' ,'gprof-shift.dvfracconv'],
 ]
 
 

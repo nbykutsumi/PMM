@@ -63,34 +63,34 @@ elif len(argv)==1:
     #clat    = 14 # Africa case
     #clon    = 2  # -180 - +180
     
-    ## SE.US case, oid=003556, 2014/10/14
-    #oid = 3556
-    #Year,Mon,Day = 2014,10,14
-    #iy, ey = -9999,-9999
-    ##iy, ey = 987, 1047
-    ##iy,ey = 917,1117
-    ##clat    = 34    # SE.US case. oid = 003556
-    #clat    = 31    # SE.US case. oid = 003556
-    #clon    = -86   # 2014/10/14  05:42:03 UTC
-    #DB_MAXREC = 10000
-    #DB_MINREC = 1000
-    ##expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-    #expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-    #xpos    = 100  # x-position for cross section
-    ##xpos    = 107  # x-position for cross section
-
-    # Colorado case
-    oid = 1574
-    Year,Mon,Day = 2014,6,8
+    # SE.US case, oid=003556, 2014/10/14
+    oid = 3556
+    Year,Mon,Day = 2014,10,14
     iy, ey = -9999,-9999
-    clat    = 40    # SE.US case. oid = 003556
-    clon    = 256-360   # 2014/10/14  05:42:03 UTC
+    #iy, ey = 987, 1047
+    #iy,ey = 917,1117
+    #clat    = 34    # SE.US case. oid = 003556
+    clat    = 31    # SE.US case. oid = 003556
+    clon    = -86   # 2014/10/14  05:42:03 UTC
     DB_MAXREC = 10000
     DB_MINREC = 1000
     #expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
     expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-    #xpos    = 100  # x-position for cross section
-    xpos    = 115  # x-position for cross section
+    xpos    = 100  # x-position for cross section
+    #xpos    = 107  # x-position for cross section
+
+    ## Colorado case
+    #oid = 1574
+    #Year,Mon,Day = 2014,6,8
+    #iy, ey = -9999,-9999
+    #clat    = 40    # SE.US case. oid = 003556
+    #clon    = 256-360   # 2014/10/14  05:42:03 UTC
+    #DB_MAXREC = 10000
+    #DB_MINREC = 1000
+    ##expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+    #expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+    ##xpos    = 100  # x-position for cross section
+    #xpos    = 115  # x-position for cross section
 
 
     ## Europe just to check batch-version

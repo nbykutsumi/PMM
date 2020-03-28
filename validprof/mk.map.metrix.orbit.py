@@ -16,18 +16,23 @@ import random
 import pandas as pd
 from collections import deque
 import scipy.stats
+workbaseDir = '/home/utsumi/mnt/lab_work'
 tankbaseDir = '/home/utsumi/mnt/lab_tank'
 figDir  = '/home/utsumi/temp/ret'
 
-#calcflag = True
-calcflag = False
+useorblist = True
+
+calcflag = True
+#calcflag = False
 figflag  = True
 #figflag  = False
 
-iYM = [2014,6]
-eYM = [2015,5]
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2015,5,30)
+lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
+lskipdates = [[2014,8,29],[2014,9,16],[2014,10,1],[2014,10,2],[2014,11,5],[2014,12,8],[2014,12,9],[2014,12,10]]
 nsample = 1000
-lYM = util.ret_lYM(iYM,eYM)
+#nsample = 20
 lat0   = -60
 lon0   = -180
 dlatlon= 2.5
@@ -40,11 +45,60 @@ thpr = 0.5  # mm/h
 thwat = 0.033  # g/m3 for storm top
 #lrettype= ['epc']
 lrettype= ['epc','gprof-shift']
-lvar = ['cc','dpeakh','dpeakv','dstop','dcond','rmse']+['peakhrad','peakhpmw','peakvrad','peakvpmw','stoprad','stoppmw','condrad','condpmw']
-#lvar = ['dstop','dpeakh']
+#lvar = ['cc','dpeakh','dpeakv','dstop','dcond','rmse']+['peakhrad','peakhpmw','peakvrad','peakvpmw','stoprad','stoppmw','condrad','condpmw'] + ['dvfracconv','vfracconvrad','vfracconvpmw']
+
+lvar = ['condpmw','condrad','dcond','stoppmw','stoprad','dstop','cc']
 dexpr = {'epc':'glb.relsurf01.minrec1000.maxrec10000','gprof-shift':'v01'}
 
+lvar_pmwptype =['stoppmw','condpmw']
+lvar_radptype =['stoprad','condrad','dstop','dcond','cc']
 
+#*******************
+# oid list
+#*******************
+if useorblist is True:
+    orblistPath= tankbaseDir + '/utsumi/PMM/retepc/list-orbit/list.GMI.well.201406-201505.1000obts.txt'
+    #orblistPath= tankbaseDir + '/utsumi/PMM/retepc/list-orbit/list.GMI.well.201406-201505.2obts.txt'
+
+    f=open(orblistPath,'r'); lines=f.readlines(); f.close()
+    loid = []
+    for gmiPath in lines:
+        gmiPath = gmiPath.strip()
+        oid = int(os.path.basename(gmiPath).split('.')[-3])
+        Year,Mon,Day= map(int, os.path.dirname(gmiPath).split('/')[-3:])
+        if [Year,Mon,Day] in lskipdates:
+            continue
+        DTimeTmp = datetime(Year,Mon,Day)
+        if DTimeTmp < iDTime: continue
+        if DTimeTmp > eDTime: continue
+        loid.append([oid,Year,Mon,Day])
+
+
+else:
+    loid = []
+    lYM = util.ret_lYM(iYM,eYM)
+    for DTime in lDTime:
+        Year,Mon,Day = DTime.timetuple()[:3]
+        if [Year,Mon,Day] in lskipdates:
+            continue
+        tempbaseDir  = workbaseDir + '/hk02/PMM/NASA/GPM.GMI/1C/V05'
+        lpath = sorted(glob.glob(tempbaseDir + '/%04d/%02d/%02d/1C.GPM.GMI.XCAL2016-C.*.??????.????.HDF5'%(Year,Mon,Day)))
+
+        if len(lpath) == 0:
+            continue
+        for tmppath in lpath:
+            oid = int(os.path.basename(int(tmppath)).split('.')[-4])
+            loid.append([oid,Year,Mon,Day])
+
+random.seed(0)
+print loid
+print len(loid)
+a1idxtmp = range(len(loid))
+a1idxtmp = sorted(random.sample(a1idxtmp, min(nsample, len(loid))))
+loid = (np.array(loid)[a1idxtmp]).tolist()
+#*******************
+# Functions
+#*******************
 def calc_cc(x,y,axis):
     ''' masked elements are not used '''
 
@@ -134,7 +188,7 @@ def draw_map(a2dat, a2cont=None, a1contlev=None, figPath=None, textcbartop=None,
 
     im  = M.pcolormesh(X, Y, a2dat, vmin=vmin, vmax=vmax, cmap=cmap, norm=norm)
 
-    plt.title(stitle, fontsize=15, pad=11)
+    plt.title(stitle, fontsize=13, pad=11)
     M.drawcoastlines(linewidth=1)
 
     M.drawmeridians(np.arange(-180,180+1,30), labels=[0,0,0,1], fontsize=10, linewidth=0.5, fmt='%d',rotation=50, yoffset=7)
@@ -184,42 +238,33 @@ for rettype in lrettype:
         print 'check rettype',rettype
         sys.exit()
 
-    llatPath = []
-    for Year,Mon in lYM:
-        print Year,Mon
-        srcDir = pairDir + '/%04d/%02d/??'%(Year,Mon)
-        ssearch= srcDir + '/Latitude.*.npy'
-        llatPathTmp= glob.glob(ssearch)
-        llatPath = llatPath + llatPathTmp
-
-    random.seed(0)
-    llatPath = np.sort(random.sample(llatPath, nsample))
-
 
     #-- Initialize --
-    a1lat  = deque([])
-    a1lon  = deque([])
-    a1cc   = deque([])
-    a1dpeakh = deque([])
-    a1dpeakv = deque([])
-    a1dstop  = deque([])
-    a1dcond  = deque([])
-    a1rmse   = deque([])
+    o1lat  = deque([])
+    o1lon  = deque([])
+    o1cc   = deque([])
+    o1dpeakh = deque([])
+    o1dpeakv = deque([])
+    o1dstop  = deque([])
+    o1dcond  = deque([])
+    o1dvfrac = deque([])
+    o1rmse   = deque([])
 
-    a1peakhrad = deque([])
-    a1peakvrad = deque([])
-    a1stoprad  = deque([])
-    a1condrad  = deque([])
+    o1peakhrad = deque([])
+    o1peakvrad = deque([])
+    o1stoprad  = deque([])
+    o1condrad  = deque([])
+    o1vfracrad = deque([])
 
-    a1peakhpmw = deque([])
-    a1peakvpmw = deque([])
-    a1stoppmw  = deque([])
-    a1condpmw  = deque([])
+    o1peakhpmw = deque([])
+    o1peakvpmw = deque([])
+    o1stoppmw  = deque([])
+    o1condpmw  = deque([])
+    o1vfracpmw = deque([])
 
-
-    for ipath,latPath in enumerate(llatPath):
-        srcDir = os.path.dirname(latPath)
-        oid    = int(latPath.split('.')[-2])
+    for (oid,Year,Mon,Day) in loid:
+        print Year,Mon,Day,oid
+        srcDir = pairDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
         a1lattmp  = np.load(srcDir + '/Latitude.%06d.npy'%(oid))
         a1lontmp  = np.load(srcDir + '/Longitude.%06d.npy'%(oid))
         a1elev    = np.load(srcDir + '/surfaceElevationrad.%06d.npy'%(oid))
@@ -228,6 +273,9 @@ for rettype in lrettype:
         a1precrad = np.load(srcDir + '/precrad.%06d.npy'%(oid))
         a2profpmw = np.load(srcDir + '/profpmw.%06d.npy'%(oid))[:,:nz]  # nz(500m) layers, bottom to top
         a2profrad = np.load(srcDir + '/profrad.%06d.npy'%(oid))[:,:nz]  # nz(500m) layers, bottom to top
+
+        a1vfracrad= np.load(srcDir + '/vfracConvrad.%06d.npy'%(oid))
+        a1vfracpmw= np.load(srcDir + '/vfracConvpmw.%06d.npy'%(oid))
 
         if rettype in ['gprof-shift','gprof']:
             a1qflag = np.load(srcDir + '/qualityFlag.%06d.npy'%(oid))
@@ -256,18 +304,17 @@ for rettype in lrettype:
         a1idx = a1idx.compressed()
 
 
-        print ipath,len(a1idx), a1precpmw.shape[0]
-        print latPath
-        #a1idx = random.sample(a1idx,30)  # test
-
         a2profradtmp = ma.masked_less(a2profrad[a1idx],0)
         a2profpmwtmp = ma.masked_less(a2profpmw[a1idx],0)
         a1lattmp     = a1lattmp[a1idx]
         a1lontmp     = a1lontmp[a1idx]
         a1elevtmp    = a1elev[a1idx]
 
-        a1lat.extend(list(a1lattmp)) 
-        a1lon.extend(list(a1lontmp)) 
+        a1vfracradtmp= a1vfracrad[a1idx]
+        a1vfracpmwtmp= a1vfracpmw[a1idx]
+
+        o1lat.extend(list(a1lattmp)) 
+        o1lon.extend(list(a1lontmp)) 
 
         #-- mask missing values ----
         a2mask = ma.masked_less(a2profradtmp,0).mask
@@ -278,15 +325,23 @@ for rettype in lrettype:
 
         #-- CC -----
         a1cctmp = calc_cc(a2profradtmp[:,:15], a2profpmwtmp[:,:15], axis=1)  # to 7.5km
-        a1cc.extend(list(a1cctmp))
+        o1cc.extend(list(a1cctmp))
+
+        #-- convective volume fraction --
+        a1dvfractmp = ma.masked_less(a1vfracpmwtmp,0) - ma.masked_less(a1vfracradtmp,0)
+        a1dvfractmp = a1dvfractmp.filled(miss)
+
+        o1dvfrac.extend(list(a1dvfractmp))
+        o1vfracrad.extend(list(a1vfracradtmp))
+        o1vfracpmw.extend(list(a1vfracpmwtmp))
 
         #-- peakh difference -----
         a1peakhradtmp = a2profradtmp.argmax(axis=1)*0.5 - a1elevtmp*0.001 + 0.5
         a1peakhpmwtmp = a2profpmwtmp.argmax(axis=1)*0.5 - a1elevtmp*0.001 + 0.5
         a1dpeakhtmp   = (a1peakhpmwtmp - a1peakhradtmp)  # km
-        a1dpeakh.extend(list(a1dpeakhtmp))
-        a1peakhrad.extend(list(a1peakhradtmp))
-        a1peakhpmw.extend(list(a1peakhpmwtmp))
+        o1dpeakh.extend(list(a1dpeakhtmp))
+        o1peakhrad.extend(list(a1peakhradtmp))
+        o1peakhpmw.extend(list(a1peakhpmwtmp))
 
         #-- peak condensed water content --
         a1peakhbinradtmp = a2profradtmp.argmax(axis=1)
@@ -295,9 +350,9 @@ for rettype in lrettype:
         a1peakvradtmp = a2profradtmp[range(nltmp),a1peakhbinradtmp]
         a1peakvpmwtmp = a2profpmwtmp[range(nltmp),a1peakhbinpmwtmp]
         a1dpeakvtmp= (a1peakvpmwtmp - a1peakvradtmp)/a1peakvradtmp
-        a1dpeakv.extend(list(a1dpeakvtmp))
-        a1peakvrad.extend(list(a1peakvradtmp))
-        a1peakvpmw.extend(list(a1peakvpmwtmp))
+        o1dpeakv.extend(list(a1dpeakvtmp))
+        o1peakvrad.extend(list(a1peakvradtmp))
+        o1peakvpmw.extend(list(a1peakvpmwtmp))
 
 
         #-- storm top height ------
@@ -310,43 +365,48 @@ for rettype in lrettype:
         #sys.exit()
 
         a1dstoptmp= a1stoppmwtmp - a1stopradtmp
-        a1dstop.extend(list(a1dstoptmp))
-        a1stoprad.extend(list(a1stopradtmp))
-        a1stoppmw.extend(list(a1stoppmwtmp))
+        o1dstop.extend(list(a1dstoptmp))
+        o1stoprad.extend(list(a1stopradtmp))
+        o1stoppmw.extend(list(a1stoppmwtmp))
 
         #-- Mean condensed water content ----
         a1condradtmp = a2profradtmp.mean(axis=1)
         a1condpmwtmp = a2profpmwtmp.mean(axis=1)
         a1dcondtmp= (a1condpmwtmp - a1condradtmp)/a1condradtmp
-        a1dcond.extend(list(a1dcondtmp))
-        a1condrad.extend(list(a1condradtmp))
-        a1condpmw.extend(list(a1condpmwtmp))
+        o1dcond.extend(list(a1dcondtmp))
+        o1condrad.extend(list(a1condradtmp))
+        o1condpmw.extend(list(a1condpmwtmp))
 
         #-- Normalized RMSE -----
         a1rmsetmp = np.sqrt((np.square(a2profradtmp-a2profpmwtmp)).mean(axis=1)) / a1condradtmp
-        a1rmse.extend(list(a1rmsetmp))
+        o1rmse.extend(list(a1rmsetmp))
 
     #-- Project over map ----
     lonbnd = np.arange(-180,180+0.1, dlatlon)
     latbnd = np.arange(-60,60+0.1, dlatlon)
 
     for var in lvar:
-        if var=='cc': a1var = a1cc     
-        if var=='dpeakh': a1var = a1dpeakh 
-        if var=='dpeakv': a1var = a1dpeakv 
-        if var=='dstop': a1var = a1dstop  
-        if var=='dcond': a1var = a1dcond  
-        if var=='rmse' : a1var = a1rmse   
-        if var=='peakhrad':a1var=a1peakhrad
-        if var=='peakhpmw':a1var=a1peakhpmw
-        if var=='peakvrad':a1var=a1peakvrad
-        if var=='peakvpmw':a1var=a1peakvpmw
-        if var=='stoprad' :a1var=a1stoprad 
-        if var=='stoppmw' :a1var=a1stoppmw
-        if var=='condrad' :a1var=a1condrad
-        if var=='condpmw' :a1var=a1condpmw
+        if var=='cc': a1var = o1cc     
+        if var=='dpeakh': a1var = o1dpeakh 
+        if var=='dpeakv': a1var = o1dpeakv 
+        if var=='dstop': a1var = o1dstop  
+        if var=='dcond': a1var = o1dcond  
+        if var=='dvfracconv': a1var = o1dvfrac
+        if var=='rmse' : a1var = o1rmse   
+        if var=='peakhrad':a1var=o1peakhrad
+        if var=='peakhpmw':a1var=o1peakhpmw
+        if var=='peakvrad':a1var=o1peakvrad
+        if var=='peakvpmw':a1var=o1peakvpmw
+        if var=='stoprad' :a1var=o1stoprad 
+        if var=='stoppmw' :a1var=o1stoppmw
+        if var=='condrad' :a1var=o1condrad
+        if var=='condpmw' :a1var=o1condpmw
+        if var=='vfracconvrad':a1var=o1vfracrad
+        if var=='vfracconvpmw':a1var=o1vfracpmw
 
-        print len(a1lat), len(a1lon), len(a1var)
+        a1lat = np.array(o1lat)
+        a1lon = np.array(o1lon)
+
         a2ave = scipy.stats.binned_statistic_2d(a1lat,a1lon,a1var,statistic='mean',bins=[latbnd,lonbnd]).statistic
         a2std = scipy.stats.binned_statistic_2d(a1lat,a1lon,a1var,statistic='std',bins=[latbnd,lonbnd]).statistic
         a2num = scipy.stats.binned_statistic_2d(a1lat,a1lon,a1var,statistic='count',bins=[latbnd,lonbnd]).statistic
@@ -362,62 +422,127 @@ for rettype in lrettype:
         print rettype,a2ave.shape
         print avepth
 
+        #-- Classified by self-precipitation type ----
+        for bywhat in ['rad','pmw']:
+            if (bywhat =='rad')&(var in lvar_radptype):
+                a1vfrac = o1vfracrad
+
+            elif (bywhat =='pmw')&(var in lvar_pmwptype):
+                a1vfrac = o1vfracpmw
+
+            else:
+                continue
+
+            for ptype in ['conv','stra']:
+                if ptype=='conv':
+                    a1flag = ma.masked_greater(a1vfrac, 0.5).mask
+                else:
+                    a1flag = ma.masked_less(a1vfrac, 0.5).mask
+
+                a1lattmp = np.array(o1lat)[a1flag]
+                a1lontmp = np.array(o1lon)[a1flag]
+                a1vartmp = np.array(a1var)[a1flag]
+
+                a2ave = scipy.stats.binned_statistic_2d(a1lattmp,a1lontmp,a1vartmp,statistic='mean',bins=[latbnd,lonbnd]).statistic
+                a2std = scipy.stats.binned_statistic_2d(a1lattmp,a1lontmp,a1vartmp,statistic='std',bins=[latbnd,lonbnd]).statistic
+                a2num = scipy.stats.binned_statistic_2d(a1lattmp,a1lontmp,a1vartmp,statistic='count',bins=[latbnd,lonbnd]).statistic
+
+                odir = tankbaseDir + '/utsumi/PMM/validprof/map-orbit/%s.%s'%(rettype,expr)
+                util.mk_dir(odir)
+                avepth = odir + '/ave.%s.by-%s-%s.npy'%(var,bywhat,ptype)
+                stdpth = odir + '/std.%s.by-%s-%s.npy'%(var,bywhat,ptype)
+                numpth = odir + '/num.%s.by-%s-%s.npy'%(var,bywhat,ptype)
+                np.save(avepth, a2ave.astype('float32'))
+                np.save(stdpth, a2std.astype('float32'))
+                np.save(numpth, a2num.astype('int32'))
+                print rettype,a2ave.shape
+                print avepth
+
+        #----------------------------------------
+
+
         #plt.imshow(ma.masked_invalid(a2ave), origin='lower'); plt.colorbar()
         #plt.show() 
 
 #**************************************
 # Figure
 #--------------------------------------
-lkey = [(rettype,var) for rettype in lrettype
-                      for var     in lvar]
+#lkey = [(rettype,var) for rettype in lrettype
+#                      for var     in lvar]
+
+lkey = [(rettype,var,bywhat,ptype)
+                    for rettype in lrettype
+                    for var     in lvar
+                    for bywhat  in ['','rad','pmw']
+                    for ptype   in ['','conv','stra']
+                    ]
+
 
 for key in lkey:
+    rettype,var,bywhat,ptype = key
     if figflag is not True: continue
 
-    rettype,var = key
+    if bywhat=='':
+        if ptype !='': continue
+    if bywhat=='rad':
+        if var not in lvar_radptype: continue
+    if bywhat=='pmw':
+        if var not in lvar_pmwptype: continue
+
     expr = dexpr[rettype]
     srcdir = tankbaseDir + '/utsumi/PMM/validprof/map-orbit/%s.%s'%(rettype,expr)
 
-    dbndave = {'cc':np.arange(0,1+0.01,0.1),
-               'dpeakv':[-9999] + np.arange(-0.5,0.5+0.01,0.2).tolist() + [9999],
-               'dcond': [-9999,-0.5,-0.2,0.2,0.5,9999],
-               'rmse':np.arange(0,1.6+0.01,0.4),
-               'peakhrad':np.arange(0,8+0.1,1),
-               'peakhpmw':np.arange(0,8+0.1,1),
-               'peakvrad':np.arange(0,0.8+0.01,0.1),
-               'peakvpmw':np.arange(0,0.8+0.01,0.1),
-               'stoprad' :np.arange(0,12+0.1,2),
-               'stoppmw' :np.arange(0,12+0.1,2),
-               'condrad' :np.arange(0,0.3+0.01, 0.05),
-               'condpmw' :np.arange(0,0.3+0.01, 0.05),
+    dbndave = { 'cc':np.arange(0,1+0.01,0.1),
+                'dpeakv': [-9999,-0.5,-0.2,0.2,0.5,9999],
+                'dcond': [-9999,-0.5,-0.2,0.2,0.5,9999],
+                'dvfracconv':[-9999,-0.5,-0.3,-0.1,0.1,0.3,0.5,9999],
+                'rmse':np.arange(0,1.6+0.01,0.4),
+                'peakhrad':np.arange(0,8+0.1,1),
+                'peakhpmw':np.arange(0,8+0.1,1),
+                'peakvrad':np.arange(0,0.8+0.01,0.1),
+                'peakvpmw':np.arange(0,0.8+0.01,0.1),
+                'stoprad' :np.arange(0,12+0.1,2),
+                'stoppmw' :np.arange(0,12+0.1,2),
+                'condrad' :np.arange(0,0.3+0.01, 0.05),
+                'condpmw' :np.arange(0,0.3+0.01, 0.05),
+                'vfracconvrad':np.arange(0,1.0+0.01,0.2),
+                'vfracconvpmw':np.arange(0,1.0+0.01,0.2),
+               }
+    dbndstd = { 'cc':np.arange(0,1+0.01,0.1),
+                'dpeakv':np.arange(0,1+0.01,0.2),
+                'dcond':np.arange(0,1+0.01,0.2),
+                'dvfracconv':np.arange(0,0.5+0.01,0.1),
+                'rmse':np.arange(0,1+0.01,0.2),
+                'peakhrad':np.arange(0,4+0.1,1),
+                'peakhpmw':np.arange(0,4+0.1,1),
+                'peakvrad':np.arange(0,0.8+0.01,0.1),
+                'peakvpmw':np.arange(0,0.8+0.01,0.1),
+                'stoprad' :np.arange(0,5+0.1,1),
+                'stoppmw' :np.arange(0,5+0.1,1),
+                'condrad' :np.arange(0,0.3+0.01, 0.05),
+                'condpmw' :np.arange(0,0.3+0.01, 0.05),
+                'vfracconvrad':np.arange(0,0.5+0.01,0.1),
+                'vfracconvpmw':np.arange(0,0.5+0.01,0.1),
+                }
+    dcntave = { 'dpeakh':np.arange(-1.5,1.5+0.1,0.5),
+                'dstop':np.arange(-1.5,1.5+0.1,0.5),
+                }
+    dcntstd = { 'dpeakh':np.arange(0,3+0.1,0.5),
+                'dstop':np.arange(0,3+0.1,0.5),
+                }
 
-               }
-    dbndstd = {'cc':np.arange(0,1+0.01,0.1),
-               'dpeakv':np.arange(0,1+0.01,0.2),
-               'dcond':np.arange(0,1+0.01,0.2),
-               'rmse':np.arange(0,1+0.01,0.2),
-               'peakhrad':np.arange(0,4+0.1,1),
-               'peakhpmw':np.arange(0,4+0.1,1),
-               'peakvrad':np.arange(0,0.8+0.01,0.1),
-               'peakvpmw':np.arange(0,0.8+0.01,0.1),
-               'stoprad' :np.arange(0,5+0.1,1),
-               'stoppmw' :np.arange(0,5+0.1,1),
-               'condrad' :np.arange(0,0.3+0.01, 0.05),
-               'condpmw' :np.arange(0,0.3+0.01, 0.05),
-               }
-    dcntave = {'dpeakh':np.arange(-1.5,1.5+0.1,0.5),
-               'dstop':np.arange(-1.5,1.5+0.1,0.5),
-               }
-    dcntstd = {'dpeakh':np.arange(0,3+0.1,0.5),
-               'dstop':np.arange(0,3+0.1,0.5),
-               }
-    dcmave = {'cc':'rainbow','dpeakh':'RdBu_r','dpeakv':'RdBu_r','dstop':'RdBu_r','dcond':'RdBu_r','rmse':'rainbow'}
-    dcmstd = {'cc':'hot_r','dpeakh':'hot_r' ,'dpeakv':'hot_r' ,'dstop':'hot_r' ,'dcond':'hot_r','rmse':'hot_r'}
-
-    if var in ['peakhrad','peakhpmw','stoprad','stoppmw']:
+    dcmave = {}
+    dcmstd = {}
+    if var in ['cc','rmse']:
         dcmave[var] = 'rainbow'
         dcmstd[var] = 'hot_r'
-    elif var in ['peakvrad','peakvpmw','condrad','condpmw']:
+    elif var in ['dpeakh','dpeakv','dstop','dcond','dvfracconv']:
+        dcmave[var] = 'RdBu_r'
+        dcmstd[var] = 'hot_r'
+    elif var in ['peakhrad','peakhpmw','stoprad','stoppmw']:
+        dcmave[var] = 'rainbow'
+        dcmstd[var] = 'hot_r'
+    elif var in ['peakvrad','peakvpmw','condrad','condpmw','vfracconvrad','vfracconvpmw']:
         dcmave[var] = 'gist_stern_r'
         dcmstd[var] = 'hot_r'
 
@@ -436,9 +561,12 @@ for key in lkey:
                 'dcond':'Mean condensed water diff (Normed)',
                 'condrad':'Mean condensed water cont. [g/m3]',
                 'condpmw':'Mean condensed water cont. [g/m3]',
+                'dvfracconv':'Convective vol. frac. diff',
+                'vfracconvrad':'Mean convective vol. frac.',
+                'vfracconvpmw':'Mean convective vol. frac.',
                 }
 
-    if var in ['cc','dpeakv','dcond','rmse']+['peakhrad','peakhpmw','peakvrad','peakvpmw','stoprad','stoppmw','condrad','condpmw']:
+    if var in ['cc','dpeakv','dcond','rmse','dvfracconv']+['peakhrad','peakhpmw','peakvrad','peakvpmw','stoprad','stoppmw','condrad','condpmw','vfracconvrad','vfracconvpmw']:
         bndave = dbndave[var]
         bndstd = dbndstd[var]
         cntave = None
@@ -453,14 +581,21 @@ for key in lkey:
         avemin,avemax=cntave[0],cntave[-1]
         stdmin,stdmax=cntstd[0],cntstd[-1]
 
-    if var in ['dpeakv','dcond']:
+    if var in ['dpeakv','dcond','dvfracconv']:
         extend = 'both'
     else:
         extend = None
 
-    a2ave = np.load(srcdir + '/ave.%s.npy'%(var))
-    a2std = np.load(srcdir + '/std.%s.npy'%(var))
-    a2num = np.load(srcdir + '/num.%s.npy'%(var))
+
+    if ptype=='':
+        a2ave = np.load(srcdir + '/ave.%s.npy'%(var))
+        a2std = np.load(srcdir + '/std.%s.npy'%(var))
+        a2num = np.load(srcdir + '/num.%s.npy'%(var))
+    else:
+        a2ave = np.load(srcdir + '/ave.%s.by-%s-%s.npy'%(var,bywhat,ptype))
+        a2std = np.load(srcdir + '/std.%s.by-%s-%s.npy'%(var,bywhat,ptype))
+        a2num = np.load(srcdir + '/num.%s.by-%s-%s.npy'%(var,bywhat,ptype))
+
 
     a2ave = ma.masked_invalid(a2ave)
     a2std = ma.masked_invalid(a2std)
@@ -475,17 +610,29 @@ for key in lkey:
         datname='XXX'
 
     #-- Ave ---
-    figPath = figDir + '/map.%s.%s.ave.png'%(rettype,var)
+    if ptype=='':
+        figPath = figDir + '/map.%s.%s.ave.png'%(rettype,var)
+        stitle = '%s %s'%(datname,dvarname[var])
+    else:
+        figPath = figDir + '/map.%s.%s.by-%s-%s.ave.png'%(rettype,var,bywhat,ptype)
+        stitle = '%s %s (%s-by-%s)'%(datname,dvarname[var], str.upper(ptype),str.upper(bywhat))
+
     mycm = dcmave[var]
     vmin,vmax = avemin,avemax
-    stitle = '%s %s'%(datname,dvarname[var])
     draw_map(a2dat=a2ave, figPath=figPath, bounds=bndave, centers=cntave, extend=extend)
 
 
-    figPath = figDir + '/map.%s.%s.std.png'%(rettype,var)
+    #-- STD ---
+    if ptype !='': continue
+    if ptype =='':
+        figPath = figDir + '/map.%s.%s.std.png'%(rettype,var)
+        stitle = '%s %s STD'%(datname,dvarname[var])
+    else:
+        figPath = figDir + '/map.%s.%s.by-%s-%s.std.png'%(rettype,var,bywhat,ptype)
+        stitle = '%s %s (%s-by-%s) STD'%(datname,dvarname[var], str.upper(ptype),str.upper(bywhat))
+
     mycm = dcmstd[var]
     vmin,vmax = stdmin,stdmax
-    stitle = '%s %s STD'%(datname,dvarname[var])
     draw_map(a2dat=a2std, figPath=figPath, bounds=bndstd, centers=cntstd)
 
 

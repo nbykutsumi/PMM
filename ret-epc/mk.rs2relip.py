@@ -13,12 +13,13 @@ elif myhost =="well":
     tankDir = '/home/utsumi/mnt/lab_tank'
 
 
-iDTime = datetime(2015,3,1)
-eDTime = datetime(2015,5,31)
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2014,6,2)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 DB_MAXREC = 10000
 DB_MINREC = 1000
-expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.relsurf02.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 nz   = 50
 vres = 250 # m
@@ -40,7 +41,8 @@ for DTime in lDTime:
     ssearch = srcDir + '/prwatprofNS-rs.??????.y-9999--9999.nrec%05d.npy'%(DB_MAXREC)
     lsrcPath = glob.glob(ssearch)
     lsrcPath = np.sort(lsrcPath)
-
+    print ssearch
+    print lsrcPath
     for srcPath in lsrcPath:
         oid  = int(srcPath.split('.')[-4])
 

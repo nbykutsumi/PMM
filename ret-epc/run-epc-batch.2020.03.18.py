@@ -7,10 +7,10 @@ import numpy.ma as ma
 import h5py
 import shutil
 
-#iDTime = datetime(2014,6,1)
-#eDTime = datetime(2014,11,30)
-iDTime = datetime(2014,12,1)
-eDTime = datetime(2015,5,31)
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2014,6,1)
+#iDTime = datetime(2014,12,1)
+#eDTime = datetime(2015,5,31)
 
 dDTime = timedelta(days=1)
 #------------
@@ -19,11 +19,12 @@ def ret_lDTime(iDTime,eDTime,dDTime):
   return [iDTime + dDTime*i for i in range(total_steps)]
 #------------
 lDTime = ret_lDTime(iDTime,eDTime,dDTime)
-#useorblist = False
-useorblist = True
+useorblist = False
+#useorblist = True
 
-batchsize = 6
+#batchsize = 6
 #batchsize = 2
+batchsize = 1
 
 DB_MAXREC = 10000
 DB_MINREC = 1000
@@ -47,8 +48,8 @@ elif stoptype=='cor':
 #expr = 'glb.stop-wgt-%s-01.minrec%d.maxrec%d'%(stoptype,DB_MINREC,DB_MAXREC)
 #expr = 'glb.stop-rng-%s-01.minrec%d.maxrec%d'%(stoptype,DB_MINREC,DB_MAXREC)
 #expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-expr = 'glb.relsurf02.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-#expr = 'test'
+#expr = 'glb.relsurf02.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'test'
 
 if stoptype !='no':
     type_stop = expr.split('.')[1].split('-')[1]
@@ -64,7 +65,7 @@ myhost = socket.gethostname()
 if myhost =="shui":
     gmibaseDir  = '/work/hk02/PMM/NASA/GPM.GMI/1C/V05'
     matchbaseDir= '/tank/utsumi/PMM/MATCH.GMI.V05A'
-    rnrbaseDir  = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/glb.v03.minrec1000.maxrec10000'
+    rnrbaseDir  = '/tank/utsumi/PMM/retepc/glb.v03.minrec1000.maxrec10000'
     coefDir = '/tank/utsumi/PMM/EPCDB/EPC_COEF/%s'%(sensor)
     dbDir   = '/tank/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
     tankDir = '/tank'
@@ -77,14 +78,14 @@ elif myhost =="well":
     dbDir   = '/media/disk2/share/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
     outbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/%s'%(expr)
     tankDir = '/home/utsumi/mnt/lab_tank'
-else:
-    gmibaseDir  = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/GPM.GMI/1C/V05'
-    matchbaseDir= '/media/disk2/share/PMM/MATCH.GMI.V05A'
-    rnrbaseDir  = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/glb.v03.minrec1000.maxrec10000'
-    coefDir = '/media/disk2/share/PMM/EPCDB/EPC_COEF/%s'%(sensor)
-    dbDir   = '/media/disk2/share/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
-    outbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/%s'%(expr)
-    tankDir = '/home/utsumi/mnt/lab_tank'
+else:  # Change here
+    gmibaseDir  = '/home/utsumi/temp/test-ret/GMI.L1C'
+    matchbaseDir= '/home/utsumi/temp/test-ret/MATCH.GMI.V05A'
+    rnrbaseDir  = '/home/utsumi/temp/test-ret/RNR'
+    coefDir     = '/home/utsumi/temp/test-ret/EPCDB/EPC_COEF/%s'%(sensor)
+    dbDir       = '/home/utsumi/temp/test-ret/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
+    tankDir     = '/home/utsumi/mnt/lab_tank'
+    outbaseDir  = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/%s'%(expr)
 
 
 #*******************

@@ -1,14 +1,23 @@
+# %%
+import matplotlib
+matplotlib.use('Agg')
+#%matplotlib inline
+import numpy as np
 from numpy import *
+import glob, h5py
+import myfunc.util as util
+from datetime import datetime, timedelta
 import JPLDB
+import pandas as pd
+import matplotlib.pyplot as plt
+srcdir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/glb.relsurf01.minrec1000.maxrec10000/2014/06/01'
+precpath = srcdir + '/nsurfNScmb.001454.y-9999--9999.nrec10000.npy'
+aprec1 = ma.masked_less(np.load(precpath), 0)
 
-#vname = 'z_ku'
-vname = 'elev'
-db_idx = 2601
-#dbPath = '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE/db_02601.bin'
-dbPath = '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE_TEST29/db_%05d.bin'%(db_idx)
+srcdir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/glb.relsurf02.minrec1000.maxrec10000/2014/06/01'
+precpath = srcdir + '/nsurfNScmb.001454.y-9999--9999.nrec10000.npy'
+aprec2 = ma.masked_less(np.load(precpath), 0)
 
-db = JPLDB.JPLDB()
-db.set_file(dbPath)
-dat = db.get_var(vname)
-print dat.shape
-print dat
+plt.scatter(aprec1,aprec2)
+plt.savefig('/home/utsumi/temp/ret/temp.png')
+# %%

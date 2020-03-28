@@ -33,9 +33,9 @@ else:
     sys.exit()
 
 
-reftype = 'dpr'
+#reftype = 'dpr'
 #reftype = 'mrms'
-
+reftype ='both'
 
 ## Illinois (RNS)
 #oid = 1456
@@ -49,18 +49,18 @@ reftype = 'dpr'
 #expr = 'glb.v03.minrec1000.maxrec10000'
 ##expr = 'glb.stop-wgt-obs-01.minrec1000.maxrec10000'
 
-# Colorado case
-oid = 1574
-Year,Mon,Day = 2014,6,8
-iy, ey = -9999,-9999
-clat    = 40    # SE.US case. oid = 003556
-clon    = 256-360   # 2014/10/14  05:42:03 UTC
-DB_MAXREC = 10000
-DB_MINREC = 1000
-#expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
-xpos    = 100  # x-position for cross section
-#xpos    = 107  # x-position for cross section
+## Colorado case
+#oid = 1574
+#Year,Mon,Day = 2014,6,8
+#iy, ey = -9999,-9999
+#clat    = 40    # SE.US case. oid = 003556
+#clon    = 256-360   # 2014/10/14  05:42:03 UTC
+#DB_MAXREC = 10000
+#DB_MINREC = 1000
+##expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+#xpos    = 100  # x-position for cross section
+##xpos    = 107  # x-position for cross section
 
 
 
@@ -216,16 +216,18 @@ xpos    = 100  # x-position for cross section
 #DB_MINREC = 1000
 #expr = 'glb.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
-## SE.US case, oid=003556, 2014/10/14
-#oid = 3556
-#Year,Mon,Day = 2014,10,14
-##iy, ey = 987, 1047
+# SE.US case, oid=003556, 2014/10/14
+oid = 3556
+Year,Mon,Day = 2014,10,14
+#iy, ey = 987, 1047
 #iy, ey = 917,1117
-#clat    = 34    # SE.US case. oid = 003556
-#clon    = -86   # 2014/10/14  05:42:03 UTC
-#DB_MINREC = 1000
-#DB_MAXREC = 10000
+iy, ey = -9999,-9999
+clat    = 34    # SE.US case. oid = 003556
+clon    = -86   # 2014/10/14  05:42:03 UTC
+DB_MINREC = 1000
+DB_MAXREC = 10000
 #expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 
 ## SW.Japan typhoon case, oid=019015, 2017/07/03
 #oid = 19015
@@ -278,7 +280,7 @@ xpos    = 100  # x-position for cross section
 #thpr = 0.5  # Minimum threshold for EPC
 #thpr = 0.1  # Minimum threshold for EPC
 #thpr = 0.01  # Minimum threshold for EPC
-thpr = 0.  # Minimum threshold for EPC
+thpr = 0.5  # Minimum threshold for EPC
 
 if clat !=-9999.:
     #dlatlon = 20
@@ -331,9 +333,9 @@ except:
 print 'Read my data'
 #a2MS    = np.load(nsurfMSPath)
 #a2NS    = np.load(nsurfNSPath)
-a2MS    = np.load(nsurfMSPath)
-a2NS    = np.load(nsurfNSPath)
-a2MScmb = np.load(nsurfMScmbPath)
+#a2MS    = np.load(nsurfMSPath)
+#a2NS    = np.load(nsurfNSPath)
+#a2MScmb = np.load(nsurfMScmbPath)
 a2NScmb = np.load(nsurfNScmbPath)
 #a2topMScmb = np.load(topnsurfMScmbPath)
 #a2topNScmb = np.load(topnsurfNScmbPath)
@@ -342,9 +344,9 @@ a2latMy = np.load(latPath)
 a2lonMy = np.load(lonPath)
 
 #-- Screen <thpr mm/h
-a2MS= ma.masked_less(a2MS,thpr)
-a2NS= ma.masked_less(a2NS,thpr)
-a2MScmb= ma.masked_less(a2MScmb,thpr)
+#a2MS= ma.masked_less(a2MS,thpr)
+#a2NS= ma.masked_less(a2NS,thpr)
+#a2MScmb= ma.masked_less(a2MScmb,thpr)
 a2NScmb= ma.masked_less(a2NScmb,thpr)
 
 #*****************
@@ -366,7 +368,7 @@ a2esurfgp = ma.masked_less_equal(a2esurfgp,0)
 
 #*****************
 #- Read MRMS-on-orbit data ----
-if (reftype=='mrms')and(os.path.exists(mrmsPath)):
+if (reftype in ['mrms','both'])and(os.path.exists(mrmsPath)):
     print 'Read MRMS'
     iymr,eymr = map(int, mrmsPath.split('.')[-2].split('-'))
     a2mrms  = np.load(mrmsPath)
@@ -376,7 +378,7 @@ if (reftype=='mrms')and(os.path.exists(mrmsPath)):
 #*****************
 #- Read DPR/CMB data ----
 #if (reftype=='dpr')and(os.path.exists(mrmsPath)):
-if (reftype=='dpr'):
+if (reftype in ['dpr','both']):
     dprDir = workbaseDir + '/hk01/PMM/NASA/GPM.DPRGMI/2B/V06/%04d/%02d/%02d'%(Year,Mon,Day)
     ssearch= dprDir + '/2B.GPM.DPRGMI.CORRA*.%06d.V06A.HDF5'%(oid)
     dprPath= glob.glob(ssearch)[0]
@@ -386,79 +388,119 @@ if (reftype=='dpr'):
         a2londpr = h['NS/Longitude'][:]
 
 
+##********************************
+##-- Draw figure ---
+#print 'Draw figure'
+#fig   = plt.figure(figsize=(12,9))
+#vmin,vmax = 1,20
+##vmin,vmax = 0,3   # test
+#
+##-- My retrieval --
+#for i in range(6):
+#    if (i==5)and(reftype=='dpr'):
+#        ssize=0.2
+#    else:
+#        ssize=1
+#
+#    if i==0:
+#        #ax = fig.add_axes([0.1,0.66,0.35,0.3])
+#        ax = fig.add_axes([0.05,0.1,0.26,0.45])
+#        a2dat = ma.masked_less_equal(a2MS,0)
+#        a2lat = a2latMy
+#        a2lon = a2lonMy
+#        stype = 'MS' + ' (>%.2fmm/h)'%(thpr)
+#
+#    elif i==1:
+#        #ax = fig.add_axes([0.5,0.66,0.35,0.3])
+#        ax = fig.add_axes([0.35,0.1,0.26,0.45])
+#        a2dat = ma.masked_less_equal(a2NS,0)
+#        a2lat = a2latMy
+#        a2lon = a2lonMy
+#        stype = 'NS' + ' (>%.2fmm/h)'%(thpr)
+#
+#    elif i==2:
+#        #ax = fig.add_axes([0.1,0.33,0.35,0.3])
+#        ax = fig.add_axes([0.05,0.5,0.26,0.45])
+#        a2dat = ma.masked_less_equal(a2NS,0)
+#        a2dat = ma.masked_less_equal(a2MScmb,0)
+#        a2lat = a2latMy
+#        a2lon = a2lonMy
+#        stype = 'MScmb' + ' (>%.2fmm/h)'%(thpr)
+#
+#    elif i==3:
+#        #ax = fig.add_axes([0.5,0.33,0.35,0.3])
+#        ax = fig.add_axes([0.35,0.5,0.26,0.45])
+#        a2dat = ma.masked_less_equal(a2NScmb,0)
+#        a2lat = a2latMy
+#        a2lon = a2lonMy
+#        stype = 'NScmb' + ' (>%.2fmm/h)'%(thpr)
+#    elif i==4:
+#        #ax = fig.add_axes([0.1,0.0,0.35,0.3])
+#        ax = fig.add_axes([0.65,0.1,0.26,0.45])
+#        a2dat = ma.masked_less_equal(a2esurfgp,0)
+#        a2lat = a2latgp
+#        a2lon = a2longp
+#        stype = 'GPROF'
+#    elif i==5:
+#        if reftype =='mrms':
+#            if not os.path.exists(mrmsPath):
+#                continue
+#            a2dat = ma.masked_less_equal(a2mrms,0)
+#            a2lat = a2latmr
+#            a2lon = a2lonmr
+#        elif reftype == 'dpr':
+#            a2dat = ma.masked_less_equal(a2dpr,0)
+#            a2lat = a2latdpr
+#            a2lon = a2londpr
+#        else:
+#            print 'check reftype',reftype
+#        #ax = fig.add_axes([0.5,0.0,0.35,0.3])
+#        ax = fig.add_axes([0.65,0.5,0.26,0.45])
+#        if reftype=='mrms':
+#            stype = 'MRMS'
+#        elif reftype=='dpr':
+#            stype = 'CMB'
+
+
 #********************************
 #-- Draw figure ---
 print 'Draw figure'
-fig   = plt.figure(figsize=(12,9))
+fig   = plt.figure(figsize=(9,9))
 vmin,vmax = 1,20
 #vmin,vmax = 0,3   # test
 
 #-- My retrieval --
-for i in range(6):
-    if (i==5)and(reftype=='dpr'):
+for i in range(4):
+    if (i==3)and(reftype=='dpr'):
         ssize=0.2
     else:
         ssize=1
 
     if i==0:
-        #ax = fig.add_axes([0.1,0.66,0.35,0.3])
-        ax = fig.add_axes([0.05,0.1,0.26,0.45])
-        a2dat = ma.masked_less_equal(a2MS,0)
-        a2lat = a2latMy
-        a2lon = a2lonMy
-        stype = 'MS' + ' (>%.2fmm/h)'%(thpr)
-
+        ax = fig.add_axes([0.05,0.5,0.35,0.35])
+        a2dat = ma.masked_less_equal(a2mrms,0)
+        a2lat = a2latmr
+        a2lon = a2lonmr
+        stype = 'MRMS'
     elif i==1:
-        #ax = fig.add_axes([0.5,0.66,0.35,0.3])
-        ax = fig.add_axes([0.35,0.1,0.26,0.45])
-        a2dat = ma.masked_less_equal(a2NS,0)
-        a2lat = a2latMy
-        a2lon = a2lonMy
-        stype = 'NS' + ' (>%.2fmm/h)'%(thpr)
+        ax = fig.add_axes([0.5,0.5,0.35,0.35])
+        a2dat = ma.masked_less_equal(a2dpr,0)
+        a2lat = a2latdpr
+        a2lon = a2londpr
+        stype = 'CMB'
 
     elif i==2:
-        #ax = fig.add_axes([0.1,0.33,0.35,0.3])
-        ax = fig.add_axes([0.05,0.5,0.26,0.45])
-        a2dat = ma.masked_less_equal(a2NS,0)
-        a2dat = ma.masked_less_equal(a2MScmb,0)
-        a2lat = a2latMy
-        a2lon = a2lonMy
-        stype = 'MScmb' + ' (>%.2fmm/h)'%(thpr)
-
-    elif i==3:
-        #ax = fig.add_axes([0.5,0.33,0.35,0.3])
-        ax = fig.add_axes([0.35,0.5,0.26,0.45])
+        ax = fig.add_axes([0.05,0.05,0.35,0.35])
         a2dat = ma.masked_less_equal(a2NScmb,0)
         a2lat = a2latMy
         a2lon = a2lonMy
         stype = 'NScmb' + ' (>%.2fmm/h)'%(thpr)
-    elif i==4:
-        #ax = fig.add_axes([0.1,0.0,0.35,0.3])
-        ax = fig.add_axes([0.65,0.1,0.26,0.45])
+    elif i==3:
+        ax = fig.add_axes([0.5,0.05,0.35,0.35])
         a2dat = ma.masked_less_equal(a2esurfgp,0)
         a2lat = a2latgp
         a2lon = a2longp
         stype = 'GPROF'
-    elif i==5:
-        if reftype =='mrms':
-            if not os.path.exists(mrmsPath):
-                continue
-            a2dat = ma.masked_less_equal(a2mrms,0)
-            a2lat = a2latmr
-            a2lon = a2lonmr
-        elif reftype == 'dpr':
-            a2dat = ma.masked_less_equal(a2dpr,0)
-            a2lat = a2latdpr
-            a2lon = a2londpr
-        else:
-            print 'check reftype',reftype
-        #ax = fig.add_axes([0.5,0.0,0.35,0.3])
-        ax = fig.add_axes([0.65,0.5,0.26,0.45])
-        if reftype=='mrms':
-            stype = 'MRMS'
-        elif reftype=='dpr':
-            stype = 'CMB'
-
        
     mycm  = 'jet'
     mycm  = 'gist_ncar_r' 
@@ -471,14 +513,14 @@ for i in range(6):
     dgrid      = 5
     parallels  = arange(-90,90, dgrid)
     meridians  = arange(-180,180,dgrid)
-    M.drawparallels(parallels, labels=[1,0,0,0], fontsize=8, linewidth=0.5, fmt='%d', color='0.8')
-    M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=8, linewidth=0.5, fmt='%d', color='0.8')
+    M.drawparallels(parallels, labels=[1,0,0,0], fontsize=12, linewidth=0.5, fmt='%d', color='0.8')
+    M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=12, linewidth=0.5, fmt='%d', color='0.8')
 
-    plt.title(stype)
+    plt.title(stype, fontsize=14)
 #-- Colorbar (Shared) ----
-cax = fig.add_axes([0.93, 0.2, 0.02, 0.6])
-plt.colorbar(im, orientation='vertical', cax=cax)
-
+cax = fig.add_axes([0.88, 0.2, 0.02, 0.6])
+cb  = plt.colorbar(im, orientation='vertical', cax=cax)
+cb.ax.tick_params(labelsize=14)
 #-- Suptitle -------------
 ssuptitle = '%04d/%02d/%02d #%06d (%s)'%(Year,Mon,Day,oid,expr)
 plt.suptitle(ssuptitle, fontsize=12)
