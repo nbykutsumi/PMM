@@ -46,8 +46,8 @@ miss  = -9999.
 #xymetric = ['dstop-prof','ndprec']
 #xymetric = ['dstop','ndprec']
 
-xymetric = ['ndprec','cc']
-#xymetric = ['ndprec','dwatNorm']
+#xymetric = ['ndprec','cc']
+xymetric = ['ndprec','dwatNorm']
 #xymetric = ['ndprec','dstop-prof']
 #xymetric = ['ndprec','dstop']
 #xymetric = ['ndprec','dvfracConv']
@@ -415,9 +415,11 @@ for rettype in lrettype:
         o1lon    .extend(list(a1lon))
 
     #--- Screen by metrics -----
-    a1flagM1 = ma.masked_invalid(o1xmetric).mask
-    a1flagM2 = ma.masked_invalid(o1ymetric).mask
-    a1flagM  = ~( a1flagM1 * a1flagM2 )
+    a1maskM1 = ma.masked_invalid(o1xmetric).mask
+    a1maskM2 = ma.masked_invalid(o1ymetric).mask
+    a1maskM  = a1maskM1 + a1maskM2
+    #a1flagM  = ~( a1flagM1 * a1flagM2 )
+    a1flagM  = ~a1maskM
 
     a1precpmw = np.array(o1precpmw)[a1flagM]
     a1precrad = np.array(o1precrad)[a1flagM]
@@ -457,21 +459,25 @@ for rettype in lrettype:
             H = H.T
             dout['hist2d',surf,preclev] = H
 
-            #--- Mean of y binned by x ---
+            #-- 1-D Histogram --
             bins = np.sort(lxbnd)
-            a1ave,a1bnd,_ = stats.binned_statistic(x=a1xmetricTmp, values=a1ymetricTmp, statistic='mean', bins=bins)
-
             a1xhist,a1bnd,_ = stats.binned_statistic(x=a1xmetricTmp, values=None, statistic='count', bins=bins)
-            a1yhist,a1bnd,_ = stats.binned_statistic(x=a1ymetricTmp, values=None, statistic='count', bins=bins)
 
-            dout['yave',surf,preclev] = a1ave
+            bins = np.sort(lybnd)
+            a1yhist,a1bnd,_ = stats.binned_statistic(x=a1ymetricTmp, values=None, statistic='count', bins=bins)
             dout['xhist',surf,preclev]= a1xhist
             dout['yhist',surf,preclev]= a1yhist
+
+            #--- Mean of y binned by x ---
+            bins = np.sort(lxbnd)
+            a1yave,a1bnd,_ = stats.binned_statistic(x=a1xmetricTmp, values=a1ymetricTmp, statistic='mean', bins=bins)
+
+            dout['yave',surf,preclev] = a1yave
+
             #--- Mean of x binned by y ---
             bins = np.sort(lybnd)
-            a1ave,a1bnd,_ = stats.binned_statistic(x=a1ymetricTmp, values=a1xmetricTmp, statistic='mean', bins=bins)
-
-            dout['xave',surf,preclev] = a1ave
+            a1xave,a1bnd,_ = stats.binned_statistic(x=a1ymetricTmp, values=a1xmetricTmp, statistic='mean', bins=bins)
+            dout['xave',surf,preclev] = a1xave
 
 
     #--- Other parameters ----
@@ -514,7 +520,7 @@ for irettype,rettype in enumerate(lrettype):
              ,'ndprec':'Norm. surf. precip. error'
              ,'rmse':'Profile RMSE (g/m3)'
              ,'cc'  :'Profile Correlation Coef.'
-             ,'dwatNorm' :'Total condensed water \n difference (Normed)'
+             ,'dwatNorm' :'Mean condensed water\n error (Normalized)'
              ,'dconvfrac':'Convective fraction error'
              ,'dstop-prof':'Storm top height error\n(profile-based) (km)'
              ,'dstop':'Storm top height error\n(top-weighted) (km)'
@@ -536,9 +542,35 @@ for irettype,rettype in enumerate(lrettype):
             vmax= H.max()
         im = ax.pcolormesh(X,Y,H, norm=matplotlib.colors.LogNorm(), cmap='jet', vmin=10, vmax=vmax)
 
+   
+        if ymetric =='cc':
+            #--- Lines (y-mean) ---
+            preclev = -1
+            linestyle= '-'
+            linewidth= 2
+            mycolor = 'k'
+
+            a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
+            a1y = dvar['yave',surf,preclev]
+
+            ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor)
+
+            ##--- Lines (x-mean) ---
+            #preclev = -1
+            #linestyle= '-'
+            #linewidth= 2
+            #mycolor = 'k'
+            #a1x = dvar['xave',surf,preclev]
+            #a1y = (lybnd[:-1] + lybnd[1:])*0.5
+
+            #ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor)
+
+
+
+
         ##--- Lines (y-mean) ---
         #for preclev in dprecrange.keys():
-        #    if preclev ==-1: continue
+        #    #if preclev ==-1: continue
 
         #    iprec,eprec = dprecrange[preclev]
         #    slabel = '%d-%dmm/h'%(iprec,eprec)
@@ -548,7 +580,7 @@ for irettype,rettype in enumerate(lrettype):
         #    mycolor = ['k','k','k'][preclev]
     
         #    a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
-        #    a1y = dout['yave',surf,preclev]
+        #    a1y = dvar['yave',surf,preclev]
 
         #    ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor, label=slabel)
 
@@ -563,11 +595,11 @@ for irettype,rettype in enumerate(lrettype):
         #    #mycolor = ['darkblue','orange','crimson'][preclev]
         #    mycolor = ['k','k','k'][preclev]
     
-        #    a1x = dout['xave',surf,preclev]
+        #    a1x = dvar['xave',surf,preclev]
         #    a1y = (lybnd[:-1] + lybnd[1:])*0.5
 
         #    ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor, label=slabel)
-        ##------------
+        #------------
 
         #------------
 

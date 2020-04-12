@@ -228,6 +228,7 @@ DB_MINREC = 1000
 DB_MAXREC = 10000
 #expr = 'glb.v03.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
+xpos = 100  # x-position for the cross section
 
 ## SW.Japan typhoon case, oid=019015, 2017/07/03
 #oid = 19015
@@ -509,7 +510,22 @@ for i in range(4):
 
     M.bluemarble()
     M.drawcoastlines(color='0.8')
-    
+
+    #--- cross-section line ---
+    #xpos = 100
+    a1latTmp= a2latMy[:,xpos]
+    a1lonTmp= a2lonMy[:,xpos]
+    M.plot(a1lonTmp, a1latTmp, '--', color='w')
+
+    a1latTmp= a2latMy[:,0]
+    a1lonTmp= a2lonMy[:,0]
+    M.plot(a1lonTmp, a1latTmp, '-', color='w',linewidth=0.5)
+
+    a1latTmp= a2latMy[:,-1]
+    a1lonTmp= a2lonMy[:,-1]
+    M.plot(a1lonTmp, a1latTmp, '-', color='w',linewidth=0.5)
+    #---------------------------
+
     dgrid      = 5
     parallels  = arange(-90,90, dgrid)
     meridians  = arange(-180,180,dgrid)
@@ -517,6 +533,9 @@ for i in range(4):
     M.drawmeridians(meridians, labels=[0,0,0,1], fontsize=12, linewidth=0.5, fmt='%d', color='0.8')
 
     plt.title(stype, fontsize=14)
+
+
+
 #-- Colorbar (Shared) ----
 cax = fig.add_axes([0.88, 0.2, 0.02, 0.6])
 cb  = plt.colorbar(im, orientation='vertical', cax=cax)

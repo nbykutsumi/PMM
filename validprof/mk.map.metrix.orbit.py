@@ -22,8 +22,8 @@ figDir  = '/home/utsumi/temp/ret'
 
 useorblist = True
 
-calcflag = True
-#calcflag = False
+#calcflag = True
+calcflag = False
 figflag  = True
 #figflag  = False
 
@@ -47,7 +47,8 @@ thwat = 0.033  # g/m3 for storm top
 lrettype= ['epc','gprof-shift']
 #lvar = ['cc','dpeakh','dpeakv','dstop','dcond','rmse']+['peakhrad','peakhpmw','peakvrad','peakvpmw','stoprad','stoppmw','condrad','condpmw'] + ['dvfracconv','vfracconvrad','vfracconvpmw']
 
-lvar = ['condpmw','condrad','dcond','stoppmw','stoprad','dstop','cc']
+#lvar = ['condpmw','condrad','dcond','stoppmw','stoprad','dstop','cc']
+lvar = ['dstop','stoprad','stoppmw']
 dexpr = {'epc':'glb.relsurf01.minrec1000.maxrec10000','gprof-shift':'v01'}
 
 lvar_pmwptype =['stoppmw','condpmw']
@@ -493,12 +494,14 @@ for key in lkey:
     srcdir = tankbaseDir + '/utsumi/PMM/validprof/map-orbit/%s.%s'%(rettype,expr)
 
     dbndave = { 'cc':np.arange(0,1+0.01,0.1),
+                'dpeakh': [-3,-2,-1,-0.5,0.5,1,2,3],
                 'dpeakv': [-9999,-0.5,-0.2,0.2,0.5,9999],
                 'dcond': [-9999,-0.5,-0.2,0.2,0.5,9999],
+                'dstop': [-2, -1.5, -1, -0.5, 0.5, 1, 1.5, 2],
                 'dvfracconv':[-9999,-0.5,-0.3,-0.1,0.1,0.3,0.5,9999],
                 'rmse':np.arange(0,1.6+0.01,0.4),
-                'peakhrad':np.arange(0,8+0.1,1),
-                'peakhpmw':np.arange(0,8+0.1,1),
+                'peakhrad':[0,2,3,4,5,6,7,8],
+                'peakhpmw':[0,2,3,4,5,6,7,8],
                 'peakvrad':np.arange(0,0.8+0.01,0.1),
                 'peakvpmw':np.arange(0,0.8+0.01,0.1),
                 'stoprad' :np.arange(0,12+0.1,2),
@@ -509,12 +512,14 @@ for key in lkey:
                 'vfracconvpmw':np.arange(0,1.0+0.01,0.2),
                }
     dbndstd = { 'cc':np.arange(0,1+0.01,0.1),
+                'dpeakh':np.arange(0,2.5+0.01,0.5),
                 'dpeakv':np.arange(0,1+0.01,0.2),
                 'dcond':np.arange(0,1+0.01,0.2),
+                'dstop':np.arange(0,2.5+0.01,0.5),
                 'dvfracconv':np.arange(0,0.5+0.01,0.1),
                 'rmse':np.arange(0,1+0.01,0.2),
-                'peakhrad':np.arange(0,4+0.1,1),
-                'peakhpmw':np.arange(0,4+0.1,1),
+                'peakhrad':np.arange(0,2.5+0.01,0.5),
+                'peakhpmw':np.arange(0,2.5+0.01,0.5),
                 'peakvrad':np.arange(0,0.8+0.01,0.1),
                 'peakvpmw':np.arange(0,0.8+0.01,0.1),
                 'stoprad' :np.arange(0,5+0.1,1),
@@ -524,12 +529,12 @@ for key in lkey:
                 'vfracconvrad':np.arange(0,0.5+0.01,0.1),
                 'vfracconvpmw':np.arange(0,0.5+0.01,0.1),
                 }
-    dcntave = { 'dpeakh':np.arange(-1.5,1.5+0.1,0.5),
-                'dstop':np.arange(-1.5,1.5+0.1,0.5),
-                }
-    dcntstd = { 'dpeakh':np.arange(0,3+0.1,0.5),
-                'dstop':np.arange(0,3+0.1,0.5),
-                }
+    #dcntave = { 'dpeakh':np.arange(-1.5,1.5+0.1,0.5),
+    #            'dstop':np.arange(-1.5,1.5+0.1,0.5),
+    #            }
+    #dcntstd = { 'dpeakh':np.arange(0,3+0.1,0.5),
+    #            'dstop':np.arange(0,3+0.1,0.5),
+    #            }
 
     dcmave = {}
     dcmstd = {}
@@ -549,9 +554,9 @@ for key in lkey:
     dretname = {'epc':'EPC','gprof-shift':'GPROF','gprof':'GPROF'}
     dvarname = {'cc':'corr. coef',
                 'rmse':'Normalized RMSE',
-                'dpeakh':'Peak condensed water height diff.[km]',
-                'peakhrad':'Peak condensed water height [km]',
-                'peakhpmw':'Peak condensed water height [km]',
+                'dpeakh':'Diff. of the height of the peak [km]',
+                'peakhrad':'Height of the condensed water peak [km]',
+                'peakhpmw':'Height of the condensed water peak [km]',
                 'dpeakv':'Peak condened water cont. diff. (Normed)',
                 'peakvrad':'Peak condensed water cont. [g/m3]',
                 'peakvpmw':'Peak condensed water cont. [g/m3]',
@@ -566,23 +571,25 @@ for key in lkey:
                 'vfracconvpmw':'Mean convective vol. frac.',
                 }
 
-    if var in ['cc','dpeakv','dcond','rmse','dvfracconv']+['peakhrad','peakhpmw','peakvrad','peakvpmw','stoprad','stoppmw','condrad','condpmw','vfracconvrad','vfracconvpmw']:
+    if var in ['cc','dstop','dpeakh','dpeakv','dcond','rmse','dvfracconv']+['peakhrad','peakhpmw','peakvrad','peakvpmw','stoprad','stoppmw','condrad','condpmw','vfracconvrad','vfracconvpmw']:
         bndave = dbndave[var]
         bndstd = dbndstd[var]
         cntave = None
         cntstd = None
         avemin,avemax=bndave[0],bndave[-1]
         stdmin,stdmax=bndstd[0],bndstd[-1]
-    elif var in ['dpeakh','dstop']:
-        bndave = None
-        bndstd = None
-        cntave = dcntave[var]
-        cntstd = dcntstd[var]
-        avemin,avemax=cntave[0],cntave[-1]
-        stdmin,stdmax=cntstd[0],cntstd[-1]
+    #elif var in ['dpeakh','dstop']:
+    #    bndave = None
+    #    bndstd = None
+    #    cntave = dcntave[var]
+    #    cntstd = dcntstd[var]
+    #    avemin,avemax=cntave[0],cntave[-1]
+    #    stdmin,stdmax=cntstd[0],cntstd[-1]
 
     if var in ['dpeakv','dcond','dvfracconv']:
         extend = 'both'
+    elif var in ['peakhrad','peakhpmw']:
+        extend = 'min'
     else:
         extend = None
 

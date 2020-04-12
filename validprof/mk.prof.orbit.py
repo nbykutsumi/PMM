@@ -390,13 +390,13 @@ for key in lkey:
 
         fig = plt.figure(figsize=(2.5,3.2))
         #fig = plt.figure(figsize=(3,4))
-        ax  = fig.add_axes([0.25,0.15,0.65,0.7])
+        ax  = fig.add_axes([0.2,0.15,0.65,0.7])
     
         a1y = a1hgt
     
-        ax.plot( a1varrad, a1y, '-',  c='k', linewidth=2, label='CMB') 
-        ax.plot( a1varepc, a1y, '-',  c='k', linewidth=1, label='EPC')
-        ax.plot( a1vargpr, a1y, '--', c='k', linewidth=1.3, label='GPROF')
+        ax.plot( a1varrad, a1y, '-',  c='k', linewidth=2, label='CMB', clip_on=False) 
+        ax.plot( a1varepc, a1y, '-',  c='k', linewidth=1, label='EPC', clip_on=False)
+        ax.plot( a1vargpr, a1y, '--', c='k', linewidth=1.3, label='GPROF', clip_on=False)
 
         #if var =='ave': 
         #    ax.plot( a1rad05, a1y, '-',  c='k', linewidth=2) 
@@ -407,13 +407,9 @@ for key in lkey:
         #    ax.plot( a1epc95, a1y, '-',  c='k', linewidth=1)
         #    ax.plot( a1gpr95, a1y, '--', c='k', linewidth=1.3)
     
-        print key
-        print 'rad',a1rad
-    
-    
-        #ax.set_xlim([xmin,xmax])
+        xmax = {'ave':0.65, 'num':None}[var]
         ax.set_ylim([0.9,9.9])
-        ax.set_xlim([0,None])
+        ax.set_xlim([0,xmax])
         plt.xlabel('(g/m3)',fontsize=12)
         plt.ylabel('(km)',fontsize=12)
         ax.tick_params(axis='x', labelsize=12)

@@ -24,10 +24,10 @@ lregfl = [['mid',(0,1)],['mid',(3,4)],['tro',(4,5)]]
 lstype = ['sea','veg']
 lptype= ['stra','conv']
 
-iy =10 # top
+iy =1 # top
 ey = -1
-ix =20
-ex = -15
+ix =10
+ex = -30
 lvar = ['ave','num']
 rel = 'SF'
 #**********
@@ -42,7 +42,10 @@ for var in lvar:
                 stamp ='rel%s.s-%s.p-%s.r-%s.fz-%d-%d'%(rel,stype,ptype,region,fz0,fz1)
                 figPath = figDir + '/prof.%s.%s.png'%(stamp,var)
                 iimg = Image.open(figPath)
-                a2array = asarray(iimg)[iy:ey, ix:ex]
+                if (i+1)%4.==0:
+                    a2array = asarray(iimg)[iy:ey, ix:]
+                else:
+                    a2array = asarray(iimg)[iy:ey, ix:ex]
             
                 ddat[i] = a2array
         
