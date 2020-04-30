@@ -5,32 +5,40 @@ from numpy import *
 import glob, h5py
 import myfunc.util as util
 from datetime import datetime, timedelta
-import JPLDB
-import pandas as pd
+import EPCDB
 import matplotlib.pyplot as plt
-srcdir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/test/2014/06/01/'
-convpath = srcdir + '/nsurfConvNScmb.001453.y-9999--9999.nrec10000.npy'
-precpath = srcdir + '/nsurfNScmb.001453.y-9999--9999.nrec10000.npy'
-aconv = np.load(convpath)
-aprec = np.load(precpath)
 
-#-- gprof --
-gprpath = '/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.GMI/2A/V05/2014/06/01/2A.GPM.GMI.GPROF2017v1.20140601-S010534-E023807.001453.V05A.HDF5'
-with h5py.File(gprpath,'r') as h:
-    gconv = h['S1/convectivePrecipitation'][:]
-    gprec = h['S1/surfacePrecipitation'][:]
+DB_MAXREC = 10000
+dbDir   = '/media/disk2/share/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
+db = EPCDB.EPCDB()
+
+idx_db = 5810
+db.set_idx_db(dbDir, idx_db)
+
+srcdir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retsynt/prf.smp1000/%05d'%(idx_db)
+a2profest = np.load(srcdir + '/precip_water_prof_NS_rs.est.%05d.npy'%(idx_db))
+a1irec = np.load(srcdir + '/irec.obs.%05d.npy'%(idx_db))
+
+a2profobs = db.get_var('precip_water_prof_NS_relsurf')[a1irec,-50:]
+a1precobs = db.get_var('precip_NS_cmb')[a1irec]
+a1elev    = db.get_var('elev')[a1irec]
+
+a2profest = ma.masked_less(a2profest,0)
+a2profobs = ma.masked_less(a2profobs,0)
 
 
-aconv = ma.masked_less(ma.masked_where(aprec<0, aconv),0)
-aprec = ma.masked_less(ma.masked_where(aprec<0, aprec),0)
-gconv = ma.masked_less(ma.masked_where(aprec<0, gconv),0)
-gprec = ma.masked_less(ma.masked_where(aprec<0, gprec),0)
+#for i in range(len(a1elev)):
+#    elev = a1elev[i]
+#    prec = a1precobs[i]
+#    if (elev > 500)&(prec>1):
+#        break
 
-afrac = ma.masked_where(aprec==0, aconv) / aprec
-gfrac = ma.masked_where(gprec==0, gconv) / gprec
-plt.clf()
-plt.scatter(gprec,aprec)
+a1profest = a2profest[i]
+a1profobs = a2profobs[i]
 
-#
+fig = plt.figure()
+plt.plot(a1profobs, color='k')
+plt.plot(a1profest, color='r')
+plt.show()
 
 # %%

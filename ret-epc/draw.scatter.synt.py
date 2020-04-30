@@ -12,7 +12,7 @@ import sys, os, glob, socket
 import myfunc.util as util
 import calendar
 import pickle
-import JPLDB
+import JPLDB, EPCDB
 
 calcflag  = True
 #calcflag  = False
@@ -21,22 +21,15 @@ coefflag  = 'wcoef'  # 'nocoef', 'wcoef'
 DB_MAXREC = 10000
 DB_MINREC = 1000
 nsample   = 1000
-dbtype = 'my'
-#dbtype = 'jpl'
-sensor = 'GMI'
-#sensor = 'AMSR2'
-#sensor = 'SSMIS'
-#sensor = 'ATMS'
-#sensor = 'MHS'
-#lrettype = ['NS','MS','NScmb','MScmb']
-#lrettype = ['NS','MS','NScmb','MScmb','GPROF']
-#lrettype = ['GPROF']  
+#lsensor = ['GMI','AMSR2','SSMIS','ATMS','MHS']
+lsensor = ['SSMIS','ATMS','MHS']
+#lsensor = ['GMI']
+lrettype = ['GPROF']  
 #lrettype = ['MS','NS','NScmb','MScmb']
-lrettype = ['NScmb']
+#lrettype = ['NScmb']
 #prmin = 0.1
 #prmin = 0.01
 prmin = 0.0
-expr = 'org.%s.smp%d'%(sensor,nsample)
 lidx_db = range(29*29*29)[1:]
 #lidx_db = range(810,812)
 #lidx_db = range(6000,7000)
@@ -47,36 +40,6 @@ lidx_db = range(29*29*29)[1:]
 #lidx_db = range(29*29*20,29*29*24)
 #lidx_db = range(29*29*24,29*29*29)
 #** Constants ******
-myhost = socket.gethostname()
-if myhost =='shui':
-    if dbtype=='jpl':
-        dbDir   = '/tank/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE_TEST29'%(sensor)
-        countDir= '/tank/utsumi/PMM/JPLDB/list'
-        retbaseDir = '/tank/utsumi/PMM/retsynt/%s'%(expr)
-        figDir   = '/home/utsumi/temp/ret'
-
-    elif dbtype=='my':
-        dbDir   = '/work/hk01/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
-        countDir= '/work/hk01/utsumi/PMM/EPCDB/list'
-        retbaseDir = '/tank/utsumi/PMM/retsynt/%s'%(expr)
-        figDir   = '/home/utsumi/temp/ret'
-
-elif myhost == 'well':
-    if dbtype=='jpl':
-        dbDir   = '/home/utsumi/mnt/lab_tank/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE_TEST29'%(sensor)
-        countDir= '/home/utsumi/mnt/lab_tank/utsumi/PMM/JPLDB/list'
-        retbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retsynt/%s'%(expr)
-        figDir   = '/home/utsumi/temp/ret'
-    elif dbtype=='my':
-        dbDir   = '/media/disk2/share/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
-        countDir= '/media/disk2/share/PMM/EPCDB/list'
-        retbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retsynt/%s'%(expr)
-        figDir   = '/home/utsumi/temp/ret'
-
-else:
-    print 'check hostname',myhost
-    sys.exit()
-
 
 lsurftype = ['all','ocean','vegetation','coast','snow']
 #lsurftype = ['ocean']
@@ -90,7 +53,7 @@ dsurflabel={ 'all': 'All surface'
 
 dlsatid = {'GMI':[1],'AMSR2':[30], 'SSMIS':[16,17,18,19], 'ATMS':[100,101], 'MHS':[201,202,318,319]}
 
-dsatname = {999:'ALLSATE',0:'TRMM',1:'GMI',16:'F16',17:'F17',18:'F18',19:'F19',30:'GCOMW',100:'NPP',101:'NOAA20',201:'METOP-A',202:'METOP-B',318:'NOAA18',319:'NOAA19', 400:'SAPHIR'}
+dsatname = {999:'ALLSATE',0:'TRMM',1:'GPM',16:'F16',17:'F17',18:'F18',19:'F19',30:'GCOMW',100:'NPP',101:'NOAA20',201:'METOP-A',202:'METOP-B',318:'NOAA18',319:'NOAA19', 400:'SAPHIR'}
 #**************************************
 # Functions
 #--------------------------------------
@@ -104,11 +67,53 @@ def read_orbitlist(Year,Mon):
     return lout
 
 #--------------------------------------
-if dbtype=='jpl':
-    db = JPLDB.JPLDB(sensor)
 
 dvnummax = {}
-for rettype in lrettype:
+for (sensor,rettype) in [(sensor,rettype)
+                for sensor  in lsensor
+                for rettype in lrettype]:
+
+    if sensor=='GMI':
+        dbtype='my'
+        db = EPCDB.EPCDB()
+    else:
+        dbtype='jpl'
+        db = JPLDB.JPLDB(sensor)
+
+    myhost = socket.gethostname()
+    if myhost =='shui':
+        if dbtype=='jpl':
+            countDir= '/media/disk2/share/PMM/JPLDB/list'
+            tankDir = '/tank'
+            figDir   = '/home/utsumi/temp/multi'
+
+        elif dbtype=='my':
+            countDir= '/work/hk01/utsumi/PMM/EPCDB/list'
+            tankDir = '/tank'
+            figDir   = '/home/utsumi/temp/multi'
+
+    elif myhost == 'well':
+        if dbtype=='jpl':
+            countDir= '/media/disk2/share/PMM/JPLDB/list'
+            tankDir = '/home/utsumi/mnt/lab_tank'
+            figDir   = '/home/utsumi/temp/multi'
+        elif dbtype=='my':
+            countDir= '/media/disk2/share/PMM/EPCDB/list'
+            tankDir = '/home/utsumi/mnt/lab_tank'
+            figDir   = '/home/utsumi/temp/multi'
+
+    else:
+        print 'check hostname',myhost
+        sys.exit()
+
+
+
+    expr = 'prf.%s.smp%d'%(sensor,nsample)
+    retbaseDir = tankDir + '/utsumi/PMM/retsynt/%s'%(expr)
+    if dbtype=='jpl':
+        dbDir = '/media/disk2/share/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE'%(sensor)
+    else:
+        dbDir = tankDir + '/utsumi/PMM/EPCDB/samp.%05d.%s.V05A.S1.ABp103-117.01-12'%(DB_MAXREC, sensor)
 
     #***************************
     # Initialize histogram
@@ -216,6 +221,11 @@ for rettype in lrettype:
                 a1irec= np.load(retbaseDir + '/%05d/%s.obs.%05d.npy'%(idx_db,'irec',idx_db)).astype(int32)
                 a1obs = db.get_var('precip_NS_cmb')[a1irec] 
                 a1ret = db.get_var('precip_GPROF')[a1irec]
+
+                if sensor in ['SSMIS','ATMS','MHS']:
+                    a1satid = np.load(retbaseDir + '/%05d/satid.obs.%05d.npy'%(idx_db,idx_db))
+
+
 
         else:
             print 'check rettype',rettype

@@ -7,7 +7,7 @@ import sys, os, glob, socket
 import myfunc.util as util
 import calendar
 import pickle
-import JPLDB
+import JPLDB, EPCDB
 
 calcflag  = True
 #calcflag  = False
@@ -16,23 +16,15 @@ coefflag  = 'wcoef'  # 'nocoef', 'wcoef'
 DB_MAXREC = 10000
 DB_MINREC = 1000
 nsample   = 1000
-dbtype = 'my'
-#dbtype = 'jpl'
-sensor = 'GMI'
-#sensor = 'AMSR2'
-#sensor = 'SSMIS'
-#sensor = 'ATMS'
-#sensor = 'MHS'
-#lrettype = ['NS','MS','NScmb','MScmb']
-#lrettype = ['NS','MS','NScmb','MScmb','GPROF']
+lsensor = ['GMI','AMSR2','SSMIS','ATMS','MHS']
+#lsensor = ['GMI']
 #lrettype = ['GPROF']  
-#lrettype = ['MS','NS','NScmb','MScmb']
-lrettype = ['NScmb']
+#lrettype = ['NScmb']
+lrettype = ['NScmb','GPROF']
 thpr = 0.2
-expr = 'org.%s.smp%d'%(sensor,nsample)
 lidx_db = range(29*29*29)[1:]
 #lidx_db = range(5829,5850)
-#lidx_db = range(6000,6100)
+#lidx_db = range(6000,7000)
 #lidx_db = range(29*29*4,29*29*8)
 #lidx_db = range(29*29*8,29*29*12)
 #lidx_db = range(29*29*12,29*29*16)
@@ -40,33 +32,6 @@ lidx_db = range(29*29*29)[1:]
 #lidx_db = range(29*29*20,29*29*24)
 #lidx_db = range(29*29*24,29*29*29)
 #** Constants ******
-myhost = socket.gethostname()
-if myhost =='shui':
-    if dbtype=='jpl':
-        dbDir   = '/tank/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE_TEST29'%(sensor)
-        countDir= '/tank/utsumi/PMM/JPLDB/list'
-        retbaseDir = '/tank/utsumi/PMM/retsynt/%s'%(expr)
-
-    elif dbtype=='my':
-        dbDir   = '/work/hk01/utsumi/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
-        countDir= '/work/hk01/utsumi/PMM/EPCDB/list'
-        retbaseDir = '/tank/utsumi/PMM/retsynt/%s'%(expr)
-
-elif myhost == 'well':
-    if dbtype=='jpl':
-        dbDir   = '/home/utsumi/mnt/lab_tank/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE_TEST29'%(sensor)
-        countDir= '/home/utsumi/mnt/lab_tank/utsumi/PMM/JPLDB/list'
-        retbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retsynt/%s'%(expr)
-    elif dbtype=='my':
-        dbDir   = '/media/disk2/share/PMM/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
-        countDir= '/media/disk2/share/PMM/EPCDB/list'
-        retbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retsynt/%s'%(expr)
-
-
-else:
-    print 'check hostname',myhost
-    sys.exit()
-
 
 lsurftype = ['all','ocean','vegetation','coast','snow']
 #lsurftype = ['ocean']
@@ -94,15 +59,54 @@ def read_orbitlist(Year,Mon):
     return lout
 
 #--------------------------------------
-if dbtype=='jpl':
-    db = JPLDB.JPLDB(sensor)
-
-
-lsatid = dlsatid[sensor]
-for rettype in lrettype:
+for (sensor,rettype) in [(sensor,rettype)
+                for sensor  in lsensor
+                for rettype in lrettype]:
 
     if calcflag is not True:
         continue
+
+    lsatid = dlsatid[sensor]
+
+    if sensor=='GMI':
+        dbtype='my'
+        db = EPCDB.EPCDB()
+    else:
+        dbtype='jpl'
+        db = JPLDB.JPLDB(sensor)
+
+    myhost = socket.gethostname()
+    if myhost =='shui':
+        if dbtype=='jpl':
+            countDir= '/media/disk2/share/PMM/JPLDB/list'
+            tankDir = '/tank'
+
+        elif dbtype=='my':
+            countDir= '/work/hk01/utsumi/PMM/EPCDB/list'
+            tankDir = '/tank'
+
+    elif myhost == 'well':
+        if dbtype=='jpl':
+            countDir= '/media/disk2/share/PMM/JPLDB/list'
+            tankDir = '/home/utsumi/mnt/lab_tank'
+
+        elif dbtype=='my':
+            countDir= '/media/disk2/share/PMM/EPCDB/list'
+            tankDir = '/home/utsumi/mnt/lab_tank'
+
+    else:
+        print 'check hostname',myhost
+        sys.exit()
+
+    if dbtype=='my':
+        #dbDir = tankDir + '/utsumi/PMM/EPCDB/samp.%05d.%s.V05A.S1.ABp103-117.01-12'%(DB_MAXREC, sensor)
+        dbDir = '/media/disk2/share/PMM/EPCDB/samp.%05d.%s.V05A.S1.ABp103-117.01-12'%(DB_MAXREC, sensor)
+    else:
+        dbDir = '/media/disk2/share/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE'%(sensor)
+
+
+    expr = 'prf.%s.smp%d'%(sensor,nsample)
+    retbaseDir = tankDir + '/utsumi/PMM/retsynt/%s'%(expr)
 
     #** Read count file of DB records **
     if coefflag == 'wcoef':
@@ -161,6 +165,11 @@ for rettype in lrettype:
 
             db.set_file(dbPath)
 
+        elif dbtype=='my':
+            pass
+
+        print sensor,rettype,idx_db
+
         if rettype != 'GPROF':
             print 'idx_db=',idx_db
             obsPath = retbaseDir + '/%05d/nsurf%s.obs.%05d.npy'%(idx_db,rettype,idx_db)
@@ -206,17 +215,23 @@ for rettype in lrettype:
             sys.exit()
 
 
-
         #***************************
         # Use irec to read database
         #---------------------------
         if   dbtype=='jpl':
             a1surftype = db.get_var('sfc_class')[a1irec]
+            a1lat      = db.get_var('glat')
 
         elif dbtype=='my':
             a1surftype = np.load(dbDir + '/surfaceTypeIndex/%05d.npy'%(idx_db))[a1irec]
+            a1lat      = np.load(dbDir + '/Latitude/%05d.npy'%(idx_db))[a1irec]
 
-
+        #***************************
+        # Mask by latitude
+        #---------------------------
+        a1masklat = ma.masked_outside(a1lat,-65,65).mask
+        if type(a1masklat) is np.bool_:
+            a1masklat = np.array([a1masklat])
         #---------------------------
 
         for satid in [999] + lsatid:
@@ -327,7 +342,7 @@ for rettype in lrettype:
     idx_db0 = min(lidx_db)
     idx_db1 = max(lidx_db)
 
-    outDir  = '/home/utsumi/temp/ret'
+    outDir  = '/home/utsumi/temp/multi'
     csvPath = outDir + '/multi.metrics.%s.%s.%05d-%05d.%s.csv'%(expr, coefflag, idx_db0, idx_db1, rettype)
 
     f=open(csvPath,'w'); f.write(sout); f.close()
@@ -336,11 +351,16 @@ for rettype in lrettype:
 #*******************************
 # Load  and calc metrics
 #-------------------------------
-for rettype in lrettype:
+for (sensor,rettype) in [(sensor,rettype)
+                for sensor  in lsensor
+                for rettype in lrettype]:
+
+    expr = 'prf.%s.smp%d'%(sensor,nsample)
+
     idx_db0 = min(lidx_db)
     idx_db1 = max(lidx_db)
 
-    outDir  = '/home/utsumi/temp/ret'
+    outDir  = '/home/utsumi/temp/multi'
     csvPath = outDir + '/multi.metrics.%s.%s.%05d-%05d.%s.csv'%(expr, coefflag, idx_db0, idx_db1, rettype)
 
     f=open(csvPath,'r'); lines=f.readlines(); f.close()

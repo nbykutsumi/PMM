@@ -21,7 +21,7 @@ DB_MINREC  = 1000
 #sensor = 'AMSR2'
 #sensor = 'SSMIS'
 #lsensor = ['AMSR2','SSMIS','ATMS','MHS']
-lsensor = ['SSMIS','ATMS','MHS']
+lsensor = ['AMSR2','SSMIS','ATMS','MHS']
 
 
 myhost = socket.gethostname()
@@ -30,8 +30,7 @@ if myhost =="shui":
     outDir  = tankbaseDir + '/utsumi/PMM/JPLDB/list'
 elif myhost =="well":
     tankbaseDir = '/home/utsumi/mnt/lab_tank'
-    #outDir  = '/media/disk2/share/PMM/EPCDB/list'
-    outDir  = tankbaseDir + '/utsumi/PMM/JPLDB/list'
+    outDir  = '/media/disk2/share/PMM/JPLDB/list'
 
 
 NEM_USE    = 3
@@ -40,7 +39,10 @@ NPCHIST    = 29
 dlsatid = {'AMSR2':[30], 'SSMIS':[16,17,18,19], 'ATMS':[100,101], 'MHS':[201,202,318,319]}
 
 for sensor in lsensor:
-    dbDir = tankbaseDir + '/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE_TEST29'%(sensor)
+    #dbDir = tankbaseDir + '/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE_TEST29'%(sensor)
+    #dbDir = tankbaseDir + '/utsumi/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE_TEST29'%(sensor)
+    dbDir = '/media/disk2/share/PMM/JPLDB/EPC_DB/%s_EPC_DATABASE'%(sensor)
+
     #************************
     # Initialize
     #------------------------

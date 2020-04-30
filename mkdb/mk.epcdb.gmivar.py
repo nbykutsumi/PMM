@@ -6,6 +6,8 @@ from collections import deque
 import sys, os, glob
 import gc
 import h5py
+import socket
+
 
 prod     = '1C'
 verGMI   = '05'
@@ -36,13 +38,15 @@ worg= 221  # GMI total angle bins
 #lvar = [['gmi','S1/Latitude']]
 #lvar = [['gmi','S1/pYXpmw'],['gprof','S1/surfaceTypeIndex']]
 #lvar = [['gprof','S1/surfaceTypeIndex']]
+#lvar = [['gprof','S1/precipTotWaterCont']]
+lvar = [['gprof','S1/qualityFlag']]
 #lvar = [['gmi','epc']]
 #lvar = [['gmi','S1/pYXpmw'],['gmi','S1/gNum'],['gmi','S1/Tc'],['gmi','S1/ScanTime/Year'],['gmi','S1/ScanTime/mdhms']]
 #lvar = [['gmi','S1/pYXpmw'],['gmi','S1/gNum'],['gmi','S1/ScanTime/Year'],['gmi','S1/ScanTime/mdhms']]
 #lvar = [['gmi','S1/ScanTime/Year'],['gmi','S1/ScanTime/mdhms']]
 #lvar = [['gmi','S1/gNum']]
 #lvar = [['gmi','S1/ScanTime/Year']]
-lvar = [['gmi','S1/ScanTime/mdhms']]
+#lvar = [['gmi','S1/ScanTime/mdhms']]
 #lvar = [['gmi','S1/LatLon']]
 
 '''
@@ -50,13 +54,16 @@ int8 : -128 ~ +127
 int16: -32768 ~ +32767
 int32: -2147483648 ~ +2147483647
 '''
+
 dattype={
  'S1/Latitude' :'float32'
 ,'S1/Longitude':'float32'
 ,'S1/ScanTime/Year':'int16'
 ,'S1/ScanTime/mdhms':'int8'
+,'S1/qualityFlag':'int8'
 ,'S1/surfaceTypeIndex':'int32'
 ,'S1/surfacePrecipitation':'float32'
+,'S1/precipTotWaterCont':'int16'
 ,'S1/pYXpmw': 'int16'
 ,'S1/gNum': 'int16'
 ,'epc': 'float32'
@@ -68,8 +75,10 @@ dnvect ={
 ,'S1/Longitude':1
 ,'S1/ScanTime/Year':1
 ,'S1/ScanTime/mdhms':5
+,'S1/qualityFlag':1
 ,'S1/surfaceTypeIndex':1
 ,'S1/surfacePrecipitation':1
+,'S1/precipTotWaterCont':28
 ,'S1/pYXpmw': 2
 ,'S1/gNum': 1
 ,'epc': 13
@@ -84,15 +93,20 @@ for (prodName, var) in lvar:
     dmaxrec[var] = int(maxmem / (4*nvect*10000))
 
 #-----------------------
+myhost = socket.gethostname()
+if myhost =='shui':
+    listDir  = '/work/hk01/utsumi/PMM/EPCDB/list'
+    extractidDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.%s'%(fullverGMI, 'S1', cx-w, cx+w, 'epcid-s1')
+    gmibaseDir   = '/work/hk01/PMM/NASA/GPM.GMI/%s/V%s'%(prod,verGMI)
+    gprofbaseDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05'
+    outbaseDir   = '/work/hk01/utsumi/PMM/EPCDB/GMI.V%s.%s.ABp%03d-%03d'%(fullverGMI, 'S1', cx-w, cx+w)
+elif myhost =='well':
+    listDir      = '/home/utsumi/mnt/lab_tank/utsumi/PMM/EPCDB/list'
+    extractidDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.%s'%(fullverGMI, 'S1', cx-w, cx+w, 'epcid-s1')
+    gmibaseDir   = '/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.GMI/%s/V%s'%(prod,verGMI)
+    gprofbaseDir = '/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.GMI/2A/V05'
+    outbaseDir   = '/home/utsumi/mnt/lab_tank/utsumi/PMM/EPCDB/GMI.V%s.%s.ABp%03d-%03d'%(fullverGMI, 'S1', cx-w, cx+w)
 
-listDir  = '/work/hk01/utsumi/PMM/EPCDB/list'
-extractidDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.%s'%(fullverGMI, 'S1', cx-w, cx+w, 'epcid-s1')
-
-gmibaseDir   = '/work/hk01/PMM/NASA/GPM.GMI/%s/V%s'%(prod,verGMI)
-gprofbaseDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05'
-
-
-outbaseDir   = '/work/hk01/utsumi/PMM/EPCDB/GMI.V%s.%s.ABp%03d-%03d'%(fullverGMI, 'S1', cx-w, cx+w)
 
 #-- Functions --
 def csv2list(srcPath):
@@ -102,6 +116,29 @@ def csv2list(srcPath):
         line = line.strip().split(',')
         lout.append(line)
     return lout
+
+def ret_aprof(a4clusterProf, a2tIndex, a3profNum, a3profScale, lspecies=[0,2,3,4]):
+    nh = 28
+    ny,nx = a2tIndex.shape
+    a4out = empty([len(lspecies),ny, nx, nh], dtype='float32')
+
+    for i,species in enumerate(lspecies):
+        a1profScale= a3profScale[:,:,species].flatten()
+        a1profNum  = a3profNum[:,:,species].flatten()
+        a1tIndex   = a2tIndex.flatten()
+
+        #-- Handle non-precipitation pixels --
+        a1flag = ma.masked_equal(a1profNum, 0).mask
+        a1profNum[a1flag] = 1
+        a1tIndex[a1flag] = 1
+
+        a2prof = a1profScale.reshape(-1,1) * a4clusterProf[a1profNum-1,:, a1tIndex-1, species]
+        a2prof[a1flag,:] = 0.0
+        a4out[i] = a2prof.reshape(ny,nx,nh)
+
+    return a4out
+
+
 #---------------
 for Year,Mon in lYM:
     for (prodName, var) in lvar:
@@ -214,7 +251,7 @@ for Year,Mon in lYM:
                         Dat[:,xtmp] = a1yyyy
                     Dat = Dat.flatten()
 
-                elif varName in ['surfaceTypeIndex','surfacePrecipitation','Latitude','Longitude']:
+                elif varName in ['qualityFlag','surfaceTypeIndex','surfacePrecipitation','Latitude','Longitude']:
                     with h5py.File(srcPath) as h:
                         Dat = h[var][:]
 
@@ -226,7 +263,22 @@ for Year,Mon in lYM:
                     else:
                         print 'check Dat.shape',Dat.shape
                         sys.exit()
- 
+
+                elif varName in ['precipTotWaterCont']:
+                    with h5py.File(srcPath) as h:
+                        a4clusterProf= h['GprofDHeadr/clusterProfiles'][:]  # (profNumber, nlev, nT, nspecies) = (80, 28, 12, 5)
+                        a2tIndex   = h['S1/profileTemp2mIndex']     [:,cx-w:cx+w+1] # (Y,X)  zero=missing value?
+                        a3profNum  = h['S1/profileNumber']          [:,cx-w:cx+w+1,:] # (Y,X, nspecies)
+                        a3profScale= h['S1/profileScale']           [:,cx-w:cx+w+1,:]  # (Y,X, nspecies)
+
+
+                    a4profg = ret_aprof(a4clusterProf, a2tIndex, a3profNum, a3profScale)
+                    a3profg = ma.masked_less(a4profg,0).sum(axis=0)[:,:,::-1].filled(-9.999) # Bottom to top --> Top to bottom
+                    a3profg = ma.masked_greater(a3profg, 32.7).filled(32.7)  # int16: -32767 ~ +32767
+                    a3profg = (ma.masked_less(a3profg, 0) *1000).filled(-9999).astype('int16')  # Scaled by 1000, Convert to int16
+                    nztmp = a3profg.shape[2]
+                    Dat = a3profg.reshape(-1,nztmp)
+
                 else:
                     print 'check varName', varName
                     print 'exit' 

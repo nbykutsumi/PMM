@@ -27,7 +27,6 @@ for sensor in lsensor:
         if not os.path.exists(srcPth): continue
         db.set_file(srcPth)
 
-        a1elev = db.get_var('elev')
         a2prof= db.get_var('precip_water_prof_NS')
         a1sfcbin= db.get_var('bin_sfc_ku')
 

@@ -294,8 +294,8 @@ for rettype in lrettype:
         lkey = [(dattype,bywhat,ptype,region)
                 for dattype in ['rad','pmw']
                 for bywhat  in ['rad','pmw']
-                for ptype   in ['conv','stra']
-                for region  in ['all','mid','tro']
+                for ptype   in ['all','conv','stra']
+                for region  in ['mid','tro']
         ]
         for (dattype,bywhat,ptype,region) in lkey:
             if (dattype=='rad')&(bywhat=='pmw'):
@@ -315,8 +315,10 @@ for rettype in lrettype:
                 a1vfrac = o1vfracpmw
             else:
                 continue
-                
-            if   ptype=='conv':
+
+            if   ptype=='all':
+                a1flagptype = np.array([True])
+            elif ptype=='conv':
                 a1flagptype = ma.masked_greater(a1vfrac, 0.5).mask
             elif ptype=='stra':
                 a1flagptype = ma.masked_less(a1vfrac, 0.5).mask
@@ -333,6 +335,8 @@ for rettype in lrettype:
             #--- Screening ----
             a1flag = a1flagptype * a1flaglat
             a1vartmp = np.array(a1var)[a1flag]
+
+
             a1vartmp = ma.masked_invalid(a1vartmp)
             a1vartmp = ma.masked_equal(a1vartmp,miss)
 
@@ -426,8 +430,10 @@ for rettype in lrettype:
     print opath
 
 
+
+
 ##***********************
-## Figure
+## Figures: condensed water content
 ##***********************
 if figflag is False:
     print 'No figures'
@@ -449,11 +455,19 @@ for var in ['cond']:
     for bywhat in ['rad','pmw']:
         nrow, ncol = 1, 4
         fig, axs = plt.subplots(nrows=nrow, ncols=ncol, figsize=(8,1.6))
-        lkey = [(ptype,region)
-                            for ptype  in ['stra','conv']
+        #lkey = [(ptype,region)
+        #                    for ptype  in ['stra','conv']
+        #                    for region in ['tro','mid']  # 'all','mid','tro'
+        #]
+
+        lkey = [(region,ptype)
                             for region in ['mid','tro']  # 'all','mid','tro'
+                            for ptype  in ['stra','conv']
         ]
-        for ikey, (ptype,region) in enumerate(lkey):
+
+
+        #for ikey, (ptype,region) in enumerate(lkey):
+        for ikey, (region,ptype) in enumerate(lkey):
             ax = axs[ikey]
             avecmb = dvarepc[var,'rad','rad' ,ptype,region,'ave']
             aveepc = dvarepc[var,'pmw',bywhat,ptype,region,'ave']
@@ -479,15 +493,17 @@ for var in ['cond']:
 
             #-- title --
             ptypename = {'stra':'Strat','conv':'Conv'}[ptype]
-            regionname= {'mid':'Mid','tro':'Tropics'}[region]
-            ax.set_title('%s (%s)'%(ptypename, regionname))
+            regionname= {'mid':'Mid-high','tro':'Tropics'}[region]
+            #ax.set_title('%s (%s)'%(ptypename, regionname))
+            ax.set_title('%s (%s)'%(regionname, ptypename))
 
             #-- Y-limit
-            ymax = {('stra','mid'):0.12,
-                    ('stra','tro'):0.27,
-                    ('conv','mid'):0.27,
-                    ('conv','tro'):0.27,
-                }[(ptype,region)]
+            #ymax = {('stra','mid'):0.35,
+            #        ('stra','tro'):0.35,
+            #        ('conv','mid'):0.35,
+            #        ('conv','tro'):0.35,
+            #    }[(ptype,region)]
+            ymax  = 0.27  # 0.12, 0.27 ?
             ax.set_ylim([0,ymax])
 
             #-- Y-axis label --
@@ -495,10 +511,29 @@ for var in ['cond']:
                 ax.set(ylabel='[g/m3]')
 
             #-- text annotation --
-            for rect in rects:
+            for irect,rect in enumerate(rects):
                 height = rect.get_height()
+                #if irect ==0:                
+                #    xy = (rect.get_x()*0.93, height + ymax*0.1)
+                #else:
+                #    xy = (rect.get_x()*0.93, height + ymax*0.3)
                 xy = (rect.get_x()*0.93, height + ymax*0.1)
                 ax.annotate('%.2f'%(height), xy=xy)
+
+            ##-- text annotation(percentatge) --
+            #print ''
+            #print ptype,region,bywhat
+            #for irect,rect in enumerate(rects):
+            #    height = rect.get_height()
+            #    if irect==0:
+            #        height0 = height
+            #        continue
+            #    else:
+            #        ratio = height/height0
+            #    xy = (rect.get_x()*0.91, height + ymax*0.1)
+            #    ax.annotate('(%.2f)'%(ratio), xy=xy)
+            #    print height0, height, height/height0, ratio
+
 
         varname={'cond':'Mean condensed water content'}['cond']
         bywhatname={'rad':"Conditional on CMB's precip type",
@@ -512,7 +547,89 @@ for var in ['cond']:
         plt.savefig(figpath)
         print figpath
 
+
+##***********************
+## Figures: condensed water content (unconditional)
+##***********************
+for var in ['cond']:
+    for bywhat in ['rad','pmw']:
+        nrow, ncol = 1, 2
+        ptype= 'all'
+
+        fig, axs = plt.subplots(nrows=nrow, ncols=ncol, figsize=(4.1,1.6))
+        lkey = [region for region in ['tro','mid']]
+        for ikey, (region) in enumerate(lkey):
+            ax = axs[ikey]
+            avecmb = dvarepc[var,'rad','rad' ,ptype,region,'ave']
+            aveepc = dvarepc[var,'pmw',bywhat,ptype,region,'ave']
+            avegpr = dvargpr[var,'pmw',bywhat,ptype,region,'ave']
+            p25cmb = dvarepc[var,'rad','rad' ,ptype,region,'p25']
+            p25epc = dvarepc[var,'pmw',bywhat,ptype,region,'p25']
+            p25gpr = dvargpr[var,'pmw',bywhat,ptype,region,'p25']
+            p75cmb = dvarepc[var,'rad','rad' ,ptype,region,'p75']
+            p75epc = dvarepc[var,'pmw',bywhat,ptype,region,'p75']
+            p75gpr = dvargpr[var,'pmw',bywhat,ptype,region,'p75']
+
+            aerrmin= -np.array([p25cmb,p25epc,p25gpr]) + np.array([avecmb,aveepc,avegpr])
+            aerrmax=  np.array([p75cmb,p75epc,p75gpr]) - np.array([avecmb,aveepc,avegpr])
+
+            labels = ['CMB','EPC','GPR']
+            rects  = ax.bar(labels, [avecmb,aveepc,avegpr], yerr=[aerrmin,aerrmax], color='gray')
+
+            #-- title --
+            regionname= {'mid':'Mid-high','tro':'Tropics'}[region]
+            ax.set_title('%s '%(regionname))
+
+            #-- Y-limit
+            #ymax  = 0.35  # 0.12, 0.27 ?
+            ymax  = 0.27  # 0.12, 0.27 ?
+            ax.set_ylim([0,ymax])
+
+            #-- Y-axis label --
+            if ikey==0:
+                ax.set(ylabel='[g/m3]')
+
+            #-- text annotation --
+            for irect,rect in enumerate(rects):
+                height = rect.get_height()
+                #if irect ==0:                
+                #    xy = (rect.get_x()*0.93, height + ymax*0.1)
+                #else:
+                #    xy = (rect.get_x()*0.93, height + ymax*0.3)
+                xy = (rect.get_x()*0.93, height + ymax*0.1)
+                ax.annotate('%.2f'%(height), xy=xy)
+
+            ##-- text annotation(percentatge) --
+            #for irect,rect in enumerate(rects):
+            #    height = rect.get_height()
+            #    if irect==0:
+            #        height0 = height
+            #        continue
+            #    else:
+            #        ratio = height/height0
+            #    xy = (rect.get_x()*0.91, height + ymax*0.1)
+            #    ax.annotate('(%.2f)'%(ratio), xy=xy)
+
+
+
+        varname={'cond':'Mean condensed water content'}['cond']
+        plt.suptitle('%s'%(varname), x=0.55, y=0.98 )
+        plt.tight_layout(rect=[0, 0, 1, 0.9])
+        plt.show()
+
+        figpath = '/home/utsumi/temp/ret/bar.%s.all-type.png'%(var)
+        plt.savefig(figpath)
+        print figpath
+
+
+
+
+
+
+
+#********************************************
 #** Figure convective event fraction ****
+#********************************************
 for rettype in lrettype:
     expr = dexpr[rettype]
     srcdir = tankbaseDir + '/utsumi/PMM/validprof/metrix-orbit/%s.%s'%(rettype,expr)
@@ -524,17 +641,24 @@ for rettype in lrettype:
     elif rettype in ['gprof','gprof-shift']:
         dcfracgpr = dcfrac
 
-
-#********************************************
-#-- Figure: Conditional convective event fraction ---
+#-----------------------
 nrow, ncol = 1,4
 fig, axs = plt.subplots(nrows=nrow, ncols=ncol, figsize=(8,1.6))
-lkey = [(radcondition,region)
-            for radcondition in ['stra','conv']
-            for region in ['mid','tro']
-            ]
+#lkey = [(radcondition,region)
+#            for radcondition in ['stra','conv']
+#            for region in ['tro','mid']
+#            ]
 
-for iax,(radcondition,region) in enumerate(lkey):
+lkey = [(region,ptype)
+                    for region in ['mid','tro']  # 'all','mid','tro'
+                    for ptype  in ['stra','conv']
+]
+
+
+
+
+#for iax,(radcondition,region) in enumerate(lkey):
+for iax,(region,radcondition) in enumerate(lkey):
     ax = axs[iax]
 
     #avecmb = dcfracepc['rad',radcondition,region,'ave']
@@ -579,8 +703,9 @@ for iax,(radcondition,region) in enumerate(lkey):
 
     #-- title --
     ptypename = {'stra':'Strat','conv':'Conv'}[radcondition]
-    regionname= {'mid':'Mid','tro':'Tropics'}[region]
-    ax.set_title('%s (%s)'%(ptypename, regionname))
+    regionname= {'mid':'Mid-high','tro':'Tropics'}[region]
+    #ax.set_title('%s (%s)'%(ptypename, regionname))
+    ax.set_title('%s (%s)'%(regionname, ptypename))
 
     #-- text annotation --
     for rect in rects:
@@ -596,45 +721,103 @@ figpath = '/home/utsumi/temp/ret/bar.convCountFrac.png'
 plt.savefig(figpath)
 print figpath
 
-## %%
-##********************************************
-##-- Figure: Unconditional convective event fraction ---
-#nrow, ncol = 1,2
-#fig, axs = plt.subplots(nrows=nrow, ncols=ncol, figsize=(4,2))
-#radcondition = 'all'
-#for iregion,region in enumerate(['mid','tro']):
-#    ax = axs[iregion]
-#    avecmb = dcfracepc['rad',radcondition,region,'ave']
-#    aveepc = dcfracepc['pmw',radcondition,region,'ave']
-#    avegpr = dcfracgpr['pmw',radcondition,region,'ave']
-#
-#    p05cmb = dcfracepc['rad',radcondition,region,'p05']
-#    p05epc = dcfracepc['pmw',radcondition,region,'p05']
-#    p05gpr = dcfracgpr['pmw',radcondition,region,'p05']
-#    p25cmb = dcfracepc['rad',radcondition,region,'p25']
-#    p25epc = dcfracepc['pmw',radcondition,region,'p25']
-#    p25gpr = dcfracgpr['pmw',radcondition,region,'p25']
-#    p75cmb = dcfracepc['rad',radcondition,region,'p75']
-#    p75epc = dcfracepc['pmw',radcondition,region,'p75']
-#    p75gpr = dcfracgpr['pmw',radcondition,region,'p75']
-#    p95cmb = dcfracepc['rad',radcondition,region,'p95']
-#    p95epc = dcfracepc['pmw',radcondition,region,'p95']
-#    p95gpr = dcfracgpr['pmw',radcondition,region,'p95']
-#
-#
-#    #aerr   = np.array([[p25cmb,p25epc,p25gpr],[p75cmb,p75epc,p75gpr]]) - np.array([avecmb,aveepc,avegpr])
-#    aerr   = np.array([[p05cmb,p05epc,p05gpr],[p95cmb,p95epc,p95gpr]]) - np.array([avecmb,aveepc,avegpr])
-#
-#    labels = ['CMB','EPC','GPR']
-#    ax.bar(labels, [avecmb,aveepc,avegpr], yerr=aerr)
-#    ax.set_title('%s\n%s'%(ptype, region))
-#plt.suptitle('Convective pixel fraction')
-#plt.tight_layout()
-#plt.show()
-#
-#
-#
-## %%
+
+#********************************************
+#-- Figure: Unconditional convective event fraction ---
+#********************************************
+nrow, ncol = 1,2
+fig, axs = plt.subplots(nrows=nrow, ncols=ncol, figsize=(4.1,1.6))
+radcondition = 'all'
+for iregion,region in enumerate(['mid','tro']):
+    ax = axs[iregion]
+    avecmb = dcfracepc['rad',radcondition,region,'ave']
+    aveepc = dcfracepc['pmw',radcondition,region,'ave']
+    avegpr = dcfracgpr['pmw',radcondition,region,'ave']
+
+    p25cmb = dcfracepc['rad',radcondition,region,'p25']
+    p25epc = dcfracepc['pmw',radcondition,region,'p25']
+    p25gpr = dcfracgpr['pmw',radcondition,region,'p25']
+    p75cmb = dcfracepc['rad',radcondition,region,'p75']
+    p75epc = dcfracepc['pmw',radcondition,region,'p75']
+    p75gpr = dcfracgpr['pmw',radcondition,region,'p75']
+
+
+    aerrmin= -np.array([0,p25epc,p25gpr]) + np.array([0,aveepc,avegpr])
+    aerrmax=  np.array([0,p75epc,p75gpr]) - np.array([0,aveepc,avegpr])
+
+    labels = ['CMB','EPC','GPR']
+    rects  = ax.bar(labels, [avecmb,aveepc,avegpr], yerr=[aerrmin,aerrmax], color='gray')
+    ymax = 1.2
+    ax.set_ylim([0,ymax])
+
+    if iregion==0:
+        ax.set(ylabel='[frac. count]')
+
+    #-- title --
+    regionname= {'mid':'Mid-high','tro':'Tropics'}[region]
+    ax.set_title('%s'%(regionname))
+
+    #-- text annotation --
+    for rect in rects:
+        height = rect.get_height()
+        xy = (rect.get_x()*0.93, height + ymax*0.05)
+        ax.annotate('%.2f'%(height), xy=xy)
+
+
+plt.suptitle("Convective pixel fraction")
+plt.tight_layout(rect=[0, 0, 1, 0.9])
+plt.show()
+figpath = '/home/utsumi/temp/ret/bar.convCountFrac-unconditional.png'
+plt.savefig(figpath)
+print figpath
+
+
+#********************************************
+#-- Figure: Unconditional convective event fraction (Only CMB)
+#********************************************
+fig = plt.figure(figsize=(2.2,1.6))
+ax  = fig.add_axes([0.2,0.25,0.6,0.45])
+radcondition = 'all'
+avetro = dcfracepc['rad',radcondition,'tro','ave']
+avemid = dcfracepc['rad',radcondition,'mid','ave']
+
+p25tro = dcfracepc['rad',radcondition,'tro','p25']
+p25mid = dcfracepc['rad',radcondition,'mid','p25']
+p75tro = dcfracepc['rad',radcondition,'tro','p75']
+p75mid = dcfracepc['rad',radcondition,'mid','p75']
+
+aerrmin= -np.array([p25tro,p25mid]) + np.array([avetro,avemid])
+aerrmax=  np.array([p75tro,p75mid]) - np.array([avetro,avemid])
+
+labels = ['Trop','Mid-high']
+rects  = ax.bar(labels, [avetro,avemid], yerr=[aerrmin,aerrmax], color='gray')
+ymax = 1.2
+ax.set_ylim([0,ymax])
+
+if iregion==0:
+    ax.set(ylabel='[frac. count]')
+
+#-- title --
+#ax.set_title('CMB')
+
+#-- text annotation --
+for rect in rects:
+    height = rect.get_height()
+    xy = (rect.get_x()+0.2, height + ymax*0.05)
+    print 'xy=',xy
+    ax.annotate('%.2f'%(height), xy=xy)
+
+
+plt.suptitle("Convective pixel\n fraction (CMB)")
+plt.tight_layout(rect=[0, 0, 1, 0.9])
+plt.show()
+figpath = '/home/utsumi/temp/ret/bar.convCountFrac-CMB.png'
+plt.savefig(figpath)
+print figpath
+
+
+
+
 
 
 # %%

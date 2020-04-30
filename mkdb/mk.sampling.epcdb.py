@@ -17,13 +17,13 @@ iMon,eMon = lMon[0],lMon[-1]
 #lvarName = ['mdhms']
 #lvarName = ['DPRGMI_NS_zeroDegAltitude']
 #lvarName = ['DPRGMI_NS_vfracConv']
-lvarName = ['DPRGMI_NS_surfaceRangeBin','DPRGMI_NS_lowestClutterFreeBin']
+#lvarName = ['DPRGMI_NS_surfaceRangeBin','DPRGMI_NS_lowestClutterFreeBin']
 #lvarName1 = ['epc','Ka_MS_zFactorMeasured','Tc','gNum','t2m','gtopo']
 #lvarName2 = ['DPRGMI_NS_precipTotWaterCont','DPRGMI_MS_surfPrecipTotRate','DPRGMI_NS_surfPrecipTotRate','Ku_NS_precipRateNearSurface','Ka_MS_precipRateNearSurface']
 #lvarName = ['DPRGMI_MS_surfPrecipTotRate','DPRGMI_NS_surfPrecipTotRate', 'Ka_MS_zFactorMeasured','Tc','gNum','t2m','DPRGMI_NS_precipTotWaterCont', 'Ka_MS_precipRateNearSurface', 'Ku_NS_precipRateNearSurface', 'epc',  'gtopo', 'tqv']
 #lvarName = ['surfaceTypeIndex']
 #lvarName = ['surfacePrecipitation']
-
+lvarName = ['precipTotWaterCont','qualityFlag']
 #NREC  = 20000
 NREC  = 10000
 ibaseDir = '/work/hk01/utsumi/PMM/EPCDB/GMI.V05A.S1.ABp103-117'

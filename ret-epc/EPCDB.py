@@ -14,7 +14,7 @@ class EPCDB(object):
         NLEV_MODEL= 42      # 42 levels of MERRA2
         NLEV_DPR= 60        # 60 lowest bins of DPR (250m each)
         NLEV_PRECIP= 60     # 60 lowest levels for preicp (250m each)
-
+        NLEV_GPROF=28
 
 
         self.dictvars    = odict((
@@ -36,8 +36,8 @@ class EPCDB(object):
             ('ss',               ['',   'h']),                 #
             ('timediff',         ['',   'i']),                 # Time difference at each pixel
             ('kmdiff',           ['',   'f']),                 # Distance between radar and PMW pixel [km]
-            ('glat',             ['',   'f']),                 # Lat for PMW pixel
-            ('glon',             ['',   'f']),                 #
+            ('glat',             ['Latitude',   'f']),                 # Lat for PMW pixel
+            ('glon',             ['Longitude',  'f']),                 #
             ('slat',             ['',   'f']),                 # Spacecraft lat for PMW
             ('slon',             ['',   'f']),                 #
             ('salt',             ['',   'f']),                 # Spacecraft altitude
@@ -55,7 +55,7 @@ class EPCDB(object):
             ('emis_NS_cmb',      ['', '%if'%NCHAN]),           # surfEmissivity from CMB product
             ('s0_NS',            ['',   'f']),                 # Sigma0 for NS (Ku)
             ('s0_MS',            ['',   'f']),                 # Sigma0 for MS (Ka)
-            ('sfc_class',        ['',   'h']),                 # Surface class from GPROF
+            ('sfc_class',        ['surfaceTypeIndex',   'h']),                 # Surface class from GPROF
             ('sfc_min',          ['',   'h']),                 # Max of landSurfaceType in a PMW footprint from DRP product
             ('sfc_max',          ['',   'h']),                 #
             ('elev',             ['gtopo',  'h']),             # Elevation of the middle pixel (from GTOPO30)
@@ -97,9 +97,14 @@ class EPCDB(object):
             ('type_precip_MS',     ['','3h']),                 #
             ('shallow_rain_MS',    ['','5h']),                 #
 
-            ('precip_GPROF',       ['', 'f']),                 #
+            ('precip_GPROF',       ['surfacePrecipitation', 'f']),                 #
             ('prob_precip_GPROF',  ['', 'f']),                 #
             ('frozen_precip_GPROF',['', 'f']),                 #
+            ('conv_precip_GPROF',  ['', 'f']),           #
+            ('pixel_status_GPROF', ['', 'h']),           #
+            ('qual_flag_GPROF',    ['qualityFlag', 'h']),           #
+            ('prof_GPROF',         ['precipTotWaterCont','%ih'%NLEV_GPROF]),   # Top to bottom (different from original GPROF), Scaled by 1000
+
 
             ('ts',                 ['', 'f']),                 #
             ('t2m',                ['t2m', 'f']),              # MERRA2
@@ -135,6 +140,7 @@ class EPCDB(object):
             ('precip_water_prof_NS_relsurf',    ['DPRGMI_NS_precipTotWaterContRelSurf', '%if'%NLEV_PRECIP]),  # precipitation water content profile from Comb product
             ('storm_height_ku',   ['Ku_NS_heightStormTop', 'h']),    # heightStormTop from L2-DPR-Ku (m) int16
             ('vfracConv',   ['DPRGMI_NS_vfracConv', 'f']),    # heightStormTop from L2-DPR-Ku (m) int16
+            ('vfrac_conv_NS_cmb',   ['DPRGMI_NS_vfracConv', 'f']),    # heightStormTop from L2-DPR-Ku (m) int16, Same as 'vfracConv'
 
             ))
 

@@ -18,10 +18,11 @@ import random
 #lidx_db = [14155]  # N ~3500
 #lidx_db = [4721]
 #lidx_db = range(29*29*29)[1:]
+lidx_db = range(29*29*29)[16911:]
 #lidx_db = [1365]
-lidx_db = [5810]
+#lidx_db = [5810]
 
-insample = 1000
+nsample = 1000
 #fracsample= 0.1  # used if nsample <0
 
 dbtype  = 'my'
@@ -29,8 +30,7 @@ dbtype  = 'my'
 DB_MAXREC    = 10000
 DB_MINREC    = 1000
 sensor  = 'GMI'
-expr = 'org.smp%d'%(nsample)
-#expr = 'no-same-rev.smp%d'%(nsample)
+expr = 'prf.%s.smp%d'%(sensor, nsample)
 
 #** Constants ******
 myhost = socket.gethostname()
@@ -70,7 +70,7 @@ if nsample <0:
 #** Parameters ************    
 
 tqvflag = 0
-elevflag= 0
+#elevflag= 0
 
 NEM     = 12
 NTBREG  = 13
@@ -297,16 +297,16 @@ for idx_db in lidx_db:
         #a2prprofNScmbTmp= ma.masked_less(db.get_var('precip_prof_NS_cmb'), 0).filled(0.0)[:,-NLEV_PRECIP:]
 
         #a2prwatprofNSTmp = db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]
-        a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.)  # 2019/11/12
+        #a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.)  # 2019/11/12
+        a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS_relsurf')[:,-NLEV_PRECIP:]).filled(-9999.)  # 2019/11/12
 
 
         #a1tsdbTmp  = db.get_var('ts') 
         a1t2mdbTmp = db.get_var('t2m') 
         a1revdbTmp = db.get_var('rev') 
+        #a1elevdbTmp= db.get_var('elev') 
         if tqvflag ==1:
             a1tqvdbTmp = db.get_var('tqv') 
-        if elevflag ==1:
-            a1elevdbTmp= db.get_var('elev') 
 
         a1idxdbTmp = np.ones(a2epcdbTmp.shape[0]).astype(int32)*idx_db_expand
         a1irecTmp  = np.arange(a2epcdbTmp.shape[0]).astype(int32)
@@ -326,10 +326,9 @@ for idx_db in lidx_db:
             #a1tsdb  = a1tsdbTmp
             a1t2mdb = a1t2mdbTmp
             a1revdb = a1revdbTmp
+            #a1elevdb= a1elevdbTmp
             if tqvflag ==1:
                 a1tqvdb = a1tqvdbTmp
-            if elevflag ==1:
-                a1elevdb= a1elevdbTmp
 
             a1idxdb = a1idxdbTmp
             a1irecsubdb = a1irecTmp
@@ -348,10 +347,9 @@ for idx_db in lidx_db:
             #a1tsdb  = concatenate([a1tsdb,   a1tsdbTmp], axis=0) 
             a1t2mdb  = concatenate([a1t2mdb,  a1t2mdbTmp], axis=0) 
             a1revdb  = concatenate([a1revdb,  a1revdbTmp], axis=0) 
+            #a1elevdb= concatenate([a1elevdb, a1elevdbTmp], axis=0) 
             if tqvflag ==1:
                 a1tqvdb  = concatenate([a1tqvdb,  a1tqvdbTmp], axis=0) 
-            if elevflag ==1:
-                a1elevdb= concatenate([a1elevdb, a1elevdbTmp], axis=0) 
 
             a1idxdb = concatenate([a1idxdb,  a1idxdbTmp], axis=0)
             a1irecsubdb = concatenate([a1irecsubdb,   a1irecTmp], axis=0)
@@ -379,17 +377,15 @@ for idx_db in lidx_db:
     a1nsurfMSObs    = db.get_var('precip_nsfc_MS')
     a1nsurfNSObs    = db.get_var('precip_nsfc_NS')
     
-    #a2prwatprofNSObs = db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]
-    a2prwatprofNSObs = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.) # 2019/11/12
+    #a2prwatprofNSObs = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.) # 2019/11/12
     
     
     #a1tsdbTmp  = db.get_var('ts') 
     a1t2mObs = db.get_var('t2m') 
     a1revObs = db.get_var('rev') 
+    #a1elevObs= db.get_var('elev') 
     if tqvflag ==1:
         a1tqvObs = db.get_var('tqv') 
-    if elevflag ==1:
-        a1elevObs= db.get_var('elev') 
 
     #****************************************************
     # Mask invalid db data
@@ -416,8 +412,6 @@ for idx_db in lidx_db:
     
     a2epcdb[a1maskdb] = miss
     a2epcdb = ma.masked_equal(a2epcdb, miss)
-
-
 
     #****************************************************
     # Mask invalid obs data
@@ -475,8 +469,6 @@ for idx_db in lidx_db:
     a1nsurfMSObs     = ma.masked_invalid(a1nsurfMSObs).filled(miss)[lirec]
     a1nsurfNScmbObs  = ma.masked_invalid(a1nsurfNScmbObs).filled(miss)[lirec]
     a1nsurfMScmbObs  = ma.masked_invalid(a1nsurfMScmbObs).filled(miss)[lirec]
-
-
 
     a1irec           = np.array(lirec).astype(int32)
     a1topirec        = np.ones(len(lirec), int32)*miss
@@ -574,8 +566,7 @@ for idx_db in lidx_db:
     np.save(outDir + '/nsurfMS.est.%05d.npy'%(idx_db), a1nsurfMSest)
     np.save(outDir + '/nsurfNScmb.est.%05d.npy'%(idx_db), a1nsurfNScmbest) 
     np.save(outDir + '/nsurfMScmb.est.%05d.npy'%(idx_db), a1nsurfMScmbest) 
-    np.save(outDir + '/precip_water_prof_NS.est.%05d.npy'%(idx_db), a2prwatprofNSest) 
-
+    np.save(outDir + '/precip_water_prof_NS_relsurf.est.%05d.npy'%(idx_db), a2prwatprofNSest) 
     np.save(outDir + '/nsurfNS.obs.%05d.npy'%(idx_db), a1nsurfNSObs) 
     np.save(outDir + '/nsurfMS.obs.%05d.npy'%(idx_db), a1nsurfMSObs)
     np.save(outDir + '/nsurfNScmb.obs.%05d.npy'%(idx_db), a1nsurfNScmbObs) 

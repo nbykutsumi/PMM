@@ -38,8 +38,8 @@ else:
     print 'check hostname',myhost
     sys.exit()
 
-lsurftype = ['ocean','vegetation','coast','snow']
-#lsurftype = ['vegetation']
+#lsurftype = ['ocean','vegetation','coast','snow']
+lsurftype = ['snow']
 
 dsurflabel={ 'ocean':'Class1 (Ocean)'
             ,'vegetation':'Classes 3-7 (Vegetation)'
@@ -47,24 +47,24 @@ dsurflabel={ 'ocean':'Class1 (Ocean)'
             ,'coast':'Class 13 (Coast)'
             }
 
-calcflag= True
-#calcflag= False
+#calcflag= True
+calcflag= False
 #obstype= 'mrms'
 obstype= 'cmb'
 #region = 'US'
 region = 'GLB'
 #lseason = ['JJADJF']
 #lseason = ['JJA']
-#lseason = ['ALL']
-lseason = [6]
+lseason = ['ALL']
+#lseason = [6]
 DB_MAXREC = 10000
 DB_MINREC = 1000
 
 #lrettype = ['NS','MS','NScmb','MScmb']
 #lrettype = ['NS','MS','NScmb','MScmb','GPROF']
 #lrettype = ['NScmb','GPROF']
-#lrettype = ['GPROF'] 
-lrettype = ['NScmb']
+lrettype = ['GPROF'] 
+#lrettype = ['NScmb']
 #prmin = 0.1
 prmin = 0.01
 #prmin = 0.0
@@ -368,7 +368,26 @@ for season in lseason:
             ax.set_ylabel('%s [mm/hour]'%(rettype), fontsize=22)
             ax.set_ylim([logvmin,logvmax])
             ax.set_xlim([logvmin,logvmax])
+
+            ##-- Test ----
+            #atick  = [0.1, 0.3, 0.5, 0.7, 1.0, 1.5, 2.0, 3.0, 4.0]
+
+            #lticks = np.log10(atick)
+            #lticklabels = atick
     
+            #ax.set_xticks(lticks)
+            #ax.set_xticklabels(lticklabels, fontsize=16)
+            #ax.set_yticks(lticks)
+            #ax.set_yticklabels(lticklabels, fontsize=16)
+
+            #ax.set_xlabel('%s [mm/hour]'%(str.upper(obstype)), fontsize=22)
+            #ax.set_ylabel('%s [mm/hour]'%(rettype), fontsize=22)
+            #tempmin,tempmax = -1, np.log10(4)
+            #ax.set_ylim([tempmin,tempmax])
+            #ax.set_xlim([tempmin,tempmax])
+            ##--------------
+
+
             plt.title('%s (%s)\n%s %s'%(rettype, region, dsurflabel[surftype],season), fontsize=24)
     
             cax = fig.add_axes([0.84,0.15,0.02, 0.6])

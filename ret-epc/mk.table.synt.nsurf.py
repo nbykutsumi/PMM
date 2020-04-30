@@ -13,7 +13,7 @@ dbtype  = 'my'
 
 DB_MAXREC    = 10000
 DB_MINREC    = 1000
-sensor  = 'GMI'
+lsensor = ['GMI','AMSR2','SSMIS','ATMS','MHS']
 expr = 'org.smp%d'%(nsample)
 #** Constants ******
 myhost = socket.gethostname()
