@@ -79,13 +79,13 @@ elif myhost =="well":
     outbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/%s'%(expr)
     tankDir = '/home/utsumi/mnt/lab_tank'
 else:  # Change here
-    gmibaseDir  = '/home/utsumi/temp/test-ret/GMI.L1C'
-    matchbaseDir= '/home/utsumi/temp/test-ret/MATCH.GMI.V05A'
-    rnrbaseDir  = '/home/utsumi/temp/test-ret/RNR'
-    coefDir     = '/home/utsumi/temp/test-ret/EPCDB/EPC_COEF/%s'%(sensor)
-    dbDir       = '/home/utsumi/temp/test-ret/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)
-    tankDir     = '/home/utsumi/mnt/lab_tank'
-    outbaseDir  = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/%s'%(expr)
+    gmibaseDir  = '/home/utsumi/temp/test-ret/GMI.L1C'   # GMI L1C
+    matchbaseDir= '/home/utsumi/temp/test-ret/MATCH.GMI.V05A'  # GMI.S2.IDX and t2m 
+    rnrbaseDir  = '/home/utsumi/temp/test-ret/RNR'       # Rain-NoRain files
+    coefDir     = '/home/utsumi/temp/test-ret/EPCDB/EPC_COEF/%s'%(sensor) # Coefficient files for EPC calculation
+    dbDir       = '/home/utsumi/temp/test-ret/EPCDB/samp.%d.GMI.V05A.S1.ABp103-117.01-12'%(DB_MAXREC)  # a-priori Database
+    tankDir     = ''   # Not used
+    outbaseDir  = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/%s'%(expr) # Outpout directories
 
 
 #*******************
