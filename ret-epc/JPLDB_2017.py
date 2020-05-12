@@ -1,17 +1,13 @@
 import os, sys
 from numpy import *
+#from f_read_db import *
 from collections import OrderedDict as odict
 import struct
 import numpy as np
 
 '''
 Reads JPL observational database format
-February 2019
-
-***************************************************************
-** The notes below are for older version of the database. ***
-** They should be updatad ***
-***************************************************************
+September 2017
 
 Example input file syntax   20150725_204633_GPM_007985.strm  is provided
 In this example, the first record is at 2015/07/25 20:46:33 UTC    7985= GPM orbit revolution
@@ -106,153 +102,91 @@ z_ka= Ka-band uncorrected radar reflectivity profile, zFactorMeasured in 2A.GPM.
 
 class JPLDB(object):
     """
-    Based on jpldb.py by Hyungjun Kim @ IIS, U-Tokyo, 2018-01-18
-    Updated for 2018 version @ JPL, USA, 2019-02-19, by N.UTSUMI
-    Updated for 2020-March varsion @ JPL, USA, 2020-03-01 by N.UTSUMI
+    Based on jpldb.py by hjkim @ IIS, U-Tokyo, 2018-01-18
     """
-    def __init__(self, sensor): 
+    def __init__(self): 
         #self.srcDir = "/home/utsumi/mnt/wellshare/data/JPLDB"
 
         NCHAN   = 13        # 13 channels of GMI Tb
-        #NEM     = 11       # 9 emissivity [10V 10H 19V 19H 23V 37V 37H 89V 89H], Ts, Column vapor
-        NEM     = 16  
-
-        NLEV_MODEL= 42      # 42 levels of MERRA2
-        NLEV_DPR= 88        # 88 vertical bins of DPR (250m each)
-        NLEV_PRECIP= 22     # 22 lowest levels for preicp (250m each)
-        NLEV_GPROF = 28
+        NEM     = 11        # 9 emissivity [10V 10H 19V 19H 23V 37V 37H 89V 89H], Ts, Column vapor
+        NLEV    = 42        # 42 levels of MERRA2
+        NLEV_NS = 88        # 88 vertical bins of DPR (250m each)
 
         dictvars    = odict((
-                            ('satid',               'h'),           # PMW
-                            ('satid2',              'h'),           # Radar:GPM
-                            ('rev',                 'i'),           # PMW
-                            ('rev2',                'i'),           # Radar:GPM
+                            ('satid',               'i'),           #
+                            ('rev',                 'i'),           #
+                            ('rev2',                'i'),           #
                             ('SC_orientation',      'h'),           #
-                            ('SC_orientation2',     'h'),           #
                             ('i_S1',                'h'),           #
                             ('j_S1',                'h'),           #
                             ('i_NS',                'h'),           #
                             ('j_NS',                'h'),           #
+                            ('sfc_class',           'h'),           #
                             ('yyyy',                'h'),           #
                             ('mm',                  'h'),           #
                             ('dd',                  'h'),           #
                             ('hh',                  'h'),           #
                             ('mn',                  'h'),           #
                             ('ss',                  'h'),           #
-                            ('timediff',            'i'),           # Time difference at each pixel
-                            ('kmdiff',              'f'),           # Distance between radar and PMW pixel [km]
-                            ('glat',                'f'),           # Lat for PMW pixel
-                            ('glon',                'f'),           #
-                            ('slat',                'f'),           # Spacecraft lat for PMW
+                            ('timediff',            'i'),           #
+                            ('slat',                'f'),           #
                             ('slon',                'f'),           #
-                            ('salt',                'f'),           # Spacecraft altitude
-                            ('slat2',               'f'),           # Spacecraft lat for radar
+                            ('glat1',               'f'),           #
+                            ('glon1',               'f'),           #
+                            ('slat2',               'f'),           #
                             ('slon2',               'f'),           #
-                            ('salt2',               'f'),           #
-
-                            ('inc_S1',              'f'),           # PMW incidence angle (1)
-                            ('inc_S2',              'f'),           # PMW incidence angle (2)
-                            ('zen_NS',              'f'),           # Radar zenith angle
-                            ('tb',                '%if'%NCHAN),     # Always 13, currently
-                            ('tb_min',            '%if'%NCHAN),     # Always 13, currently
-                            ('tb_max',            '%if'%NCHAN),     # Always 13, currently
-
+                            ('tb',                '%if'%NCHAN),     #
                             ('pc_emis',           '%if'%NEM),       #
                             ('emis',              '%if'%NEM),       #
-                            ('emis_NS_cmb',       '%if'%NCHAN),     # surfEmissivity from CMB product
-                            ('s0_NS',               'f'),           # Sigma0 for NS (Ku)
-                            ('s0_MS',               'f'),           # Sigma0 for MS (Ka)
-                            ('sfc_class',           'h'),           # Surface class from GPROF
-                            ('sfc_min',             'h'),           # Max of landSurfaceType in a PMW footprint from DRP product
+                            ('emis_cmb',          '%if'%NCHAN),     #
+                            ('sfc_min',             'h'),           #
                             ('sfc_max',             'h'),           #
-                            ('elev',                'h'),           # Elevation of the middle pixel (from DPR product)
-
-                            ('ndpr_NS',             'h'),           # Number of radar pixels in a PMW pixel (Ku)
-                            ('ndpr_MS',             'h'),           # Number of radar pixels in a PMW pixel (Ka)
-
-                            ('nku10',               'h'),           # Number of observation in 3-D radar (10<=Z<15, no attenuattion corrected)
-                            ('nka10',               'h'),           # For screening cloudy scenes
-                            ('nku15',               'h'),           # 15<=Z<20
+                            ('elev',                'h'),           #
+                            ('nku10',               'h'),           #
+                            ('nka10',               'h'),           #
+                            ('nka10_HS',            'h'),           #
+                            ('nku15',               'h'),           #
                             ('nka15',               'h'),           #
-                            ('nku20',               'h'),           # 20<=Z<25
+                            ('nka15_HS',            'h'),           #
+                            ('nku20',               'h'),           #
                             ('nka20',               'h'),           #
-                            ('nku25',               'h'),           # 25<=Z
+                            ('nka20_HS',            'h'),           #
+                            ('nku25',               'h'),           #
                             ('nka25',               'h'),           #
-
-                            ('pia_NS',              'f'),           # PIA from DPR product
+                            ('nka25_HS',            'h'),           #
+                            ('zen_NS',              'f'),           #
+                            ('pia_NS',              'f'),           #
                             ('pia_MS',              'f'),           #
                             ('pia_NS_cmb',          'f'),           #
                             ('pia_MS_cmb',         '2f'),           #
-
-
-                            ('precip_nsfc_NS',      'f'),           # NS: Ku
-                            ('precip_nsfc_max_NS',  'f'),           #
-                            ('precip_nsfc_MS',      'f'),           # MS: Dural freq.(Ku & Ka)
-                            ('precip_nsfc_max_MS',  'f'),           #
-                            ('vfrac_conv_NS',       'f'),           #
-                            ('vfrac_conv_MS',       'f'),           #
-
-                            ('precip_NS_cmb',       'f'),           # Precip from Combined product: near surface, not esurf. (surfPrecipTotRate)
+                            ('precip_NS',           'f'),           #
+                            ('precip_max_NS',       'f'),           #
+                            ('precip2_NS',          'f'),           #
+                            ('precip2_max_NS',      'f'),           #
+                            ('precip_MS',           'f'),           #
+                            ('precip_max_MS',       'f'),           #
+                            ('precip2_MS',          'f'),           #
+                            ('precip2_max_MS',      'f'),           #
+                            ('precip_NS_cmb',       'f'),           #
                             ('precip_max_NS_cmb',   'f'),           #
                             ('precip_MS_cmb',       'f'),           #
                             ('precip_max_MS_cmb',   'f'),           #
-                            ('vfrac_conv_NS_cmb',   'f'),           #
-                            ('vfrac_conv_MS_cmb',   'f'),           #
-
-                            ('type_precip_NS',     '3h'),           # Number of radar pixels for each typePrecip (from DPR product) in PMW pixel.
-                            ('shallow_rain_NS',    '5h'),           # Number of radar pixels for each flagShallowRain (from DPR product) in PMW pixel.
-                            ('type_precip_MS',     '3h'),           #
-                            ('shallow_rain_MS',    '5h'),           #
-                            ('storm_height_ku',    'f'),            #
-                            ('storm_height_max_ku','f'),            #
-                            ('storm_height_ka',    'f'),            #
-                            ('storm_height_max_ka','f'),            #
-
                             ('precip_GPROF',        'f'),           #
                             ('prob_precip_GPROF',   'f'),           #
                             ('frozen_precip_GPROF', 'f'),           #
-                            ('conv_precip_GPROF',   'f'),           #
-                            ('pixel_status_GPROF',  'h'),           #
-                            ('qual_flag_GPROF',     'h'),           #
-                            ('prof_GPROF',        '%ih'%NLEV_GPROF),   # Top to bottom (different from original GPROF), Scaled by 1000
-                    
-
-                            ('ts',                  'f'),           # MERRA2 (Interpolated to space and time)
+                            ('qual_GPROF',          'i'),           #
+                            ('ts',                  'f'),           #
                             ('t2m',                 'f'),           #
-                            ('t2m_dew',             'f'),           #
-                            ('t2m_wet',             'f'),           #
                             ('tqv',                 'f'),           #
                             ('hs',                  'f'),           #
                             ('ps',                  'f'),           #
-                            ('u850',                'f'),           #
-                            ('u500',                'f'),           #
-                            ('u250',                'f'),           #
-                            ('v850',                'f'),           #
-                            ('v500',                'f'),           #
-                            ('v250',                'f'),           #
-                            ('p_prof',            '%ih'%NLEV_MODEL),#
-                            ('h_prof',            '%if'%NLEV_MODEL),#
-                            ('t_prof',            '%if'%NLEV_MODEL),#
-                            ('qv_prof',           '%if'%NLEV_MODEL),#
-
-                            ('bin_sfc_ku',          'h'),           # First surface bin above clutter (center pixel of PMW footprint)
-                            ('bin_sfc_ka',          'h'),           #
-
-                            ('precip_prof_NS',    '%ih'%NLEV_PRECIP),# Lowest 22 precipitation 250m-bins (i.e., two 125m bins are vertically averaged for DPR) (averaged over PMW pixel)
-                            ('precip_prof_MS',    '%ih'%NLEV_PRECIP),# Scaled by 100
-                            ('precip_prof_NS_cmb','%ih'%NLEV_PRECIP),# Orderd from higher to lower bins
-                            ('precip_prof_MS_cmb','%ih'%NLEV_PRECIP),#
-                            ('nclutter_ku',       '%ih'%NLEV_PRECIP),# Number of 3D pixels with clutter
-                            ('nclutter_ka',       '%ih'%NLEV_PRECIP),#
-                            ('z_ku',              '%ih'%NLEV_DPR),# Reflectivity Zm (zFactorMeasured) from DPR product, scaled by 100
-                            ('z_ka',              '%ih'%NLEV_DPR),#
-                            ('precip_water_prof_NS', '%ih'%NLEV_DPR), # Combined, Top to bottom, Scaled by 1000
-                            ('precip_water_prof_MS', '%ih'%NLEV_DPR), # Combined, Top to bottom, Scaled by 1000
-
-
+                            ('p_prof',            '%ih'%NLEV),      #
+                            ('h_prof',            '%if'%NLEV),      #
+                            ('t_prof',            '%if'%NLEV),      #
+                            ('qv_prof',           '%if'%NLEV),      #
+                            ('z_ku',              '%ih'%NLEV_NS),   #
+                            ('z_ka',              '%ih'%NLEV_NS),   #
                            ))
-
-
 
         self.vars,      \
         self.fmts       = zip(*dictvars.items())
@@ -307,4 +241,72 @@ class JPLDB(object):
         return data
 
 
+    
 
+class JPLDB_old(object):
+    def __init__(self):
+        self.rootDir = "/home/utsumi/mnt/wellshare/data/JPLDB"
+
+    def __call__(self, dbName="GMI_dbase_PC_prof2_V5_NPC4_BIN10_OVERLAP1"):
+        self.srcDir   = self.rootDir + "/" + dbName
+        self.unitsize = 1334  # byte
+
+    def loadDBsorted(self, dbID):
+        srcPath = self.srcDir + "/db_%05d.bin"%(dbID)
+
+        if not os.path.exists(srcPath):
+            print "NO File (in JPLDB.py)"
+            sys.exit()
+ 
+        nrec    = os.path.getsize(srcPath)/self.unitsize  # byte
+        lout  = f_read_db.read_db_multi(srcPath, nrec)
+        self.a1Year  = lout[0]
+        self.a1Mon   = lout[1]
+        self.a1Day   = lout[2]
+        self.a1Hour  = lout[3]
+        self.a1Minute= lout[4]
+        self.a1Sec   = lout[5]
+        self.a1timediff  = lout[6]
+        self.a1SC_orientation = lout[7]
+        self.a1i_S1       = lout[8]
+        self.a1j_S1       = lout[9]
+        self.a1i_NS       = lout[10]
+        self.a1j_NS       = lout[11]
+
+        self.a1sfc_class  = lout[12]
+        self.a1precip_NS  = lout[13]
+        self.a1precip_max_NS  = lout[14]
+        self.a1precip2_NS     = lout[15]
+        self.a1precip2_max_NS = lout[16]
+        self.a1precip_MS      = lout[17]
+        self.a1precip_max_MS  = lout[18]
+        self.a1precip2_MS     = lout[19]
+        self.a1precip2_max_MS = lout[20]
+        self.a1precip_NS_cmb  = lout[21]
+        self.a1precip_max_NS_cmb = lout[22]
+        self.a1precip_MS_cmb     = lout[23]
+        self.a1precip_max_MS_cmb = lout[24]
+        self.a1precip_GPROF      = lout[25]
+        self.a1frozen_precip_GPROF = lout[26]
+        self.a1prob_precip_GPROF   = lout[27]
+
+
+        self.a1glat1      = lout[28]
+        self.a1glon1      = lout[29]
+        self.a2tb         = lout[30].T
+        self.a2pc_emis    = lout[31].T
+        self.a2emis       = lout[32].T
+        self.a1elev       = lout[33]
+        self.a1ts         = lout[34]
+        self.a1t2m        = lout[35]
+        self.a1tqv        = lout[36]
+        self.a1hs         = lout[37]
+        self.a1ps         = lout[38]
+        self.a1p_prof     = lout[39]
+        self.a2h_prof     = lout[40].T
+        self.a2t_prof     = lout[41].T
+        self.a2qv_prof    = lout[42].T
+        self.a2z_ku       = lout[43].T
+
+
+        return self
