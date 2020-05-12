@@ -10,10 +10,7 @@ import EPCDB
 from bisect import bisect_left
 import epcfunc
 
-
-#*****************************************
 #-- functions -----
-#*****************************************
 def mk_dir(sdir):
   try:
     os.makedirs(sdir)
@@ -115,18 +112,71 @@ def ret_domain_cy(a2lat, a2lon, clat, clon, dlatlon):
         sys.exit()
 
 
+def pickyx_low2high_amsr2(ny_high):
+    nxhi  = 486
+    axpick = ((np.arange(nxhi) -1)/2).astype('int16')
+    axpick[0] = 0    # [0,0,0,1,1,2,2,3,3,...]
 
+    a2xpick, a2ypick = np.meshgrid(axpick, np.arange(nyhi))
+    return a2ypick, a2xpick
 
-#*******************
+def pickyx_low2high_ssmis(ny_high):
+    nxhi = 180
+    axpick = (np.arange(nxhi) /2).astype('int16')  # [0,0,1,1,2,2,3,3,...,89,89]
+
+    a2xpick, a2ypick = np.meshgrid(axpick, np.arange(nyhi))
+    return a2ypick, a2xpick
+
+def pickyx_high2low_amsr2(ny_high):
+    nxlw  = 243
+    axpick = (np.arange(nxlw)*2+2).astype('int16')
+    axpick[-1] = nxlw*2-1   # [2,4,6,...482,484,485]
+
+    a2xpick, a2ypick = np.meshgrid(axpick, np.arange(nyhi))
+    return a2ypick, a2xpick
+
+def pickyx_high2low_ssmis(ny_high):
+    nxlw = 90
+    axpick = (np.arange(nxlw)*2+1).astype('int16') # [1,3,5,...,177,179]
+
+    a2xpick, a2ypick = np.meshgrid(axpick, np.arange(nyhi))
+    return a2ypick, a2xpick
+
+def pickyx_low2high_amsr2(ny_high):
+    nxhi  = 486
+    axpick = ((np.arange(nxhi) -1)/2).astype('int16')
+    axpick[0] = 0    # [0,0,0,1,1,2,2,3,3,...]
+
+    a2xpick, a2ypick = np.meshgrid(axpick, np.arange(nyhi))
+    return a2ypick, a2xpick
+
+def pickyx_low2high_ssmis(ny_high):
+    nxhi = 180
+    axpick = (np.arange(nxhi) /2).astype('int16')  # [0,0,1,1,2,2,3,3,...,89,89]
+
+    a2xpick, a2ypick = np.meshgrid(axpick, np.arange(nyhi))
+    return a2ypick, a2xpick
+
+def pickyx_high2low_amsr2(ny_high):
+    nxlw  = 243
+    axpick = (np.arange(nxlw)*2+2).astype('int16')
+    axpick[-1] = nxlw*2-1   # [2,4,6,...482,484,485]
+
+    a2xpick, a2ypick = np.meshgrid(axpick, np.arange(nyhi))
+    return a2ypick, a2xpick
+
+def pickyx_high2low_ssmis(ny_high):
+    nxlw = 90
+    axpick = (np.arange(nxlw)*2+1).astype('int16') # [1,3,5,...,177,179]
+
+    a2xpick, a2ypick = np.meshgrid(axpick, np.arange(nyhi))
+    return a2ypick, a2xpick
 
 #**************************************************************
 # main
 #--------------------------------------------------------------
-#------------------------------------
-# Choose database type
-#------------------------------------
-#dbtype= 'JPL'
-dbtype= 'my'
+dbtype= 'JPL'
+#dbtype= 'my'
 if dbtype =='JPL':
     db    = JPLDB.JPLDB()
 elif dbtype=='my':
@@ -135,9 +185,6 @@ else:
     print 'check dbtype',dbtype
 
 argvs = sys.argv
-#-------------------------------------------------------------
-# These parameters are used if no standard input is given  
-#-------------------------------------------------------------
 if len(argvs)==1:
     print '***********************************'
     print ''
@@ -146,44 +193,24 @@ if len(argvs)==1:
     print ''
     print '***********************************'
     #** Constants ******
-    sensor  = 'GMI'
+    sate    = 'GCOMW1'
+    sensor  = 'AMSR2'
     coefDir = '/work/hk01/utsumi/JPLDB/EPC_COEF/%s'%(sensor)
 
     if dbtype=='JPL':  
         dbDir   = '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE_TEST29'
         #nrainDIr= '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE_TEST29'
+        coefDir = '/tank/utsumi/PMM/JPLDB/EPC_COEF/%s'%(sensor)
+
     elif dbtype=='my':
         dbDir   = '/work/hk01/utsumi/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117.01-12' 
         #nrainDir= '/work/hk01/utsumi/PMM/EPCDB/samp.20000.GMI.V05A.S1.ABp103-117.01-12/nrain' 
-    
+        coefDir = '/media/disk2/share/PMM/JPLDB/EPC_COEF/%s'%(sensor)
+        relprofDir = '/media/disk2/share/PMM/JPLDB/EPC_DB/%s_rs_precip_water_prof_NS'%(sensor) 
+
     #-- Single Run ---------
-    #clat    = 30.00   # SE.US, oid=016166
-    #clon    = 269.0 - 360 # -180 - +180, SE.US, oid=016166
-    
-    #clat    = 14    # Africa. oid = 002421
-    #clon    = 2     # 2014/8/2
-    
-    #oid     = 3556
-    #clat    = 34    # SE.US case. oid = 003556
-    #clon    = -86   # 2014/10/14  05:42:03 UTC
+    clat, clon = (35,140) #GCOMW1.AMSR2 2018/1/1 #029920
 
-    #oid     = 19015
-    #clat    = 33    # SW Japan case. oid = 019015
-    #clon    = 130   # 2017/07/03  22:12 UTC
-
-    
-    #oid     = 12149
-    #clat    = 32    # QJRMS case. oid = 012149
-    #clon    = -94   # 2016/4/18
-    
-    
-    #clat    = 31.562       
-    #clon    = 272.903 -360  # -180 - +180
-    #clat    = -47.08
-    #clon    = 286.121 -360  # -180 - +180
-    #clat    = -9999.
-    #clon    = -9999.
-    
     
     dlatlon = 3  # used to search the domain center
     iscan   = -9999
@@ -221,30 +248,14 @@ if len(argvs)==1:
     MAX_T2M_DIFF= 10  # K
     MAX_TQV_DIFF= 10  # kg/m2
         
-    #srcPath = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05/2017/01/05/1C.GPM.GMI.XCAL2016-C.20170105-S045326-E062600.016220.V05A.HDF5'
-    #srcPath = '/home/utsumi/temp/1B.GPM.GMI.TB2016.20171130-S205705-E222939.021348.V05A.HDF5'
-    #srcPath = '/home/utsumi/temp/1B.GPM.GMI.TB2016.20171206-S141617-E154850.021437.V05A.HDF5'
-    #srcPath = '/home/utsumi/temp/1C.GPM.GMI.XCAL2016-C.20171206-S141617-E154850.021437.V05A.HDF5'
-    #srcPath = '/home/utsumi/temp/1C.GPM.GMI.XCAL2016-C.20170101-S173441-E190714.016166.V05A.HDF5'
-    #srcPath = '/home/utsumi/temp/1C.GPM.GMI.XCAL2016-C.20170101-S190715-E203948.016167.V05A.HDF5'
-    #elevPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.gtopo/2017/01/01/gtopo.002421.npy'
-    
-    ## 2014/8/2 Africa GMI=002421 **
-    #srcPath = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05/2014/08/02/1C.GPM.GMI.XCAL2016-C.20140802-S062222-E075455.002421.V05A.HDF5'
-    #s2xPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2014/08/02/Xpy.1.002421.npy'
-    #s2yPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2014/08/02/Ypy.1.002421.npy'
-    #t2mPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.t2m/2014/08/02/t2m.002421.npy'
-    #elevPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.gtopo/2014/08/02/gtopo.002421.npy'
-        
      
-    # 2014/10/14 SE.US GMI=003556 **
-    srcPath = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05/2014/10/14/1C.GPM.GMI.XCAL2016-C.20141014-S050829-E064102.003556.V05A.HDF5'
-    s2xPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2014/10/14/Xpy.1.003556.npy'
-    s2yPath= '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX/2014/10/14/Ypy.1.003556.npy'
-    t2mPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.t2m/2014/10/14/t2m.003556.npy'
-    tqvPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.tqv/2014/10/14/tqv.003556.npy'
-    elevPath = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.gtopo/2014/10/14/gtopo.003556.npy'
-    
+    # GCOMW1.AMSR2 2018/1/1 #029920
+    srcPath = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/GCOMW1.AMSR2/2A-CLIM/V05/2018/01/01/2A-CLIM.GCOMW1.AMSR2.GPROF2017v1.20180101-S023755-E041647.029920.V05A.HDF5'
+    s2xPath= ''
+    s2yPath= ''
+    t2mPath = '/home/utsumi/mnt/lab_tank/utsumi/PMM/MATCH.GCOMW1.AMSR2.V05/S1.ABp000-242.MERRA2.t2m/2018/01/01/t2m.029920.npy'
+    tqvPath = ''
+    elevPath = ''
     
     ## 2016/4/18 QJRMS GMI=012149 **
     #srcPath = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05/2016/04/18/1C.GPM.GMI.XCAL2016-C.20160418-S115529-E132803.012149.V05A.HDF5'
@@ -256,14 +267,13 @@ if len(argvs)==1:
 
     outDir = '/home/utsumi/temp/out/%s'%(dbtype)
 
+#**************************************************************
+# Standard input
+#**************************************************************
 elif len(argvs)>2:
     print 'Too many standard input'
     print 'Python [prog] [parameter-string]'
     sys.exit()
-
-#-------------------------------------------------------------
-# Parameters from standard input
-#-------------------------------------------------------------
 else:
     largvs = argvs[1].split()
     dargv = {}
@@ -271,6 +281,7 @@ else:
         key,param = argvs.split('=')
         dargv[key] = param
 
+    sate   = dargv['sate']
     sensor = dargv['sensor']
     coefDir= dargv['coefDir']
     dbDir  = dargv['dbDir']
@@ -343,27 +354,69 @@ a1pc_std   = a2pc_avestd[:,2]
 
 
 #-- Read granule data --
+dnscan = {'GMI':2, 'AMSR2':5, 'SSMIS':4, 'ATMS':4, 'MHS':1}
+dmainscan = {'GMI':1, 'AMSR2':1, 'SSMIS':1, 'ATMS':1, 'MHS':1}
+
+nscan = dnscan[sensor]
+mainscan = dmainscan[sensor]
+
+d3tb = {}
 with h5py.File(srcPath, 'r') as h5:
-    a3tb1    = h5['/S1/Tc'][:]
-    a3tb2org = h5['/S2/Tc'][:]
-    a2lat = h5['/S1/Latitude'][:]
-    a2lon = h5['/S1/Longitude'][:]
+    for iscan in range(1,nscan+1):
+        d3tb[iscan] = h5['/S%d/Tc'%(iscan)][:]
+
+    a2lat = h5['/S%d/Latitude'%(mainscan)][:]
+    a2lon = h5['/S%d/Longitude'%(mainscan)][:]
+
+    nyobt = a2lat.shape[0]
+    #a3tb1    = h5['/S1/Tc'][:]
+    #a3tb2org = h5['/S2/Tc'][:]
+    #a2lat = h5['/S1/Latitude'][:]
+    #a2lon = h5['/S1/Longitude'][:]
+
+#-- Matchup and Joint S1 and S2 Tb --
+if sensor =='GMI':
+    a3tb1    = d3tb[1]
+    a3tb2org = d3tb[2]
+
+    a1x2  = np.load(s2xPath).flatten()
+    a1y2  = np.load(s2yPath).flatten()
+
+    a1mask= ma.masked_less(a1x2,0).mask
+    a1x2  = ma.masked_less(a1x2,0).filled(0)
+    a1y2  = ma.masked_less(a1y2,0).filled(0)
+
+    nytmp, nxtmp, ztmp = a3tb2org.shape
+    a2tb2 = a3tb2org[a1y2, a1x2]
+    a2tb2[a1mask] = miss
+    a3tb2 = a2tb2.reshape(nytmp,nxtmp,-1)
+    a3tb = concatenate([a3tb1, a3tb2],axis=2)
+
+elif sensor=='AMSR2':
+    if mainscan==1:
+        a2ypick, a2xpick = pickyx_high2low_amsr2(nyobt)
+        a3tb = concatenate([d3tb[1], d3tb[2], d3tb[3], d3tb[4], d3tb[5][a2ypick, a2xpick]], axis=2) 
+
+    elif mainscan==5:
+        a2ypick, a2xpick = pickyx_low2high_amsr2(nyobt)
+        a3tb = concatenate([d3tb[1][a2ypick, a2xpick],
+                            d3tb[2][a2ypick, a2xpick],
+                            d3tb[3][a2ypick, a2xpick],
+                            d3tb[4][a2ypick, a2xpick],
+                            d3tb[5]], axis=2) 
+    else:
+        print 'check mainscan', sensor, mainscan
+
+elif sensor=='SSMIS':
+    if mainscan==1:
 
 
-#-- Matchup and joint S1 and S2 Tb --
-a1x2  = np.load(s2xPath).flatten()
-a1y2  = np.load(s2yPath).flatten()
-
-a1mask= ma.masked_less(a1x2,0).mask
-a1x2  = ma.masked_less(a1x2,0).filled(0)
-a1y2  = ma.masked_less(a1y2,0).filled(0)
-
-nytmp, nxtmp, ztmp = a3tb2org.shape
-a2tb2 = a3tb2org[a1y2, a1x2]
-a2tb2[a1mask] = miss
-a3tb2 = a2tb2.reshape(nytmp,nxtmp,-1)
-a3tb = concatenate([a3tb1, a3tb2],axis=2)
-
+##--- test: replace tb data with JPL's --------
+#print '*'*40
+#print 'CAUTION! Tb data is replaced.'
+#print '*'*40
+#tmpPath = '/home/utsumi/temp/out/tb-jpl-full-002421.npy'
+#a3tb    = np.load(tmpPath)
 
 #-- Read MERRA2 data ---------
 #a2ts = np.load(tsPath)
@@ -970,9 +1023,28 @@ for i,idx_db in enumerate(lidxset):
             cnvnsurfNScmb = (a1cnvnsurfNScmbSC[a1boolwtNS] * a1wtNS).sum() / wtsumNS
             a2cnvnsurfNScmb[y,x] = cnvnsurfNScmb
 
+            #print '*'*50
+            #print '--------- test ---------'
+            #print 'a1cnvfracdbSC.mean()', ma.masked_less(a1cnvfrcdbSC,0).mean()
+            #print 'a1cnvnsurfNScmbSC.mean()',ma.masked_less(a1cnvnsurfNScmbSC,0).mean()
+            #print 'a1cnvnsurfNScmbSC[a1boolwtNS].mean()',a1cnvnsurfNScmbSC[a1boolwtNS].mean()
+            #print 'cnvnsurfNScmb', cnvnsurfNScmb
+            #print 'nsurfNScmb', nsurfNScmb
+            #print 'a2nsurfNScmb[y,x], a2cnvnsurfNScmb[y,x]',a2nsurfNScmb[y,x], a2cnvnsurfNScmb[y,x]
+            #print '*'*50
+            #sys.exit()
+        #prprofNS   = (a2prprofNSSC[a1boolwtNS] * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
+        #prprofNScmb= (a2prprofNScmbSC[a1boolwtNS] * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
+        #a3prprofNS[y,x,:]    = prprofNS
+        #a3prprofNScmb[y,x,:] = prprofNScmb
 
         prwatprofNS   = (ma.masked_less(a2prwatprofNSSC[a1boolwtNS],0) * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
         a3prwatprofNS[y,x,:]    = prwatprofNS.filled(-9999.)
+
+
+        #if ((y==3)&(x==100)):
+        #    print a1wtNS
+        #    sys.exit()
 
 
 #--- save (temporary)--
