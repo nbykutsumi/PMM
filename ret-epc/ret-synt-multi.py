@@ -111,12 +111,12 @@ DB_USE_MINREC= 200
 NDB_EXPAND  = 20
 #NDB_EXPAND = 0 # test
 DB_RAINFRAC = 0.01  # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
+MAX_INC_DIFF = 20  # degree
 MAX_T2M_DIFF= 10  # K
 MAX_TQV_DIFF= 10  # kg/m2
 MAX_RMA_0   = 0.05
 flag_top_var= 0
 flag_prof   = 1
-DB_MAX_INC_DIFF = 20  # degree
 #-- functions -----
 def mk_dir(sdir):
   try:
@@ -553,7 +553,7 @@ for idx_db in lidx_db:
         #---------------------------------- 
         if flag_crosstrack ==1:
             incObs = a1incObs[irec]
-            a1maskinc = ma.masked_greater(np.abs(a1incdb) - abs(incObs), DB_MAX_INC_DIFF).mask
+            a1maskinc = ma.masked_greater(np.abs(a1incdb) - abs(incObs), MAX_INC_DIFF).mask
 
         else:
             a1maskinc = np.array([False])

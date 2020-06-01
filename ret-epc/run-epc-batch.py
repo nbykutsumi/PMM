@@ -172,7 +172,7 @@ for lgmiPath in llgmiPath:
         t2mPath = glob.glob(matchbaseDir + '/S1.ABp000-220.MERRA2.t2m/%04d/%02d/%02d/t2m.%06d.npy'%(Year,Mon,Day,oid))[0]
         #tqvPathTmp = glob.glob(matchbaseDir + '/S1.ABp000-220.MERRA2.tqv/%04d/%02d/%02d/tqv.%06d.npy'%(Year,Mon,Day,oid))[0]
         tqvPath = ''
-        cnvfrcinPath= ''
+        #cnvfrcinPath= ''
         #elevPathTmp = glob.glob(matchbaseDir + '/S1.ABp000-220.gtopo/%04d/%02d/%02d/gtopo.%06d.npy'%(Year,Mon,Day,oid))[0]
         elevPath = ''
         try:
@@ -276,10 +276,10 @@ for lgmiPath in llgmiPath:
         elevPathTmp= outDirTmp + '/elev.%06d.npy'%(oid)
     else:
         elevPathTmp = ''
-    if cnvfrcinPath !='':
-        cnvfrcinPathTmp = outDirTmp + '/cnvfrc.%06d.npy'
-    else:
-        cnvfrcinPathTmp = ''
+    #if cnvfrcinPath !='':
+    #    cnvfrcinPathTmp = outDirTmp + '/cnvfrc.%06d.npy'
+    #else:
+    #    cnvfrcinPathTmp = ''
     if stopPath !='':
         stopPathTmp= outDirTmp + '/stop.%06d.npy'%(oid)
     else:
@@ -388,7 +388,7 @@ for lgmiPath in llgmiPath:
     dargv['t2mPath'] = t2mPathTmp
     dargv['tqvPath'] = tqvPathTmp
     dargv['elevPath']= elevPathTmp
-    dargv['cnvfrcinPath']=cnvfrcinPathTmp
+    #dargv['cnvfrcinPath']=cnvfrcinPathTmp
     dargv['stopPath']= stopPathTmp
     dargv['rnrPath'] = rnrPathTmp 
     #-------------

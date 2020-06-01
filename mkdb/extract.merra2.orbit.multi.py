@@ -10,12 +10,13 @@ import glob
 
 
 iDTime = datetime(2018,1,1)
-eDTime = datetime(2018,1,1)
+eDTime = datetime(2018,2,1)
 lDTimeDay = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 
 #gpr_amsr2      = ["GCOMW1","AMSR2"]
 #gpr_ssmis_f16  = ["F16","SSMIS"]
 #gpr_atms_noaa20= ["NOAA20","ATMS"]
+gmi        = ["GPM","GMI"]
 amsr2      = ["GCOMW1","AMSR2"]
 ssmis_f16  = ["F16","SSMIS"]
 ssmis_f17  = ["F17","SSMIS"]
@@ -25,12 +26,12 @@ atms_noaa20= ["NOAA20","ATMS"]
 mhs_metopa = ["METOPA","MHS"]
 mhs_metopb = ["METOPB","MHS"]
 
-lspec = [amsr2, ssmis_f16, ssmis_f17, ssmis_f18, atms_npp, atms_noaa20, mhs_metopa, mhs_metopb]
-#lspec = [atms_npp, atms_noaa20, mhs_metopa, mhs_metopb]
+#lspec = [gmi,amsr2, ssmis_f16, ssmis_f17, ssmis_f18, atms_npp, atms_noaa20, mhs_metopa, mhs_metopb]
+lspec = [ssmis_f18, atms_npp, atms_noaa20, mhs_metopa, mhs_metopb]
 
-dmainscan = {'AMSR2':1, 'SSMIS':1, 'ATMS':1, 'MHS':1}
+dmainscan = {'GMI':1, 'AMSR2':1, 'SSMIS':1, 'ATMS':1, 'MHS':1}
 
-
+oid = -9999
 #raProd    = 'M2T1NXSLV'
 raProd    = 'M2I1NXASM'
 #lvarName  = ['tqv','t2m']
@@ -40,6 +41,34 @@ lvarName  = ['t2m']
 #rabaseDir = '/work/hk01/utsumi/MERRA2'
 rabaseDir = '/home/utsumi/mnt/lab_tank/utsumi/data/MERRA2'
 draVar    = {'t2m':'T2M','tqv':'TQV'}
+
+argvs = sys.argv
+if len(argvs) ==1:
+    print '*****************************'
+    print 'No standard input'
+    print '*****************************'
+elif len(argvs) >2:
+    print 'Too many standard input'
+    print 'Python [prog] [parameter-string]'
+    sys.exit()
+else:
+    largvs = argvs[1].split()
+    dargv = {}
+    for argvs in largvs:
+        key,param = argvs.split('=')
+        dargv[key] = param
+
+    sate       = dargv['sate']
+    sensor     = dargv['sensor']
+    rabaseDir  = dargv['rabaseDir']
+    varName    = dargv['varName']
+    Year       = int(dargv['Year'])
+    Mon        = int(dargv['Mon'] )
+    Day        = int(dargv['Day'] )
+    oid        = int(dargv['oid'] )
+    lspec      = [[sate,sensor]]
+    lDTimeDay  = [datetime(Year,Mon,Day)]
+    lvarName   = [varName]
 
 latRA0= -90
 lonRA0= -180
@@ -59,7 +88,10 @@ for (sate,sensor) in lspec:
         YearDir,MonDir, DayDir = DTimeDay.timetuple()[:3] 
         pmwDir   = pmwbaseDir + '/%04d/%02d/%02d'%(YearDir,MonDir,DayDir)
     
-        ssearch  = pmwDir + '/1C.%s.%s.*.HDF5'%(sate,sensor)
+        if oid >0:
+            ssearch  = pmwDir + '/1C.%s.%s.*.%06d.????.HDF5'%(sate,sensor,oid)
+        else:
+            ssearch  = pmwDir + '/1C.%s.%s.*.HDF5'%(sate,sensor)
         lsrcPath = sort(glob.glob(ssearch))
         print ssearch
         print lsrcPath
@@ -74,7 +106,11 @@ for (sate,sensor) in lspec:
                 a1day   = h5['S1/ScanTime/DayOfMonth'  ][:]
                 a1hour  = h5['S1/ScanTime/Hour'        ][:]
                 a1mnt   = h5['S1/ScanTime/Minute'      ][:]
-    
+   
+            if a2lat.shape[0]==0:
+                print 'Skip',srcPath
+                continue 
+
             nypmw,nxpmw = a2lat.shape
 
             lDTime   = []
@@ -125,7 +161,7 @@ for (sate,sensor) in lspec:
            
                 #------------     
                 #outbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.MERRA2.%s'%(varName) 
-                outbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/MATCH.%s.%s.V05/S%d.ABp000-%03d.MERRA2.%s'%(sate,sensor,mainscan, nxpmw-1, varName) 
+                outbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/MATCH.%s.%s.V05/S%d.ABp000-%03d.MERRA2.%s'%(sensor,sate,mainscan, nxpmw-1, varName) 
                 outDir     = outbaseDir + '/%04d/%02d/%02d'%(YearDir,MonDir,DayDir)
                 outPath    = outDir + '/%s.%s.npy'%(varName, gNum)
                 util.mk_dir(outDir)

@@ -173,10 +173,8 @@ if len(argvs)==1:
     dbtype= 'JPL'
     #dbtype= 'my'
 
-    #sate    = 'NOAA20'
-    #sensor  = 'ATMS'
-    sate    = 'GCOMW1'
-    sensor  = 'AMSR2'
+    sate    = 'NOAA20'
+    sensor  = 'ATMS'
 
     coefDir = '/media/disk2/share/PMM/JPLDB/JPLDB/EPC_COEF/%s'%(sensor)
     miss_int32= -9999
@@ -211,6 +209,7 @@ if len(argvs)==1:
     NTBREG  = {'GMI':13, 'AMSR2':10, 'SSMIS':11, 'ATMS':9, 'MHS':5, 'SAPHIR':6}[sensor]
 
     NEM_USE = 3
+    #NPCHIST = 25
     NPCHIST = 29
     if dbtype=='JPL':
         NLEV_DPR    = 88  # extract this number of layers
@@ -235,10 +234,10 @@ if len(argvs)==1:
     miss    = -9999.
 
 
-    clat, clon = (35,150) #GCOMW1.AMSR2 2018/1/1 #029920
+    #clat, clon = (35,150) #GCOMW1.AMSR2 2018/1/1 #029920
     #clat, clon = (0,20) #F16.SSMIS 2018/1/1 #073295
     #clat, clon = (5,105) #METOPA.MHS 2018/1/1 #058125
-    #clat, clon = (10,-170) #NOAA20.ATMS 2018/1/1 #000620
+    clat, clon = (10,-170) #NOAA20.ATMS 2018/1/1 #000620
     dlatlon = 3  # used to search the domain center
     iscan   = -9999
     escan   = -9999
@@ -325,7 +324,6 @@ else:
     DB_USE_MINREC = int(dargv['DB_USE_MINREC']) 
     NDB_EXPAND= int(dargv['NDB_EXPAND'])
     DB_RAINFRAC = float(dargv['DB_RAINFRAC']) # minimum fraction of precipitating events (>=1mm/h) in the DB required for retrieval
-    MAX_INC_DIFF= float(dargv['MAX_INC_DIFF'])
     MAX_T2M_DIFF= float(dargv['MAX_T2M_DIFF'])
     MAX_TQV_DIFF= float(dargv['MAX_TQV_DIFF'])
     MAX_TB_RMSD = float(dargv['MAX_TB_RMSD'])
@@ -1141,6 +1139,16 @@ for i,idx_db in enumerate(lidxset):
             cnvnsurfNScmb = (a1cnvnsurfNScmbSC[a1boolwtNS] * a1wtNS).sum() / wtsumNS
             a2cnvnsurfNScmb[y,x] = cnvnsurfNScmb
 
+            #print '*'*50
+            #print '--------- test ---------'
+            #print 'a1cnvfracdbSC.mean()', ma.masked_less(a1cnvfrcdbSC,0).mean()
+            #print 'a1cnvnsurfNScmbSC.mean()',ma.masked_less(a1cnvnsurfNScmbSC,0).mean()
+            #print 'a1cnvnsurfNScmbSC[a1boolwtNS].mean()',a1cnvnsurfNScmbSC[a1boolwtNS].mean()
+            #print 'cnvnsurfNScmb', cnvnsurfNScmb
+            #print 'nsurfNScmb', nsurfNScmb
+            #print 'a2nsurfNScmb[y,x], a2cnvnsurfNScmb[y,x]',a2nsurfNScmb[y,x], a2cnvnsurfNScmb[y,x]
+            #print '*'*50
+            #sys.exit()
         #prprofNS   = (a2prprofNSSC[a1boolwtNS] * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
         #prprofNScmb= (a2prprofNScmbSC[a1boolwtNS] * a1wtNS.reshape(-1,1)).sum(axis=0) / wtsumNS
         #a3prprofNS[y,x,:]    = prprofNS
@@ -1155,17 +1163,7 @@ for i,idx_db in enumerate(lidxset):
         #    sys.exit()
 
 
-#--- Replace nan in cnvnsurfNScmb ----
-a2flagvalid= ma.masked_not_equal(a2nsurfNScmb,miss).mask
-a2flagmiss = ma.masked_equal(a2nsurfNScmb,miss).mask
-a2flagnan  = ma.masked_invalid(a2cnvnsurfNScmb).mask
-
-a2flagvalid = a2flagvalid * a2flagnan
-a2flagmiss  = a2flagmiss  * a2flagnan
-a2cnvnsurfNScmb[a2flagvalid] = 0.0
-a2cnvnsurfNScmb[a2flagmiss]  = miss
-
-#--- save -----
+#--- save (temporary)--
 mk_dir(outDir)
 
 stamp = '%06d.y%04d-%04d.nrec%d'%(oid, iscan, escan,DB_MAXREC) 

@@ -108,7 +108,7 @@ class JPLDB(object):
     """
     Based on jpldb.py by Hyungjun Kim @ IIS, U-Tokyo, 2018-01-18
     Updated for 2018 version @ JPL, USA, 2019-02-19, by N.UTSUMI
-    Updated for 2020-March varsion @ JPL, USA, 2020-03-01 by N.UTSUMI
+    Updated for 2020-March version @ JPL, USA, 2020-03-01 by N.UTSUMI
     """
     def __init__(self, sensor): 
         #self.srcDir = "/home/utsumi/mnt/wellshare/data/JPLDB"

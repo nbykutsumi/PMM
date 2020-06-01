@@ -462,7 +462,7 @@ for var in ['cond']:
 
         lkey = [(region,ptype)
                             for region in ['mid','tro']  # 'all','mid','tro'
-                            for ptype  in ['stra','conv']
+                            for ptype  in ['conv','stra']
         ]
 
 
@@ -651,7 +651,7 @@ fig, axs = plt.subplots(nrows=nrow, ncols=ncol, figsize=(8,1.6))
 
 lkey = [(region,ptype)
                     for region in ['mid','tro']  # 'all','mid','tro'
-                    for ptype  in ['stra','conv']
+                    for ptype  in ['conv','stra']
 ]
 
 
