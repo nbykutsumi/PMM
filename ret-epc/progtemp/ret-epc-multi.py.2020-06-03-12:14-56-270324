@@ -1169,14 +1169,8 @@ a2cnvnsurfNScmb[a2flagmiss]  = miss
 
 #--- Change data type of profiles ---
 int16max = 32767 
-if dbtype=='my':
-    a3flagmax  = ma.masked_greater(a3prwatprofNS, (int16max-1)/1000.).mask
-    a3prwatprofNS = (ma.masked_equal(a3prwatprofNS, miss)*1000.).filled(miss_int16).astype('int16')  # Scale by 1000
-    a3prwatprofNS[a3flagmax] = np.int16(int16max)
-
-elif dbtype=='JPL':
-    a3prwatprofNS = ma.masked_invalid(ma.masked_greater(a3prwatprofNS, int16max)).filled(int16max).astype('int16')  # Already scaled by 1000
-
+a3flagmax  = ma.masked_greater(a3prwatprofNS, int16max).mask
+a3prwatprofNS = (ma.masked_greater(a3prwatprofNS, int16max).filled(int16max)).astype('int16')
 
 #--- save -----
 mk_dir(outDir)

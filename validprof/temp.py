@@ -1,38 +1,22 @@
+# %%
 import matplotlib
 matplotlib.use('Agg')
 import numpy as np
 from numpy import *
 import matplotlib.pyplot as plt
 import os, sys
+%matplotlib inline
 
-#-- EPC ---
-radpath2= '/home/utsumi/mnt/lab_tank/utsumi/PMM/validprof/pair/epc.glb.relsurf01.minrec1000.maxrec10000/2014/06/01/vfracConvrad.001454.npy'
-pmwpath2= '/home/utsumi/mnt/lab_tank/utsumi/PMM/validprof/pair/epc.glb.relsurf01.minrec1000.maxrec10000/2014/06/01/vfracConvpmw.001454.npy'
+epcpath = '/home/utsumi/mnt/lab_tank/utsumi/PMM/validprof/pair/gprof-shift/2014/06/01/epc-nsurfMScmb.001454.npy'
+gprpath = '/home/utsumi/mnt/lab_tank/utsumi/PMM/validprof/pair/gprof-shift/2014/06/01/precpmw.001454.npy'
 
-rad2 = ma.masked_less(np.load(radpath2),0)
-pmw2 = ma.masked_less(np.load(pmwpath2),0)
+a=np.load(epcpath)
+b=np.load(gprpath)
 
-plt.scatter(rad2,pmw2)
-plt.savefig('/home/utsumi/temp/ret/temp.epc.png')
+a=ma.masked_less(a,0.5)
+b=ma.masked_less(b,0.5)
 
-sys.exit()
+plt.scatter(b,a)
+plt.show()
 
-
-#-- GPROF ---
-radpath1= '/home/utsumi/mnt/lab_tank/utsumi/PMM/validprof/pair/gprof-shift/2014/06/01/vfracConvrad.001454.npy'
-radpath2= '/home/utsumi/mnt/lab_tank/utsumi/PMM/validprof/pair/gprof-shift.test/2014/06/01/vfracConvrad.001454.npy'
-
-pmwpath2= '/home/utsumi/mnt/lab_tank/utsumi/PMM/validprof/pair/gprof-shift.test/2014/06/01/vfracConvpmw.001454.npy'
-
-
-rad1 = ma.masked_less(np.load(radpath1),0)
-rad2 = ma.masked_less(np.load(radpath2),0)
-
-pmw2 = ma.masked_less(np.load(pmwpath2),0)
-
-plt.scatter(rad2,pmw2)
-plt.savefig('/home/utsumi/temp/ret/temp.gprof.png')
-
-
-
-
+# %%

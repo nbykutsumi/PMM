@@ -1,6 +1,5 @@
 from numpy import *
-import myfunc.util as util
-import myfunc.IO.GPM.l1_gmi as l1_gmi
+#import myfunc.util as util
 from f_match_fov import *
 import sys, os, glob
 from datetime import datetime, timedelta
@@ -8,86 +7,116 @@ import numpy as np
 import h5py
 
 
-#iDTime = datetime(2017,1,1)
-#eDTime = datetime(2017,12,31)
 #iDTime = datetime(2016,4,18)
 #eDTime = datetime(2016,4,18)
-iDTime = datetime(2014,6,1)
-eDTime = datetime(2015,5,31)
-#iDTime = datetime(2014,9,12)
-#eDTime = datetime(2015,11,30)
+iDTime = datetime(2018,1,1)
+eDTime = datetime(2018,1,1)
 
+def ret_lDTime(iDTime,eDTime,dDTime):
+  total_steps = int( (eDTime - iDTime).total_seconds() / dDTime.total_seconds() + 1 )
+  return [iDTime + dDTime*i for i in range(total_steps)]
 
 dDTime = timedelta(days=1)
-lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
-
+lDTime = ret_lDTime(iDTime, eDTime, dDTime)
 
 #lDTime = [DTime for DTime in lDTime if not ((datetime(2017,9,26)<=DTime)&(datetime(2017,9,29))]
-lDTime = [DTime for DTime in lDTime if not (datetime(2017,9,26)<=DTime)&(DTime<=datetime(2017,9,29))]
+#lDTime = [DTime for DTime in lDTime if not (datetime(2017,9,26)<=DTime)&(DTime<=datetime(2017,9,29))]
+
+
+ix0 = 0   # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
+ex0 = 220  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
+wx  = ex0-ix0 +1
+oid = -9999
+
+baseDirGMI = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/GPM.GMI/1C/V05'
+pmwPath    = ''  # Dont't change.
+obaseDir   = '/home/utsumi/mnt/lab_tank/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX'
+
+dydxDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.dydx'
+dyPath0  = dydxDir + '/dy.000.npy'
+dxPath0  = dydxDir + '/dx.000.npy'
+dyPath180= dydxDir + '/dy.180.npy'
+dxPath180= dydxDir + '/dx.180.npy'
+
+#*******************************************************
+# Check standard input
+#-------------------------------------------------------
+argvs = sys.argv
+if len(argvs) ==1:
+    print '*****************************'
+    print 'No standard input'
+    print '*****************************'
+elif len(argvs) >2:
+    print 'Too many standard input'
+    print 'Python [prog] [parameter-string]'
+    sys.exit()
+else:
+    largvs = argvs[1].split()
+    dargv = {}
+    for argvs in largvs:
+        key,param = argvs.split('=')
+        dargv[key] = param
+    Year       = int(dargv['Year'])
+    Mon        = int(dargv['Mon'] )
+    Day        = int(dargv['Day'] )
+    pmwPath    = dargv['pmwPath']   # L1C data path
+    dyPath0    = dargv['dyPath0']
+    dxPath0    = dargv['dxPath0']
+    dyPath180  = dargv['dyPath180']
+    dxPath180  = dargv['dyPath180']
+    obaseDir   = dargv['obaseDir'] 
+
+
+    lDTime = [datetime(Year,Mon,Day)]
+#*******************************************************
+# Functions
+#-------------------------------------------------------
+def mk_dir(sdir):
+  try:
+    os.makedirs(sdir)
+  except OSError:
+    pass
+
+#*******************************************************
 
 dy = 4 # searching pixel number
 dx = 4 # searching pixel number
 thdist = 10  # km
 
-radar  = 'Ku'
-gmi = l1_gmi.L1_GMI()
-mwscan= 'S1'
-
-#ix0 = 83   # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
-#ex0 = 137  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
-
-ix0 = 0   # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
-ex0 = 220  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
-
-wx  = ex0-ix0 +1
-verGMI = '05'
-subverGMI = 'A'
-fullverGMI = '%s%s'%(verGMI,subverGMI)
-
-baseDirGMI = '/work/hk01/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
-#obaseDir   = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.IDX'%(fullverGMI, mwscan, ix0, ex0, radar, fullverDPR)
-obaseDir   = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.S2.IDX'%(fullverGMI, mwscan, ix0, ex0)
-
-
+#*******************************************************
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]   
     print DTime 
-    
-    srcDirGMI  = baseDirGMI+ '/%04d/%02d/%02d'%(Year,Mon,Day)
-    #ssearchGMI = srcDirGMI + '/1C.GPM.GMI.XCAL2016-C.20170102-S011732-E025005.016171.V05A.HDF5'
-    ssearchGMI = srcDirGMI + '/1C.GPM.GMI.*.HDF5'
-    lsrcPathGMI = sort(glob.glob(ssearchGMI))
 
-    if len(lsrcPathGMI)==0:
-        print 'No GMI file',Year,Mon,Day
-        print ssearchGMI
-        continue
+    if pmwPath =='':
+        srcDirGMI  = baseDirGMI+ '/%04d/%02d/%02d'%(Year,Mon,Day)
+        #ssearchGMI = srcDirGMI + '/1C.GPM.GMI.XCAL2016-C.20170102-S011732-E025005.016171.V05A.HDF5'
+        ssearchGMI = srcDirGMI + '/1C.GPM.GMI.*.HDF5'
+        lsrcPathGMI = sort(glob.glob(ssearchGMI))
 
-    #for srcPathGMI in lsrcPathGMI[2:]:
+        if len(lsrcPathGMI)==0:
+            print 'No GMI file',Year,Mon,Day
+            print ssearchGMI
+            continue
+    else:
+        lsrcPathGMI = [pmwPath]
+
     for srcPathGMI in lsrcPathGMI:
         print srcPathGMI
         oid       = srcPathGMI.split('.')[-3] 
 
         #if oid != '001573':continue   # test
 
-
-        Lat0 = gmi.load_var_granule(srcPathGMI, '%s/Latitude'%('S1'))
-        Lon0 = gmi.load_var_granule(srcPathGMI, '%s/Longitude'%('S1'))
-        dtime0= gmi.load_dtime_granule(srcPathGMI, mwscan)
-
-        Lat1 = gmi.load_var_granule(srcPathGMI, '%s/Latitude'%('S2'))
-        Lon1 = gmi.load_var_granule(srcPathGMI, '%s/Longitude'%('S2'))
-        dtime1= gmi.load_dtime_granule(srcPathGMI, mwscan)
-        
-        a1scori = gmi.load_var_granule(srcPathGMI, 'S1/SCstatus/SCorientation')
+        with h5py.File(srcPathGMI, 'r') as h:
+            Lat0 = h['S1/Latitude'][:]
+            Lon0 = h['S1/Longitude'][:]
+    
+            Lat1 = h['S2/Latitude'][:]
+            Lon1 = h['S2/Longitude'][:]
+            
+            a1scori = h['S1/SCstatus/SCorientation'][:]
 
         #-- Read dy and dx file --
-        dydxDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.dydx'
-        dyPath0  = dydxDir + '/dy.000.npy'
-        dxPath0  = dydxDir + '/dx.000.npy'
-        dyPath180= dydxDir + '/dy.180.npy'
-        dxPath180= dydxDir + '/dx.180.npy'
-
         a2dy0    = np.load(dyPath0)
         a2dx0    = np.load(dxPath0)
         a2dy180  = np.load(dyPath180)
@@ -126,12 +155,6 @@ for DTime in lDTime:
         a2dy180 = a2dy180[:,ix0:ex0+1]
         a2dx180 = a2dx180[:,ix0:ex0+1]
 
-        #print LonSub0.shape
-        #print a1scori.shape
-        #print a2dy0.shape
-        #print a2dx0.shape
-        #print a2dy180.shape
-        #print a2dx180.shape
 
         X1,X2,X3,X4,Y1,Y2,Y3,Y4 = f_match_fov.match_s1s2(LonSub0.T, LatSub0.T, Lon1.T, Lat1.T, a1scori, a2dx0.T, a2dy0.T, a2dx180.T, a2dy180.T, dx, dy, thdist)
         #X1,X2,X3,X4,Y1,Y2,Y3,Y4 = f_match_fov.match_gmi_dpr(LonSub0.T, LatSub0.T, Lon1.T, Lat1.T)
@@ -159,7 +182,7 @@ for DTime in lDTime:
         
         outDir = obaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
         #outDir = obaseDir + '/temp/%04d/%02d/%02d'%(Year,Mon,Day)
-        util.mk_dir(outDir)
+        mk_dir(outDir)
         
         nameGMI= os.path.basename(srcPathGMI)
         #for i in [1,2,3,4]:

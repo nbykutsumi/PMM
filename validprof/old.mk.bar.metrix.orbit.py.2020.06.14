@@ -17,6 +17,7 @@ from collections import deque
 import pickle
 workbaseDir = '/home/utsumi/mnt/lab_work'
 tankbaseDir = '/home/utsumi/mnt/lab_tank'
+figDir  = '/home/utsumi/temp/ret'
 
 useorblist = True
 
@@ -27,7 +28,6 @@ figflag  = True
 
 iDTime = datetime(2014,6,1)
 eDTime = datetime(2015,5,31)
-#eDTime = datetime(2014,6,5)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 lskipdates = [[2014,8,29],[2014,9,16],[2014,10,1],[2014,10,2],[2014,11,5],[2014,12,8],[2014,12,9],[2014,12,10]]
 nsample = 1000
@@ -42,19 +42,14 @@ ny,nx  = 120,360
 miss   = -9999.
 thpr = 0.5  # mm/h
 thwat = 0.033  # g/m3 for storm top
-#thconvfrac=0.05 # 0 - 1.0, fraction
-thconvfrac=0.5 # 0 - 1.0, fraction
 #lrettype= ['epc']
 lrettype= ['epc','gprof-shift']
 #lvar = ['cc','dpeakh','dpeakv','dstop','dcond','rmse']+['peakhrad','peakhpmw','peakvrad','peakvpmw','stoprad','stoppmw','condrad','condpmw'] + ['dvfracconv','vfracconvrad','vfracconvpmw']
 
-#lvar = ['cond','stop','vfracconv']
-lvar = ['cond','vfracconv']
+lvar = ['cond','stop','vfracconv']
 dexpr = {'epc':'glb.relsurf01.minrec1000.maxrec10000','gprof-shift':'v01'}
 
 
-figDir  = '/home/utsumi/temp/ret/bar-thcnv-%.2f'%(thconvfrac)
-util.mk_dir(figDir)
 #*******************
 # oid list
 #*******************
@@ -171,15 +166,8 @@ for rettype in lrettype:
         a1vfracrad= np.load(srcDir + '/vfracConvrad.%06d.npy'%(oid))
         a1vfracpmw= np.load(srcDir + '/vfracConvpmw.%06d.npy'%(oid))
 
-
-        if rettype == 'epc':
-            a1qflag   = np.load(srcDir + '/gprof-qualityFlag.%06d.npy'%(oid))
-            a1precpmw2= np.load(srcDir + '/gprof-surfacePrecipitation.%06d.npy'%(oid))
-
-
-        elif rettype in ['gprof-shift','gprof']:
-            a1qflag   = np.load(srcDir + '/qualityFlag.%06d.npy'%(oid))
-            a1precpmw2= np.load(srcDir + '/epc-nsurfMScmb.%06d.npy'%(oid))
+        if rettype in ['gprof-shift','gprof']:
+            a1qflag = np.load(srcDir + '/qualityFlag.%06d.npy'%(oid))
 
 
         #-- Set missing to the lower levels -------
@@ -196,13 +184,11 @@ for rettype in lrettype:
             a2profpmw[a1idxtmp, :cltbin] = miss
             a2profrad[a1idxtmp, :cltbin] = miss
         #-------------------------------------------
-        # Screening index
-        #-------------------------------------------
+
         a1idx = ma.masked_where(a1precpmw<thpr, a1idx)
         a1idx = ma.masked_where(a1precrad<thpr, a1idx)
-        a1idx = ma.masked_where(a1precpmw2<thpr,a1idx)
-        a1idx = ma.masked_where(a1qflag !=0, a1idx)
-
+        if rettype in ['gprof','gprof-shift']:
+            a1idx = ma.masked_where(a1qflag !=0, a1idx)
 
         a1idx = a1idx.compressed()
 
@@ -307,17 +293,13 @@ for rettype in lrettype:
         #-- Classified by precipitation type ----
         lkey = [(dattype,bywhat,ptype,region)
                 for dattype in ['rad','pmw']
-                for bywhat  in ['rad','pmw','both']
+                for bywhat  in ['rad','pmw']
                 for ptype   in ['all','conv','stra']
                 for region  in ['mid','tro']
         ]
         for (dattype,bywhat,ptype,region) in lkey:
             if (dattype=='rad')&(bywhat=='pmw'):
                 continue
-
-            if (bywhat=='both')&(ptype=='all'):
-                continue
-
             print dattype,bywhat,ptype,region
 
             if dattype=='rad':
@@ -327,35 +309,21 @@ for rettype in lrettype:
             else:
                 print 'check dattype',dattype
 
-            if   bywhat =='rad':
+            if (bywhat =='rad'):
                 a1vfrac = o1vfracrad
-            elif bywhat =='pmw':
+            elif (bywhat =='pmw'):
                 a1vfrac = o1vfracpmw
-            elif bywhat =='both':
-                a1vfrac = None
             else:
                 continue
 
             if   ptype=='all':
                 a1flagptype = np.array([True])
-            elif (ptype=='conv')&(bywhat in ['rad','pmw']):
-                a1flagptype = ma.masked_greater(a1vfrac, thconvfrac).mask
-            elif (ptype=='stra')&(bywhat in ['rad','pmw']):
-                a1flagptype = ma.masked_less(a1vfrac, thconvfrac).mask
-            elif (ptype=='conv')&(bywhat == 'both'):
-                a1flagptype1 = ma.masked_greater(o1vfracrad, thconvfrac).mask
-                a1flagptype2 = ma.masked_greater(o1vfracpmw, thconvfrac).mask
-                a1flagptype  = a1flagptype1 * a1flagptype2
-
-            elif (ptype=='stra')&(bywhat == 'both'):
-                a1flagptype1 = ma.masked_less_equal(o1vfracrad, thconvfrac).mask
-                a1flagptype2 = ma.masked_less_equal(o1vfracpmw, thconvfrac).mask
-                a1flagptype  = a1flagptype1 * a1flagptype2
-
-
+            elif ptype=='conv':
+                a1flagptype = ma.masked_greater(a1vfrac, 0.5).mask
+            elif ptype=='stra':
+                a1flagptype = ma.masked_less(a1vfrac, 0.5).mask
             else:
                 print 'check ptype',ptype
-
 
             if   region=='all':
                 a1flaglat = np.array([True])
@@ -371,16 +339,6 @@ for rettype in lrettype:
 
             a1vartmp = ma.masked_invalid(a1vartmp)
             a1vartmp = ma.masked_equal(a1vartmp,miss)
-
-
-            ##---- test ----
-            #if (ptype=='conv')&(region=='mid'):
-            #    print '-------------------------------------'
-            #    print 'comp',rettype,bywhat,ptype,a1flag.sum()
-            #    print '-------------------------------------'
-            ##---- test ----
-
-
 
             #--- Calc ----------
             dvar[var,dattype,bywhat,ptype,region,'ave'] = a1vartmp.mean()
@@ -399,7 +357,7 @@ for rettype in lrettype:
 
     odir = tankbaseDir + '/utsumi/PMM/validprof/metrix-orbit/%s.%s'%(rettype,expr)
     util.mk_dir(odir)
-    opath = odir + '/metrix.thcnv-%0.2f.pickle'%(thconvfrac)
+    opath = odir + '/metrix.%s.pickle'%(rettype)
     with open(opath,'w') as f:
         pickle.dump(dvar, f)
     print opath
@@ -432,9 +390,9 @@ for rettype in lrettype:
         if   radcondition=='all':
             a1flagradcondition= np.array([True])
         elif radcondition=='conv':
-            a1flagradcondition= ma.masked_greater(a1vfracrad,thconvfrac).mask
+            a1flagradcondition= ma.masked_greater(a1vfracrad,0.5).mask
         elif radcondition=='stra':
-            a1flagradcondition= ma.masked_less_equal(a1vfracrad,thconvfrac).mask
+            a1flagradcondition= ma.masked_less_equal(a1vfracrad,0.5).mask
         else:
             print 'check radcondition',radcondition
 
@@ -447,7 +405,7 @@ for rettype in lrettype:
 
         a1flag = a1flagradcondition * a1flaglat
 
-        a1conv = (ma.masked_greater(a1vfrac, thconvfrac).mask).astype('float32')[a1flag]
+        a1conv = (ma.masked_greater(a1vfrac, 0.5).mask).astype('float32')[a1flag]
 
         a1conv = ma.masked_less(a1conv,0)
         a1conv = ma.masked_invalid(a1conv).compressed()
@@ -466,7 +424,7 @@ for rettype in lrettype:
         dcfrac[dattype,radcondition,region,'p75'] = np.percentile(a1vartmp,75)
         dcfrac[dattype,radcondition,region,'p95'] = np.percentile(a1vartmp,95)
 
-    opath = odir + '/convCountFrac.thcnv-%0.2f.pickle'%(thconvfrac)
+    opath = odir + '/convCountFrac.%s.pickle'%(rettype)
     with open(opath,'w') as f:
         pickle.dump(dcfrac, f)
     print opath
@@ -484,7 +442,7 @@ if figflag is False:
 for rettype in lrettype:
     expr = dexpr[rettype]
     srcdir = tankbaseDir + '/utsumi/PMM/validprof/metrix-orbit/%s.%s'%(rettype,expr)
-    srcpath = srcdir + '/metrix.thcnv-%0.2f.pickle'%(thconvfrac)
+    srcpath = srcdir + '/metrix.%s.pickle'%(rettype)
     with open(srcpath,'rb') as f:
         dvar = pickle.load(f) 
     if rettype =='epc':
@@ -494,7 +452,7 @@ for rettype in lrettype:
 
 #for var in lvar:
 for var in ['cond']:
-    for bywhat in ['rad','pmw','both']:
+    for bywhat in ['rad','pmw']:
         nrow, ncol = 1, 4
         fig, axs = plt.subplots(nrows=nrow, ncols=ncol, figsize=(8,1.6))
         #lkey = [(ptype,region)
@@ -511,69 +469,30 @@ for var in ['cond']:
         #for ikey, (ptype,region) in enumerate(lkey):
         for ikey, (region,ptype) in enumerate(lkey):
             ax = axs[ikey]
-            if bywhat =='pmw':
-                avecmbE = dvarepc[var,'rad','rad' ,ptype,region,'ave']
-                p05cmbE = dvarepc[var,'rad','rad' ,ptype,region,'p05']
-                p25cmbE = dvarepc[var,'rad','rad' ,ptype,region,'p25']
-                p75cmbE = dvarepc[var,'rad','rad' ,ptype,region,'p75']
-                p95cmbE = dvarepc[var,'rad','rad' ,ptype,region,'p95']
-                avecmbG = dvargpr[var,'rad','rad' ,ptype,region,'ave']
-                p05cmbG = dvargpr[var,'rad','rad' ,ptype,region,'p05']
-                p25cmbG = dvargpr[var,'rad','rad' ,ptype,region,'p25']
-                p75cmbG = dvargpr[var,'rad','rad' ,ptype,region,'p75']
-                p95cmbG = dvargpr[var,'rad','rad' ,ptype,region,'p95']
-
-
-            else:
-                avecmbE = dvarepc[var,'rad',bywhat ,ptype,region,'ave']
-                p05cmbE = dvarepc[var,'rad',bywhat ,ptype,region,'p05']
-                p25cmbE = dvarepc[var,'rad',bywhat ,ptype,region,'p25']
-                p75cmbE = dvarepc[var,'rad',bywhat ,ptype,region,'p75']
-                p95cmbE = dvarepc[var,'rad',bywhat ,ptype,region,'p95']
-                avecmbG = dvargpr[var,'rad',bywhat ,ptype,region,'ave']
-                p05cmbG = dvargpr[var,'rad',bywhat ,ptype,region,'p05']
-                p25cmbG = dvargpr[var,'rad',bywhat ,ptype,region,'p25']
-                p75cmbG = dvargpr[var,'rad',bywhat ,ptype,region,'p75']
-                p95cmbG = dvargpr[var,'rad',bywhat ,ptype,region,'p95']
-
-
+            avecmb = dvarepc[var,'rad','rad' ,ptype,region,'ave']
             aveepc = dvarepc[var,'pmw',bywhat,ptype,region,'ave']
             avegpr = dvargpr[var,'pmw',bywhat,ptype,region,'ave']
+            p05cmb = dvarepc[var,'rad','rad' ,ptype,region,'p05']
             p05epc = dvarepc[var,'pmw',bywhat,ptype,region,'p05']
             p05gpr = dvargpr[var,'pmw',bywhat,ptype,region,'p05']
+            p25cmb = dvarepc[var,'rad','rad' ,ptype,region,'p25']
             p25epc = dvarepc[var,'pmw',bywhat,ptype,region,'p25']
             p25gpr = dvargpr[var,'pmw',bywhat,ptype,region,'p25']
+            p75cmb = dvarepc[var,'rad','rad' ,ptype,region,'p75']
             p75epc = dvarepc[var,'pmw',bywhat,ptype,region,'p75']
             p75gpr = dvargpr[var,'pmw',bywhat,ptype,region,'p75']
+            p95cmb = dvarepc[var,'rad','rad' ,ptype,region,'p95']
             p95epc = dvarepc[var,'pmw',bywhat,ptype,region,'p95']
             p95gpr = dvargpr[var,'pmw',bywhat,ptype,region,'p95']
 
+            aerrmin= -np.array([p25cmb,p25epc,p25gpr]) + np.array([avecmb,aveepc,avegpr])
+            aerrmax=  np.array([p75cmb,p75epc,p75gpr]) - np.array([avecmb,aveepc,avegpr])
 
             labels = ['CMB','EPC','GPROF']
-            linewidth = 0.5
-            if bywhat=='both':
-                aerrmin= -np.array([p25cmbE,p25cmbG, p25epc,p25gpr]) + np.array([avecmbE,avecmbG,aveepc,avegpr])
-                aerrmax=  np.array([p75cmbE,p75cmbG, p75epc,p75gpr]) - np.array([avecmbE,avecmbG,aveepc,avegpr])
-
-                cent   = [-0.2, 0.2, 1, 2]
-                width  = [0.4,0.4, 0.8, 0.8]
-                rects  = ax.bar(cent, [avecmbE,avecmbG,aveepc,avegpr], yerr=[aerrmin,aerrmax], width=width, color='gray', edgecolor='k', linewidth=linewidth, align='center', clip_on=True)
-
-                ax.set_xticks([0, 1, 2])
-                ax.set_xticklabels(labels)
-
-            else:
-                aerrmin= -np.array([p25cmbE,p25epc,p25gpr]) + np.array([avecmbE,aveepc,avegpr])
-                aerrmax=  np.array([p75cmbE,p75epc,p75gpr]) - np.array([avecmbE,aveepc,avegpr])
-
-                rects  = ax.bar(labels, [avecmbE,aveepc,avegpr], yerr=[aerrmin,aerrmax], color='gray', edgecolor='k', linewidth=linewidth, clip_on=True)
-
-                print '--------------------'
-                for rect in rects:
-                    print 'pos=',rect
+            rects  = ax.bar(labels, [avecmb,aveepc,avegpr], yerr=[aerrmin,aerrmax], color='gray')
 
             #-- title --
-            ptypename = {'stra':'Strat','conv':'Conv','both-stra':'Stra','both-conv':'Conv'}[ptype]
+            ptypename = {'stra':'Strat','conv':'Conv'}[ptype]
             regionname= {'mid':'Mid-high','tro':'Tropics'}[region]
             #ax.set_title('%s (%s)'%(ptypename, regionname))
             ax.set_title('%s (%s)'%(regionname, ptypename))
@@ -584,54 +503,47 @@ for var in ['cond']:
             #        ('conv','mid'):0.35,
             #        ('conv','tro'):0.35,
             #    }[(ptype,region)]
-            if (ptype=='conv')&(region=='mid'):
-                ymax  = 0.5  # 0.12, 0.27 ?
-            else:
-                ymax  = 0.25  # 0.12, 0.27 ?
+            ymax  = 0.27  # 0.12, 0.27 ?
             ax.set_ylim([0,ymax])
 
             #-- Y-axis label --
             if ikey==0:
                 ax.set(ylabel='[g/m3]')
 
-            #-- text annotation(percentatge) --
-            print ''
-            print ptype,region,bywhat
+            #-- text annotation --
             for irect,rect in enumerate(rects):
-                #height = rect.get_height()
-                if ((bywhat=='both')&(irect==2))or((bywhat in ['rad','pmw'])&(irect==1)): # EPC
-                    height = aveepc
-                    height0= avecmbE
-                    ratio  = height/height0
-                    bias   = (height-height0)/height0*100
-                    print 'EPC',height0
+                height = rect.get_height()
+                #if irect ==0:                
+                #    xy = (rect.get_x()*0.93, height + ymax*0.1)
+                #else:
+                #    xy = (rect.get_x()*0.93, height + ymax*0.3)
+                xy = (rect.get_x()*0.93, height + ymax*0.1)
+                ax.annotate('%.2f'%(height), xy=xy)
 
-                elif ((bywhat=='both')&(irect==3))or((bywhat in ['rad','pmw'])&(irect==2)): # EPC
-                    height = avegpr
-                    height0= avecmbG
-                    ratio = height/height0
-                    bias  = (height-height0)/height0*100
-                    print 'GPROF',height0
-                else:
-                    continue
-
-                #xy = (rect.get_x()*0.91, height + ymax*0.1)
-                #ax.annotate('%.2f'%(ratio), xy=xy)
-
-                xy = (rect.get_x() + 0.00, height + ymax*0.1)
-                ax.annotate('%+d%%'%(bias), xy=xy)
+            ##-- text annotation(percentatge) --
+            #print ''
+            #print ptype,region,bywhat
+            #for irect,rect in enumerate(rects):
+            #    height = rect.get_height()
+            #    if irect==0:
+            #        height0 = height
+            #        continue
+            #    else:
+            #        ratio = height/height0
+            #    xy = (rect.get_x()*0.91, height + ymax*0.1)
+            #    ax.annotate('(%.2f)'%(ratio), xy=xy)
+            #    print height0, height, height/height0, ratio
 
 
         varname={'cond':'Mean condensed water content'}['cond']
-        bywhatname={'rad' :"Conditional on CMB's precip type",
-                    'pmw' :"Conditional on own precip type",
-                    'both':"Correctly classified cases"}[bywhat]
+        bywhatname={'rad':"Conditional on CMB's precip type",
+                    'pmw':"Conditional on own precip type"}[bywhat]
         plt.suptitle('%s (%s)'%(varname, bywhatname))
         plt.tight_layout(rect=[0, 0, 1, 0.9])
         plt.show()
 
-        bywhatfilename = {'rad':'rad','pmw':'self','both':'both'}[bywhat]
-        figpath = figDir + '/bar.%s.by-%s.png'%(var,bywhatfilename)
+        bywhatfilename = {'rad':'rad','pmw':'self'}[bywhat]
+        figpath = '/home/utsumi/temp/ret/bar.%s.by-%s.png'%(var,bywhatfilename)
         plt.savefig(figpath)
         print figpath
 
@@ -662,7 +574,7 @@ for var in ['cond']:
             aerrmax=  np.array([p75cmb,p75epc,p75gpr]) - np.array([avecmb,aveepc,avegpr])
 
             labels = ['CMB','EPC','GPROF']
-            rects  = ax.bar(labels, [avecmb,aveepc,avegpr], yerr=[aerrmin,aerrmax], color='gray', clip_on=True)
+            rects  = ax.bar(labels, [avecmb,aveepc,avegpr], yerr=[aerrmin,aerrmax], color='gray')
 
             #-- title --
             regionname= {'mid':'Mid-high','tro':'Tropics'}[region]
@@ -705,94 +617,11 @@ for var in ['cond']:
         plt.tight_layout(rect=[0, 0, 1, 0.9])
         plt.show()
 
-        figpath = figDir + '/bar.%s.all-type.png'%(var)
+        figpath = '/home/utsumi/temp/ret/bar.%s.all-type.png'%(var)
         plt.savefig(figpath)
         print figpath
 
 
-#********************************************
-#** Figure event fraction of correctly classified cases
-#********************************************
-for rettype in lrettype:
-    expr = dexpr[rettype]
-    srcdir = tankbaseDir + '/utsumi/PMM/validprof/metrix-orbit/%s.%s'%(rettype,expr)
-    srcpath = srcdir + '/convCountFrac.thcnv-%0.2f.pickle'%(thconvfrac)
-    with open(srcpath,'rb') as f:
-        dcfrac = pickle.load(f) 
-    if rettype =='epc':
-        dcfracepc = dcfrac
-    elif rettype in ['gprof','gprof-shift']:
-        dcfracgpr = dcfrac
-
-#-----------------------
-nrow, ncol = 1,4
-fig, axs = plt.subplots(nrows=nrow, ncols=ncol, figsize=(8,1.6))
-lkey = [(region,ptype)
-                    for region in ['mid','tro']  # 'all','mid','tro'
-                    for ptype  in ['conv','stra']
-]
-
-
-#for iax,(radcondition,region) in enumerate(lkey):
-for iax,(region,radcondition) in enumerate(lkey):
-    ax = axs[iax]
-
-    aveepc = dcfracepc['pmw',radcondition,region,'ave']
-    avegpr = dcfracgpr['pmw',radcondition,region,'ave']
-
-    p05epc = dcfracepc['pmw',radcondition,region,'p05']
-    p05gpr = dcfracgpr['pmw',radcondition,region,'p05']
-    p25epc = dcfracepc['pmw',radcondition,region,'p25']
-    p25gpr = dcfracgpr['pmw',radcondition,region,'p25']
-    p75epc = dcfracepc['pmw',radcondition,region,'p75']
-    p75gpr = dcfracgpr['pmw',radcondition,region,'p75']
-    p95epc = dcfracepc['pmw',radcondition,region,'p95']
-    p95gpr = dcfracgpr['pmw',radcondition,region,'p95']
-
-    if radcondition=='stra':
-        aveepc =  1 - aveepc 
-        avegpr =  1 - avegpr 
-        p05epc =  1 - p05epc 
-        p05gpr =  1 - p05gpr 
-        p25epc =  1 - p25epc 
-        p25gpr =  1 - p25gpr 
-        p75epc =  1 - p75epc 
-        p75gpr =  1 - p75gpr 
-        p95epc =  1 - p95epc 
-        p95gpr =  1 - p95gpr 
-    
-
-    aerrmax= -np.array([p25epc,p25gpr]) + np.array([aveepc,avegpr])
-    aerrmin=  np.array([p75epc,p75gpr]) - np.array([aveepc,avegpr])
-
-    labels = ['EPC','GPROF']
-    rects  = ax.bar(labels, [aveepc,avegpr], edgecolor='k', linewidth=0.5, yerr=[aerrmin,aerrmax], color='gray')
-    ymax = {'stra':1.2,'conv':1.2}[radcondition]
-    ax.set_ylim([0,ymax])
-
-    if iax==0:
-        ax.set(ylabel='[fraction]')
-
-    #-- title --
-    ptypename = {'stra':'Strat','conv':'Conv'}[radcondition]
-    regionname= {'mid':'Mid-high','tro':'Tropics'}[region]
-    #ax.set_title('%s (%s)'%(ptypename, regionname))
-    ax.set_title('%s (%s)'%(regionname, ptypename))
-
-    #-- text annotation --
-    for rect in rects:
-        height = rect.get_height()
-        #xy = (rect.get_x()*0.93, height + ymax*0.05)
-        xy = (rect.get_x()+0.18, height + ymax*0.05)
-        ax.annotate('%.2f'%(height), xy=xy)
-
-
-plt.suptitle("Number fraction of correctly classified cases")
-plt.tight_layout(rect=[0, 0, 1, 0.9])
-plt.show()
-figpath = figDir + '/bar.CorrectCountFrac.png'
-plt.savefig(figpath)
-print figpath
 
 
 
@@ -804,7 +633,7 @@ print figpath
 for rettype in lrettype:
     expr = dexpr[rettype]
     srcdir = tankbaseDir + '/utsumi/PMM/validprof/metrix-orbit/%s.%s'%(rettype,expr)
-    srcpath = srcdir + '/convCountFrac.thcnv-%0.2f.pickle'%(thconvfrac)
+    srcpath = srcdir + '/convCountFrac.%s.pickle'%(rettype)
     with open(srcpath,'rb') as f:
         dcfrac = pickle.load(f) 
     if rettype =='epc':
@@ -887,10 +716,104 @@ for iax,(region,radcondition) in enumerate(lkey):
         ax.annotate('%.2f'%(height), xy=xy)
 
 
-plt.suptitle("Convective event fraction (Conditional on CMB's precip type)")
+plt.suptitle("Convective pixel fraction (Conditional on CMB's precip type)")
 plt.tight_layout(rect=[0, 0, 1, 0.9])
 plt.show()
-figpath = figDir + '/bar.convCountFrac.png'
+figpath = '/home/utsumi/temp/ret/bar.convCountFrac.png'
+plt.savefig(figpath)
+print figpath
+
+
+#********************************************
+#-- Figure: Unconditional convective event fraction ---
+#********************************************
+nrow, ncol = 1,2
+fig, axs = plt.subplots(nrows=nrow, ncols=ncol, figsize=(4.1,1.6))
+radcondition = 'all'
+for iregion,region in enumerate(['mid','tro']):
+    ax = axs[iregion]
+    avecmb = dcfracepc['rad',radcondition,region,'ave']
+    aveepc = dcfracepc['pmw',radcondition,region,'ave']
+    avegpr = dcfracgpr['pmw',radcondition,region,'ave']
+
+    p25cmb = dcfracepc['rad',radcondition,region,'p25']
+    p25epc = dcfracepc['pmw',radcondition,region,'p25']
+    p25gpr = dcfracgpr['pmw',radcondition,region,'p25']
+    p75cmb = dcfracepc['rad',radcondition,region,'p75']
+    p75epc = dcfracepc['pmw',radcondition,region,'p75']
+    p75gpr = dcfracgpr['pmw',radcondition,region,'p75']
+
+
+    aerrmin= -np.array([0,p25epc,p25gpr]) + np.array([0,aveepc,avegpr])
+    aerrmax=  np.array([0,p75epc,p75gpr]) - np.array([0,aveepc,avegpr])
+
+    labels = ['CMB','EPC','GPROF']
+    rects  = ax.bar(labels, [avecmb,aveepc,avegpr], yerr=[aerrmin,aerrmax], color='gray')
+    ymax = 1.2
+    ax.set_ylim([0,ymax])
+
+    if iregion==0:
+        ax.set(ylabel='[frac. count]')
+
+    #-- title --
+    regionname= {'mid':'Mid-high','tro':'Tropics'}[region]
+    ax.set_title('%s'%(regionname))
+
+    #-- text annotation --
+    for rect in rects:
+        height = rect.get_height()
+        xy = (rect.get_x()*0.93, height + ymax*0.05)
+        ax.annotate('%.2f'%(height), xy=xy)
+
+
+plt.suptitle("Convective pixel fraction")
+plt.tight_layout(rect=[0, 0, 1, 0.9])
+plt.show()
+figpath = '/home/utsumi/temp/ret/bar.convCountFrac-unconditional.png'
+plt.savefig(figpath)
+print figpath
+
+
+#********************************************
+#-- Figure: Unconditional convective event fraction (Only CMB)
+#********************************************
+fig = plt.figure(figsize=(2.2,1.6))
+ax  = fig.add_axes([0.2,0.25,0.6,0.45])
+radcondition = 'all'
+avetro = dcfracepc['rad',radcondition,'tro','ave']
+avemid = dcfracepc['rad',radcondition,'mid','ave']
+
+p25tro = dcfracepc['rad',radcondition,'tro','p25']
+p25mid = dcfracepc['rad',radcondition,'mid','p25']
+p75tro = dcfracepc['rad',radcondition,'tro','p75']
+p75mid = dcfracepc['rad',radcondition,'mid','p75']
+
+aerrmin= -np.array([p25tro,p25mid]) + np.array([avetro,avemid])
+aerrmax=  np.array([p75tro,p75mid]) - np.array([avetro,avemid])
+
+labels = ['Trop','Mid-high']
+rects  = ax.bar(labels, [avetro,avemid], yerr=[aerrmin,aerrmax], color='gray')
+ymax = 1.2
+ax.set_ylim([0,ymax])
+
+if iregion==0:
+    ax.set(ylabel='[frac. count]')
+
+#-- title --
+#ax.set_title('CMB')
+
+#-- text annotation --
+for rect in rects:
+    height = rect.get_height()
+    xy = (rect.get_x()+0.2, height + ymax*0.05)
+    print 'xy=',xy
+    ax.annotate('%.2f'%(height), xy=xy)
+
+
+plt.suptitle("Convective pixel\n fraction (CMB)")
+plt.tight_layout(rect=[0, 0, 1, 0.9])
+plt.show()
+figpath = '/home/utsumi/temp/ret/bar.convCountFrac-CMB.png'
 plt.savefig(figpath)
 print figpath
 
@@ -898,3 +821,5 @@ print figpath
 
 
 
+
+# %%

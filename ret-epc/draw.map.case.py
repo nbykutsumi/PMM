@@ -16,16 +16,16 @@ if myhost == 'shui':
     #srcDir = '/home/utsumi/temp/out'
     #srcDir = '/home/utsumi/temp/out/my'
     srcbaseDir = '/tank/utsumi/PMM/retepc'
-    gprofbaseDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05'
+    gprofbaseDir = '/work/hk02/PMM/NASA/GPM.GMI/2A/V05'
     workbaseDir = '/work'
-    mrmsDir  = '/work/hk01/PMM/MRMS/match-GMI-orbit'
+    mrmsDir  = '/work/hk02/PMM/MRMS/match-GMI-orbit'
     figDir   = '/home/utsumi/temp/ret'
 
 elif myhost == 'well':
     srcbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc'
-    gprofbaseDir = '/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.GMI/2A/V05'
+    gprofbaseDir = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/GPM.GMI/2A/V05'
     workbaseDir = '/home/utsumi/mnt/lab_work'
-    mrmsDir  = '/home/utsumi/mnt/lab_work/hk01/PMM/MRMS/match-GMI-orbit'
+    mrmsDir  = '/home/utsumi/mnt/lab_work/hk02/PMM/MRMS/match-GMI-orbit'
     figDir   = '/home/utsumi/temp/ret'
 
 else:
@@ -281,7 +281,7 @@ xpos = 100  # x-position for the cross section
 #thpr = 0.5  # Minimum threshold for EPC
 #thpr = 0.1  # Minimum threshold for EPC
 #thpr = 0.01  # Minimum threshold for EPC
-thpr = 0.5  # Minimum threshold for EPC
+thpr = 0.5  # Minimum threshold
 
 if clat !=-9999.:
     #dlatlon = 20
@@ -348,7 +348,7 @@ a2lonMy = np.load(lonPath)
 #a2MS= ma.masked_less(a2MS,thpr)
 #a2NS= ma.masked_less(a2NS,thpr)
 #a2MScmb= ma.masked_less(a2MScmb,thpr)
-a2NScmb= ma.masked_less(a2NScmb,thpr)
+#a2NScmb= ma.masked_less(a2NScmb,thpr)
 
 #*****************
 #- Read GPROF data ----
@@ -366,7 +366,6 @@ else:
     a2longp = a2longpOrg
 
 a2esurfgp = ma.masked_less_equal(a2esurfgp,0)
-
 #*****************
 #- Read MRMS-on-orbit data ----
 if (reftype in ['mrms','both'])and(os.path.exists(mrmsPath)):
@@ -380,7 +379,7 @@ if (reftype in ['mrms','both'])and(os.path.exists(mrmsPath)):
 #- Read DPR/CMB data ----
 #if (reftype=='dpr')and(os.path.exists(mrmsPath)):
 if (reftype in ['dpr','both']):
-    dprDir = workbaseDir + '/hk01/PMM/NASA/GPM.DPRGMI/2B/V06/%04d/%02d/%02d'%(Year,Mon,Day)
+    dprDir = workbaseDir + '/hk02/PMM/NASA/GPM.DPRGMI/2B/V06/%04d/%02d/%02d'%(Year,Mon,Day)
     ssearch= dprDir + '/2B.GPM.DPRGMI.CORRA*.%06d.V06A.HDF5'%(oid)
     dprPath= glob.glob(ssearch)[0]
     with h5py.File(dprPath,'r') as h:
@@ -479,26 +478,26 @@ for i in range(4):
 
     if i==0:
         ax = fig.add_axes([0.05,0.5,0.35,0.35])
-        a2dat = ma.masked_less_equal(a2mrms,0)
+        a2dat = ma.masked_less_equal(a2mrms,thpr)
         a2lat = a2latmr
         a2lon = a2lonmr
         stype = 'MRMS'
     elif i==1:
         ax = fig.add_axes([0.5,0.5,0.35,0.35])
-        a2dat = ma.masked_less_equal(a2dpr,0)
+        a2dat = ma.masked_less_equal(a2dpr,thpr)
         a2lat = a2latdpr
         a2lon = a2londpr
         stype = 'CMB'
 
     elif i==2:
         ax = fig.add_axes([0.05,0.05,0.35,0.35])
-        a2dat = ma.masked_less_equal(a2NScmb,0)
+        a2dat = ma.masked_less_equal(a2NScmb,thpr)
         a2lat = a2latMy
         a2lon = a2lonMy
         stype = 'NScmb' + ' (>%.2fmm/h)'%(thpr)
     elif i==3:
         ax = fig.add_axes([0.5,0.05,0.35,0.35])
-        a2dat = ma.masked_less_equal(a2esurfgp,0)
+        a2dat = ma.masked_less_equal(a2esurfgp,thpr)
         a2lat = a2latgp
         a2lon = a2longp
         stype = 'GPROF'

@@ -179,8 +179,8 @@ if len(argvs)==1:
     sensor  = 'AMSR2'
 
     coefDir = '/media/disk2/share/PMM/JPLDB/JPLDB/EPC_COEF/%s'%(sensor)
-    miss_int32= np.int32(-9999)
-    miss_int16= np.int16(-9999)
+    miss_int32= -9999
+    miss_int16= -9999
 
     if dbtype=='JPL':  
         #dbDir   = '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE_TEST29'
@@ -777,7 +777,7 @@ for i,idx_db in enumerate(lidxset):
                 a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS_relsurf')[:,-NLEV_PRECIP:]).filled(-9999.)
 
             elif dbtype=='JPL':
-                a2prwatprofNSTmp = np.load(relprofDir + '/%05d.npy'%(idx_db_expand))[:,-NLEV_PRECIP:].astype('float32')   # Scaled by 1000
+                a2prwatprofNSTmp = np.load(relprofDir + '/%05d.npy'%(idx_db_expand))[:,-NLEV_PRECIP:]
 
         else:
             a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.)
@@ -1169,13 +1169,9 @@ a2cnvnsurfNScmb[a2flagmiss]  = miss
 
 #--- Change data type of profiles ---
 int16max = 32767 
-if dbtype=='my':
-    a3flagmax  = ma.masked_greater(a3prwatprofNS, (int16max-1)/1000.).mask
-    a3prwatprofNS = (ma.masked_equal(a3prwatprofNS, miss)*1000.).filled(miss_int16).astype('int16')  # Scale by 1000
-    a3prwatprofNS[a3flagmax] = np.int16(int16max)
-
-elif dbtype=='JPL':
-    a3prwatprofNS = ma.masked_invalid(ma.masked_greater(a3prwatprofNS, int16max)).filled(int16max).astype('int16')  # Already scaled by 1000
+a3flagmax  = ma.masked_greter(a3prwatprofNS, int16max/1000.-1).mask
+a3prwatprofNS = (ma.masked_equal(a3prwatprofNS, miss)*1000.).astype('int16').filled(miss_int16)  # Scale by 1000
+a3prwatprofNS[a3flagmax] = np.int16(int16max)
 
 
 #--- save -----
@@ -1227,5 +1223,6 @@ if flag_top_var ==1:
 
 print outDir
 print stamp
+
 
 # %%

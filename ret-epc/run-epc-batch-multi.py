@@ -14,7 +14,8 @@ iDTime = datetime(2018,1,1)
 eDTime = datetime(2018,1,31)
 
 dDTime = timedelta(days=1)
-maket2m = True
+makeS2IDX= True
+maket2m  = True
 #------------
 def ret_lDTime(iDTime,eDTime,dDTime):
   total_steps = int( (eDTime - iDTime).total_seconds() / dDTime.total_seconds() + 1 )
@@ -46,12 +47,13 @@ lDTime = ret_lDTime(iDTime,eDTime,dDTime)
 #useorblist = True
 useorblist = 'regional'
 
-#batchsize = 6
-batchsize = 3
+batchsize = 6
+#batchsize = 1
 
 DB_MAXREC = 10000
 DB_MINREC = 1000
 dbtype    = 'JPL'
+#dbtype    = 'my'
 
 #--- Storm top parameter ----
 #stoptype = 'ret'
@@ -82,6 +84,7 @@ mhs_noaa18= ["NOAA18","MHS","1C","1C","V05"]
 mhs_noaa19= ["NOAA19","MHS","1C","1C","V05"]
 
 lspec = [amsr2, ssmis_f16, ssmis_f17, ssmis_f18, atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
+#lspec = [ssmis_f16]
 
 dnscan = {'GMI':2, 'AMSR2':5, 'SSMIS':4, 'ATMS':4, 'MHS':1}
 #** Constants ******
@@ -127,6 +130,8 @@ print progcopy
 # Start sate,sensor loop
 #-----------------------------------------
 for spec in lspec:
+    print 'spec=',spec
+    print ''
     sate      = spec[0]
     sensor    = spec[1]
     prdName   = spec[2]
@@ -192,7 +197,7 @@ for spec in lspec:
             for line in lines:
                 _,_,Day,oid,iscan,escan = map(int,line.strip().split(','))
 
-                if (sensor=='AMSR2')&(oid <= 30345): continue # test
+                #if (sensor=='AMSR2')&(oid <= 30205): continue # test
 
                 if (iDTime<=datetime(Year,Mon,Day))&(datetime(Year,Mon,Day)<=eDTime):
                     ltbPathTmp = sorted(glob.glob(tbbaseDir + '/%04d/%02d/%02d/*.%06d.????.HDF5'%(Year,Mon,Day,oid)))
@@ -254,6 +259,36 @@ for spec in lspec:
             #if oid <=2780: continue  # test
 
             #*****************************
+            # Make GMI S2 position index data
+            #*****************************
+            if (sensor=='GMI')&(makeS2IDX is True):
+                progtmp = './mk.match.idx.gmiS2.gmi.fullswath.py'
+
+                dtmp = {}
+                dtmp['Year']    = Year
+                dtmp['Mon']     = Mon
+                dtmp['Day']     = Day
+                dtmp['pmwPath'] = tbPath
+                dtmp['obaseDir']= matchbaseDir + '/S1.ABp000-220.GMI.S2.IDX'
+
+                dydxDir = matchbaseDir + '/S1.ABp000-220.GMI.S2.dydx'
+                dtmp['dyPath0'  ]= dydxDir + '/dy.000.npy'
+                dtmp['dxPath0'  ]= dydxDir + '/dx.000.npy'
+                dtmp['dyPath180']= dydxDir + '/dy.180.npy'
+                dtmp['dxPath180']= dydxDir + '/dx.180.npy' 
+
+                sargv = ['%s=%s'%(key, dtmp[key]) for key in dtmp.keys()]
+                sargv = ' '.join(sargv)
+                lcmd = ['python', progtmp, sargv]
+                print lcmd
+                returncode = subprocess.call(lcmd)
+                if returncode==1:
+                    print 'Error for',lcmd
+                    sys.exit()
+
+
+
+            #*****************************
             # Make T2m data
             #*****************************
             if maket2m is True:
@@ -263,11 +298,11 @@ for spec in lspec:
                 dtmp['sate']   = sate
                 dtmp['sensor'] = sensor
                 dtmp['rabaseDir'] = '/home/utsumi/mnt/lab_tank/utsumi/data/MERRA2'
+                dtmp['pmwPath']   = tbPath
                 dtmp['varName'] = 't2m'
                 dtmp['Year']    = Year
                 dtmp['Mon']     = Mon
                 dtmp['Day']     = Day
-                dtmp['oid']     = oid
                 sargv = ['%s=%s'%(key, dtmp[key]) for key in dtmp.keys()]
                 sargv = ' '.join(sargv)
                 lcmd = ['python', progtmp, sargv]
@@ -494,6 +529,7 @@ for spec in lspec:
         dargv['thwtmin'] = 0.1
         dargv['miss'] = -9999.
         dargv['miss_int32'] = np.int32(-9999)  
+        dargv['miss_int16'] = np.int16(-9999)  
         #------------
         dargv['DB_MAXREC'] = DB_MAXREC
         dargv['DB_MINREC'] = DB_MINREC

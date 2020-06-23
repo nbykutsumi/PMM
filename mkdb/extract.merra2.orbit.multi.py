@@ -31,7 +31,6 @@ lspec = [ssmis_f18, atms_npp, atms_noaa20, mhs_metopa, mhs_metopb]
 
 dmainscan = {'GMI':1, 'AMSR2':1, 'SSMIS':1, 'ATMS':1, 'MHS':1}
 
-oid = -9999
 #raProd    = 'M2T1NXSLV'
 raProd    = 'M2I1NXASM'
 #lvarName  = ['tqv','t2m']
@@ -40,6 +39,8 @@ lvarName  = ['t2m']
 #lvarName  = ['tqv']
 #rabaseDir = '/work/hk01/utsumi/MERRA2'
 rabaseDir = '/home/utsumi/mnt/lab_tank/utsumi/data/MERRA2'
+pmwbaseDir = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA'
+pmwPath    = ''  # Dont't change. To be searched later.
 draVar    = {'t2m':'T2M','tqv':'TQV'}
 
 argvs = sys.argv
@@ -61,11 +62,11 @@ else:
     sate       = dargv['sate']
     sensor     = dargv['sensor']
     rabaseDir  = dargv['rabaseDir']
+    pmwPath    = dargv['pmwPath']
     varName    = dargv['varName']
     Year       = int(dargv['Year'])
     Mon        = int(dargv['Mon'] )
     Day        = int(dargv['Day'] )
-    oid        = int(dargv['oid'] )
     lspec      = [[sate,sensor]]
     lDTimeDay  = [datetime(Year,Mon,Day)]
     lvarName   = [varName]
@@ -80,21 +81,22 @@ nxRA   = 576
 miss = -9999.
 
 for (sate,sensor) in lspec:
-    pmwbaseDir = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/%s.%s/1C/V05'%(sate,sensor)
     mainscan = dmainscan[sensor]
 
     for DTimeDay in lDTimeDay:
         print DTimeDay
+
+
         YearDir,MonDir, DayDir = DTimeDay.timetuple()[:3] 
-        pmwDir   = pmwbaseDir + '/%04d/%02d/%02d'%(YearDir,MonDir,DayDir)
-    
-        if oid >0:
-            ssearch  = pmwDir + '/1C.%s.%s.*.%06d.????.HDF5'%(sate,sensor,oid)
-        else:
+
+        if pmwPath=='':
+            pmwDir   = pmwbaseDir + '/%s.%s/1C/V05/%04d/%02d/%02d'%(sate,sensor,YearDir,MonDir,DayDir)
             ssearch  = pmwDir + '/1C.%s.%s.*.HDF5'%(sate,sensor)
-        lsrcPath = sort(glob.glob(ssearch))
-        print ssearch
-        print lsrcPath
+            lsrcPath = sort(glob.glob(ssearch))
+        else:
+            lsrcPath = [pmwPath]
+
+
         for srcPath in lsrcPath:
             #srcPath = '/home/utsumi/temp/1C.GPM.GMI.XCAL2016-C.20171206-S141617-E154850.021437.V05A.HDF5'
             gNum  = srcPath.split('.')[-3]

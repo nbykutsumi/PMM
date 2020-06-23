@@ -25,7 +25,7 @@ elif myhost =="well":
 #GPM/TRMM.TMI/L2A12/07/2014/
 
 
-iDTime  = datetime(2018,2,1)
+iDTime  = datetime(2018,1,1)
 eDTime  = datetime(2018,12,31)
 dDTime  = timedelta(days=1)
 lDTime  = util.ret_lDTime(iDTime, eDTime, dDTime)
@@ -65,6 +65,7 @@ mhs_metopb= ["METOPB","MHS","1C","1C","V05"]
 mhs_noaa18= ["NOAA18","MHS","1C","1C","V05"]
 mhs_noaa19= ["NOAA19","MHS","1C","1C","V05"]
 
+#lspec = [gmi, amsr2, ssmis_f16,ssmis_f17,ssmis_f18,atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
 lspec = [gmi, amsr2, ssmis_f16,ssmis_f17,ssmis_f18,atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
 
 #lspec = [gpr_gmi, gpr_amsr2, gpr_ssmis_f16, gpr_ssmis_f17, gpr_ssmis_f18, gpr_atms_npp, gpr_atms_noaa20, gpr_mhs_metopa, gpr_mhs_metopb, gpr_mhs_noaa18, gpr_mhs_noaa19]
@@ -96,8 +97,8 @@ for spec in lspec:
         Year,Mon,Day = DTime.timetuple()[:3]
 
 
-        #if (sate=='GPM'): continue # test
-        if (sate=='GCOMW1')&(DTime< datetime(2018,6,20)): continue # test
+        #if (sate=='GPM')&(): continue # test
+        #if (sate=='GCOMW1')&(DTime< datetime(2018,9,18)): continue # test
         ##--- Skip missing or problematic data -----
         #ldataoutage=[
         # [2014,5,20]  # 1274-1277

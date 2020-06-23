@@ -179,8 +179,7 @@ if len(argvs)==1:
     sensor  = 'AMSR2'
 
     coefDir = '/media/disk2/share/PMM/JPLDB/JPLDB/EPC_COEF/%s'%(sensor)
-    miss_int32= np.int32(-9999)
-    miss_int16= np.int16(-9999)
+    miss_int32= -9999
 
     if dbtype=='JPL':  
         #dbDir   = '/work/hk01/utsumi/JPLDB/EPC_DB/GMI_EPC_DATABASE_TEST29'
@@ -320,7 +319,6 @@ else:
     thwtmin = float(dargv['thwtmin'])
     miss    = float(dargv['miss'])
     miss_int32= float(dargv['miss_int32'])
-    miss_int16= float(dargv['miss_int16'])
 
     DB_MAXREC = int(dargv['DB_MAXREC']) 
     DB_MINREC = int(dargv['DB_MINREC']) 
@@ -777,7 +775,7 @@ for i,idx_db in enumerate(lidxset):
                 a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS_relsurf')[:,-NLEV_PRECIP:]).filled(-9999.)
 
             elif dbtype=='JPL':
-                a2prwatprofNSTmp = np.load(relprofDir + '/%05d.npy'%(idx_db_expand))[:,-NLEV_PRECIP:].astype('float32')   # Scaled by 1000
+                a2prwatprofNSTmp = np.load(relprofDir + '/%05d.npy'%(idx_db_expand))[:,-NLEV_PRECIP:]
 
         else:
             a2prwatprofNSTmp = ma.masked_invalid(db.get_var('precip_water_prof_NS')[:,-NLEV_PRECIP:]).filled(-9999.)
@@ -1167,17 +1165,6 @@ a2flagmiss  = a2flagmiss  * a2flagnan
 a2cnvnsurfNScmb[a2flagvalid] = 0.0
 a2cnvnsurfNScmb[a2flagmiss]  = miss
 
-#--- Change data type of profiles ---
-int16max = 32767 
-if dbtype=='my':
-    a3flagmax  = ma.masked_greater(a3prwatprofNS, (int16max-1)/1000.).mask
-    a3prwatprofNS = (ma.masked_equal(a3prwatprofNS, miss)*1000.).filled(miss_int16).astype('int16')  # Scale by 1000
-    a3prwatprofNS[a3flagmax] = np.int16(int16max)
-
-elif dbtype=='JPL':
-    a3prwatprofNS = ma.masked_invalid(ma.masked_greater(a3prwatprofNS, int16max)).filled(int16max).astype('int16')  # Already scaled by 1000
-
-
 #--- save -----
 mk_dir(outDir)
 
@@ -1191,10 +1178,12 @@ np.save(outDir + '/nsurfNScmb.%s.npy'%(stamp), a2nsurfNScmb)
 if flag_out_conv==1:
     np.save(outDir + '/nsurfConvNScmb.%s.npy'%(stamp), a2cnvnsurfNScmb)
 
+#np.save(outDir + '/prprofNS.%s.npy'%(stamp), a3prprofNS)
+#np.save(outDir + '/prprofNScmb.%s.npy'%(stamp), a3prprofNScmb)
 if flag_rel_surf==0:
-    np.save(outDir + '/prwatprofNS.%s.npy'%(stamp), a3prwatprofNS)  # scaled by 1000
+    np.save(outDir + '/prwatprofNS.%s.npy'%(stamp), a3prwatprofNS)
 elif flag_rel_surf==1:
-    np.save(outDir + '/prwatprofNS-rs.%s.npy'%(stamp), a3prwatprofNS)  # scaled by 1000
+    np.save(outDir + '/prwatprofNS-rs.%s.npy'%(stamp), a3prwatprofNS)
 
 np.save(outDir + '/lat.%s.npy'%(stamp), a2lat)
 np.save(outDir + '/lon.%s.npy'%(stamp), a2lon)
@@ -1227,5 +1216,6 @@ if flag_top_var ==1:
 
 print outDir
 print stamp
+
 
 # %%

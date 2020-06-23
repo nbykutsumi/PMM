@@ -32,7 +32,8 @@ expr = 'glb.relsurf01.minrec%d.maxrec%d'%(DB_MINREC,DB_MAXREC)
 thpr = 0.1
 miss_out= -9999.
 #lvar  = ['S1/Latitude', 'S1/Longitude'] 
-lvar  = ['S1/Latitude', 'S1/Longitude','S1/surfaceTypeIndex'] 
+#lvar  = ['S1/Latitude', 'S1/Longitude','S1/surfaceTypeIndex'] 
+lvar  = ['S1/surfacePrecipitation','S1/qualityFlag'] 
 
 
 #------------------------------------------------
@@ -74,11 +75,11 @@ def ave_9grids_2d(a2in, a1y, a1x, miss):
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
     
-    gprofbaseDir = workbaseDir + '/hk01/PMM/NASA/GPM.GMI/2A/V05'
+    gprofbaseDir = workbaseDir + '/hk02/PMM/NASA/GPM.GMI/2A/V05'
     gprofDir = gprofbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
     ssearch  = gprofDir + '/2A.GPM.GMI.GPROF2017v1.*.??????.V05A.HDF5'
     lgprofPath = sort(glob.glob(ssearch))
-    
+  
     for gprofPath in lgprofPath: 
         oid = int(gprofPath.split('/')[-1].split('.')[-3])
         #print gprofPath
@@ -88,7 +89,7 @@ for DTime in lDTime:
             continue
 
         #-- Read DPR -----------------------------------------------
-        dprbaseDir = workbaseDir + '/hk01/PMM/NASA/GPM.DPRGMI/2B/V06'
+        dprbaseDir = workbaseDir + '/hk02/PMM/NASA/GPM.DPRGMI/2B/V06'
         dprDir     = dprbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
         ssearch = dprDir + '/2B.GPM.DPRGMI.*.%06d.V???.HDF5'%(oid)
         try:
@@ -99,7 +100,8 @@ for DTime in lDTime:
 
         with h5py.File(dprPath, 'r') as h:
             a2sfcprecd = h['NS/surfPrecipTotRate'][:]
-    
+
+
         #-- Read GMI-DPR matching index file ----------------------
         xyDir = tankbaseDir + '/utsumi/PMM/MATCH.GMI.V05A/S1.ABp083-137.Ku.V06A.IDX/%04d/%02d/%02d'%(Year,Mon,Day)
         xPath = xyDir + '/Xpy.1.%06d.npy'%(oid)
@@ -113,6 +115,7 @@ for DTime in lDTime:
         #-- Read PMW precip ---
         pmwDir = tankbaseDir + '/utsumi/PMM/retepc/%s/%04d/%02d/%02d'%(expr,Year,Mon,Day)
         pmwPath = pmwDir + '/nsurfMScmb.%06d.y-9999--9999.nrec%05d.npy'%(oid,DB_MAXREC)
+        #pmwPath = pmwDir + '/nsurfNScmb.%06d.y-9999--9999.nrec%05d.npy'%(oid,DB_MAXREC)
         a2sfcprecp = np.load(pmwPath)[:,83:137+1]
 
         #-- Reshape PMW --
@@ -153,5 +156,9 @@ for DTime in lDTime:
             outbaseDir = tankbaseDir + '/utsumi/PMM/validprof/pair/epc.%s'%(expr)
             outDir     = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
             util.mk_dir(outDir)
-            np.save(outDir + '/%s.%06d.npy'%(varName, oid), a1var)
+            if var in ['S1/surfacePrecipitation','S1/qualityFlag']:
+                np.save(outDir + '/gprof-%s.%06d.npy'%(varName, oid), a1var)
+
+            else:
+                np.save(outDir + '/%s.%06d.npy'%(varName, oid), a1var)
             print outDir, oid
