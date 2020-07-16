@@ -30,8 +30,8 @@ nxdem = int(360/dlondem)
 #BBox   = [[20,-130],[55,-55]] # MRMS
 BBox   = [[23,-125],[50,-65]] # MRMS
 [[lllat,lllon],[urlat,urlon]] = BBox
-iYM    = [2018,1]
-eYM    = [2018,1]
+iYM    = [2018,2]
+eYM    = [2018,12]
 #iYM    = [2014,10]
 #eYM    = [2014,10]
 lYM    = util.ret_lYM(iYM,eYM)
@@ -44,10 +44,10 @@ lYM    = util.ret_lYM(iYM,eYM)
 gmi       = ["GPM","GMI","1C","1C","V05"]
 amsr2     = ["GCOMW1","AMSR2","1C","1C","V05"]
 ssmis_f16 = ["F16","SSMIS","1C","1C","V05"]
-ssmis_f17 = ["F17","SSMIS","1C","1C","V05"]
+ssmis_f17 = ["F17","SSMIS","1C","1C","V05"]  # No 37V after April 2016
 ssmis_f18 = ["F18","SSMIS","1C","1C","V05"]
 atms_npp  = ["NPP","ATMS","1C","1C","V05"]
-atms_noaa20= ["NOAA20","ATMS","1C","1C","V05"]
+atms_noaa20= ["NOAA20","ATMS","1C","1C","V05"]  # No MRMS data
 
 mhs_metopa= ["METOPA","MHS","1C","1C","V05"]
 mhs_metopb= ["METOPB","MHS","1C","1C","V05"]
@@ -56,7 +56,8 @@ mhs_noaa19= ["NOAA19","MHS","1C","1C","V05"]
 
 #lspec = [gmi, amsr2, ssmis_f16, ssmis_f17, ssmis_f18, atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
 #lspec = [amsr2, ssmis_f16, ssmis_f17, ssmis_f18, atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19,gmi]
-lspec = [atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19,gmi]
+#lspec = [gmi, amsr2, ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
+lspec = [mhs_noaa19]
 
 
 #lspec = [atms_noaa20]
@@ -69,6 +70,8 @@ for spec in lspec:
     ver       = spec[4]
 
     for (Year,Mon) in lYM:
+        if (sate=='NOAA18')&(Mon<10): continue  # test
+
         eDay   = calendar.monthrange(Year,Mon)[1]
         iDTime = datetime(Year,Mon,1,0)
         eDTime = datetime(Year,Mon,eDay,0)
@@ -94,8 +97,8 @@ for spec in lspec:
                 ##-- Known missing orbits ---
                 #if oid in range(3683,3717+1): continue # 2014/10/22-24. No GMI data
                 ##---------------------------
-                #if oid != 4447: continue  # test
     
+                print srcPath
                 with h5py.File(srcPath, 'r') as h:
                     a2lat = h['S1/Latitude'][:]             
                     a2lon = h['S1/Longitude'][:]
@@ -126,14 +129,12 @@ for spec in lspec:
                 a1satx = ((a2lon - londem0)/dlondem).astype(int16).flatten()
                 a1satx = ma.masked_equal(a1satx,nxdem).filled(0)  # for the case lon==180.0
                 # For missing lat&lon info
-                a2latmissmask = ma.masked_equal(a2lat, -9999.9).mask
+                a2latmissmask = ma.masked_outside(a2lat, 0,90).mask
                 a1latmissmask = a2latmissmask.flatten()
                 if np.any(a1latmissmask):
                     a1saty = ma.masked_where(a1latmissmask, a1saty).filled(0)
                     a1satx = ma.masked_where(a1latmissmask, a1satx).filled(0)
-                ##-- test ---
-                #idxtmp = np.argmax(a1saty)
-                #print idxtmp,a2lat.flatten()[idxtmp], a1saty[idxtmp]
+
                 ##----------- 
                 a2elev = a2dem[a1saty, a1satx].reshape(ny,nx)
 

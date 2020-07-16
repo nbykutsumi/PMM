@@ -1,6 +1,7 @@
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as pe
 from mpl_toolkits.basemap import Basemap
 #import matplotlib.cm as cm
 import numpy as np
@@ -16,13 +17,13 @@ import random
 
 myhost = socket.gethostname()
 if myhost == 'shui':
-    listDir    = '/work/hk01/utsumi/PMM/US/obtlist'
+    listDir    = '/work/hk02/utsumi/PMM/US/obtlist'
     workbaseDir= '/work'
     tankbaseDir= '/tank'
     srcbaseDir = '/tank/utsumi/PMM/retepc'
-    gprofbaseDir = '/work/hk01/PMM/NASA/GPM.GMI/2A/V05'
+    gprofbaseDir = '/work/hk02/PMM/NASA/GPM.GMI/2A/V05'
 
-    mrmsDir  = '/work/hk01/PMM/MRMS/match-GMI-orbit'
+    mrmsDir  = '/work/hk02/PMM/MRMS/match-GMI-orbit'
     figDir   = '/home/utsumi/temp/ret'
 
 elif myhost == 'well':
@@ -30,16 +31,16 @@ elif myhost == 'well':
     workbaseDir= '/home/utsumi/mnt/lab_work'
     tankbaseDir= '/home/utsumi/mnt/lab_tank'
     srcbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc'
-    gprofbaseDir = '/home/utsumi/mnt/lab_work/hk01/PMM/NASA/GPM.GMI/2A/V05'
-    mrmsDir  = '/home/utsumi/mnt/lab_work/hk01/PMM/MRMS/match-GMI-orbit'
+    gprofbaseDir = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/GPM.GMI/2A/V05'
+    mrmsDir  = '/home/utsumi/mnt/lab_work/hk02/PMM/MRMS/match-GMI-orbit'
     figDir   = '/home/utsumi/temp/ret'
 
 else:
     print 'check hostname',myhost
     sys.exit()
 
-#lsurftype = ['ocean','vegetation','coast','snow']
-lsurftype = ['snow']
+lsurftype = ['ocean','vegetation','coast','snow']
+#lsurftype = ['ocean']
 
 dsurflabel={ 'ocean':'Class1 (Ocean)'
             ,'vegetation':'Classes 3-7 (Vegetation)'
@@ -49,10 +50,10 @@ dsurflabel={ 'ocean':'Class1 (Ocean)'
 
 #calcflag= True
 calcflag= False
-#obstype= 'mrms'
-obstype= 'cmb'
-#region = 'US'
-region = 'GLB'
+#obstype= 'cmb'
+#region = 'GLB'
+obstype= 'mrms'
+region = 'US'
 #lseason = ['JJADJF']
 #lseason = ['JJA']
 lseason = ['ALL']
@@ -62,8 +63,8 @@ DB_MINREC = 1000
 
 #lrettype = ['NS','MS','NScmb','MScmb']
 #lrettype = ['NS','MS','NScmb','MScmb','GPROF']
-#lrettype = ['NScmb','GPROF']
-lrettype = ['GPROF'] 
+lrettype = ['NScmb','GPROF']
+#lrettype = ['GPROF'] 
 #lrettype = ['NScmb']
 #prmin = 0.1
 prmin = 0.01
@@ -170,13 +171,11 @@ for season in lseason:
             exprTmp = expr
 
         for surftype in lsurftype:
-    
+            a1ret = array([])
+            a1obs = array([])
+
             for Year,Mon in lYM:
                 if calcflag==False: continue
-
-                a1ret = array([])
-                a1obs = array([])
-
 
                 print surftype,Year,Mon
                 if region=='US':
@@ -189,6 +188,7 @@ for season in lseason:
                     print 'check region',region
                     sys.exit()
 
+                lorbit = sorted(lorbit, key=lambda x:x[3])
                 #lorbit = lorbit[:10]   # test
                 for orbit in lorbit:
                     Day,oid,iy,ey = orbit[2:]
@@ -227,7 +227,7 @@ for season in lseason:
 
                     #-- Read DPR-Combined -----------------------------------------------
                     elif obstype=='cmb':
-                        dprbaseDir = workbaseDir + '/hk01/PMM/NASA/GPM.DPRGMI/2B/V06'
+                        dprbaseDir = workbaseDir + '/hk02/PMM/NASA/GPM.DPRGMI/2B/V06'
                         dprDir     = dprbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
                         ssearch = dprDir + '/2B.GPM.DPRGMI.*.%06d.V???.HDF5'%(oid)
                         try:
@@ -285,11 +285,25 @@ for season in lseason:
                     else:
                         print '\n'+'check surftype',surftype
                         sys.exit() 
-                    #-- Screeen no-precip cases for both datasets--
+                    
+                    #-- Screen no-precip cases for both datasets--
                     a2mask1 = ma.masked_less_equal(a2ret, 0).mask
                     a2mask2 = ma.masked_less_equal(a2obs,0).mask
                     a2mask  = a2mask1 * a2mask2
-                    a2mask  = a2mask + a2masksurf
+
+                    #-- Screen invalid cases ---
+                    a2maskinvalid1 = ma.masked_invalid(a2ret).mask 
+                    a2maskinvalid2 = ma.masked_invalid(a2obs).mask 
+                    a2maskinvalid3 = ma.masked_less(a2ret,0).mask 
+                    a2maskinvalid4 = ma.masked_less(a2obs,0).mask 
+
+                    a2maskinvalid = a2maskinvalid1 + a2maskinvalid2 + a2maskinvalid3 + a2maskinvalid4  
+
+                    #-- mask ------
+                    a2mask  = a2mask + a2masksurf + a2maskinvalid
+
+                    
+
 
                     a1retTmp = ma.masked_where(a2mask, a2ret).compressed()
                     a1obsTmp = ma.masked_where(a2mask, a2obs).compressed()
@@ -297,54 +311,61 @@ for season in lseason:
                     a1ret = np.concatenate([a1ret, a1retTmp])
                     a1obs = np.concatenate([a1obs, a1obsTmp])
 
-                 
-                #-- Histograms log-scale -------
-                #-- shift 0.01mm/h for log-scale --
+            #-- Histograms log-scale -------
+            #-- shift 0.01mm/h for log-scale --
+
+            if calcflag is True:
+                cc   = np.corrcoef(a1obs, a1ret)[0,1]
+                rmse = np.sqrt(((a1ret - a1obs)**2).mean())
+ 
+
                 logvmin, logvmax = -1.2, 2
                 a1ret = np.log10(a1ret + 0.01)
                 a1obs = np.log10(a1obs+ 0.01)
                 bins  = np.arange(-2,logvmax+0.001,0.025)
                 H,xedges,yedges = np.histogram2d(a1obs, a1ret, bins = bins)
                 H = H.T
+    
+   
+                ddat = {}
+                ddat['H'] = H
+                ddat['bins'] = bins
+                ddat['cc'] = cc
+                ddat['rmse'] = rmse
 
-                #*******************************
-                # Save
-                #-------------------------------
-                stamp =  '%s.%s.%s.%s.%04d.%02d'%(exprTmp, region, obstype, surftype, Year, Mon)
+            #*******************************
+            # Save
+            #-------------------------------
+            #stamp =  '%s.%s.%s.%s.%04d.%02d'%(exprTmp, region, obstype, surftype, Year, Mon)
+            stamp =  '%s.%s.%s.%s.%s'%(exprTmp, region, obstype, surftype, season)
 
-                pickleDir  = '/home/utsumi/temp/ret/pickle'
-                util.mk_dir(pickleDir)
+            pickleDir  = '/home/utsumi/temp/ret/pickle/density-plot'
+            util.mk_dir(pickleDir)
 
-                histoPath  = pickleDir + '/histo.%s.bfile'%(stamp)
-                binsPath   = pickleDir + '/bins.%s.npy'%(exprTmp)
-                if calcflag == True:
-                    with open(histoPath, 'wb') as f:
-                        pickle.dump(H, f)
-        
-                    np.save(binsPath, bins)
-
+            picklepath = pickleDir + '/dict.%s.bfile'%(stamp)
+            if calcflag == True:
+                with open(picklepath, 'wb') as f:
+                    pickle.dump(ddat, f)
+       
+                    print picklepath 
             #*******************************
             # Load
             #-------------------------------
-            H = None
-            for Year,Mon in lYM:
-                pickleDir  = '/home/utsumi/temp/ret/pickle'
-                stamp =  '%s.%s.%s.%s.%04d.%02d'%(exprTmp, region, obstype, surftype, Year, Mon)
-                histoPath  = pickleDir + '/histo.%s.bfile'%(stamp)
-                binsPath   = pickleDir + '/bins.%s.npy'%(exprTmp)
+            pickleDir  = '/home/utsumi/temp/ret/pickle/density-plot'
+            stamp =  '%s.%s.%s.%s.%s'%(exprTmp, region, obstype, surftype, season)
+            picklepath = pickleDir + '/dict.%s.bfile'%(stamp)
 
-                with open(histoPath, 'r') as f:
-                    Htmp = pickle.load(f)
-                bins = np.load(binsPath)
-
-                if H is None:
-                    H = Htmp
-                else:
-                    H = H + Htmp
+            with open(picklepath, 'r') as f:
+                ddat = pickle.load(f)
+                H    = ddat['H']
+                bins = ddat['bins']
+                cc   = ddat['cc']
+                rmse = ddat['rmse'] 
 
             #-- Figure density plot ----
             X,Y = np.meshgrid(bins,bins) 
-            logvmin, logvmax = -1.2, 2
+            #logvmin, logvmax = -1.2, 2
+            logvmin, logvmax = -1, 0.5  # test
 
             if rettype==lrettype[0]:
                 dvnummax[surftype] = np.percentile(H,99)
@@ -352,12 +373,19 @@ for season in lseason:
             fig = plt.figure(figsize=[6,6])
             ax  = fig.add_axes([0.15,0.13,0.68,0.68])
             im  = ax.pcolormesh(X,Y,H, norm=matplotlib.colors.LogNorm(), cmap='jet', vmin=1, vmax=dvnummax[surftype])
-    
+   
+            ##-- Text ----------
+            #t=ax.text(0.02, 0.90, 'RMSE:%.2f'%(rmse), size=32, fontweight='bold', path_effects=[pe.withStroke(linewidth=5, foreground='w')], transform=ax.transAxes) 
+            #t=ax.text(0.02, 0.80, 'CC  :%.2f'%(cc), size=32,fontweight='bold', path_effects=[pe.withStroke(linewidth=5, foreground='w')], transform=ax.transAxes) 
+
             #-- plot 1:1 line
             ax.plot(array([logvmin,logvmax]),array([logvmin,logvmax]),'-',color='k',linewidth=0.5)
             #-- axis labels ---
-            lticks = [-1,0,1,2]
-            lticklabels = [0.1, 1, 10, 100]
+            #lticks = [-1,0,1,2]
+            #lticklabels = [0.1, 1, 10, 100]
+
+            lticks = np.arange(-1,0.5+0.01, 0.2)
+            lticklabels = ['%.1f'%(10**k) for k in np.arange(-1,0.5+0.01,0.2)]
     
             ax.set_xticks(lticks)
             ax.set_xticklabels(lticklabels, fontsize=16)

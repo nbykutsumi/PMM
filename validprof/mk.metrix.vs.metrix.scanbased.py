@@ -29,6 +29,7 @@ nsample = 1000
 
 iDTime = datetime(2014,6,1)
 eDTime = datetime(2015,5,31)
+#eDTime = datetime(2014,6,30)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 lskipdates = [[2014,8,29],[2014,9,16],[2014,10,1],[2014,10,2],[2014,11,5],[2014,12,8],[2014,12,9],[2014,12,10]]
 
@@ -46,8 +47,8 @@ miss  = -9999.
 #xymetric = ['dstop-prof','ndprec']
 #xymetric = ['dstop','ndprec']
 
-#xymetric = ['ndprec','cc']
-xymetric = ['ndprec','dwatNorm']
+xymetric = ['ndprec','cc']
+#xymetric = ['ndprec','dwatNorm']
 #xymetric = ['ndprec','dstop-prof']
 #xymetric = ['ndprec','dstop']
 #xymetric = ['ndprec','dvfracConv']
@@ -479,6 +480,18 @@ for rettype in lrettype:
             a1xave,a1bnd,_ = stats.binned_statistic(x=a1ymetricTmp, values=a1xmetricTmp, statistic='mean', bins=bins)
             dout['xave',surf,preclev] = a1xave
 
+            #--- Median of y binned by x ---
+            bins = np.sort(lxbnd)
+            a1ymed,a1bnd,_ = stats.binned_statistic(x=a1xmetricTmp, values=a1ymetricTmp, statistic='median', bins=bins)
+
+            dout['ymed',surf,preclev] = a1ymed
+
+            #--- Median of x binned by y ---
+            bins = np.sort(lybnd)
+            a1xmed,a1bnd,_ = stats.binned_statistic(x=a1ymetricTmp, values=a1xmetricTmp, statistic='median', bins=bins)
+            dout['xmed',surf,preclev] = a1xmed
+
+
 
     #--- Other parameters ----
     dout['dprecrange'] = dprecrange
@@ -551,6 +564,7 @@ for irettype,rettype in enumerate(lrettype):
             mycolor = 'k'
 
             a1x = (lxbnd[:-1] + lxbnd[1:])*0.5
+            #a1y = dvar['ymed',surf,preclev]
             a1y = dvar['yave',surf,preclev]
 
             ax.plot(a1x, a1y, linestyle=linestyle, linewidth=linewidth, color=mycolor)

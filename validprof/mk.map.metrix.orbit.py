@@ -22,13 +22,14 @@ figDir  = '/home/utsumi/temp/ret'
 
 useorblist = True
 
-#calcflag = True
-calcflag = False
+calcflag = True
+#calcflag = False
 figflag  = True
 #figflag  = False
 
 iDTime = datetime(2014,6,1)
 eDTime = datetime(2015,5,30)
+#eDTime = datetime(2014,6,15)
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 lskipdates = [[2014,8,29],[2014,9,16],[2014,10,1],[2014,10,2],[2014,11,5],[2014,12,8],[2014,12,9],[2014,12,10]]
 nsample = 1000
@@ -47,8 +48,8 @@ thwat = 0.033  # g/m3 for storm top
 lrettype= ['epc','gprof-shift']
 #lvar = ['cc','dpeakh','dpeakv','dstop','dcond','rmse']+['peakhrad','peakhpmw','peakvrad','peakvpmw','stoprad','stoppmw','condrad','condpmw'] + ['dvfracconv','vfracconvrad','vfracconvpmw']
 
-#lvar = ['condpmw','condrad','dcond','stoppmw','stoprad','dstop','cc']
-lvar = ['dstop','stoprad','stoppmw']
+#lvar = ['condpmw','condrad','dcond','stoppmw','stoprad','dstop','stoppmw','cc']
+lvar = ['cc']
 dexpr = {'epc':'glb.relsurf01.minrec1000.maxrec10000','gprof-shift':'v01'}
 
 lvar_pmwptype =['stoppmw','condpmw']
@@ -225,6 +226,11 @@ def draw_map(a2dat, a2cont=None, a1contlev=None, figPath=None, textcbartop=None,
     plt.show()
     plt.clf()  
 
+def percentile25(ain):
+    return np.nanpercentile(ain, 25)
+def percentile75(ain):
+    return np.nanpercentile(ain, 75)
+ 
 #***************************************
 
 for rettype in lrettype:
@@ -412,15 +418,29 @@ for rettype in lrettype:
         a2std = scipy.stats.binned_statistic_2d(a1lat,a1lon,a1var,statistic='std',bins=[latbnd,lonbnd]).statistic
         a2num = scipy.stats.binned_statistic_2d(a1lat,a1lon,a1var,statistic='count',bins=[latbnd,lonbnd]).statistic
 
+        a2med = scipy.stats.binned_statistic_2d(a1lat,a1lon,a1var,statistic='median',bins=[latbnd,lonbnd]).statistic
+        a2p25 = scipy.stats.binned_statistic_2d(a1lat,a1lon,a1var,statistic=percentile25,bins=[latbnd,lonbnd]).statistic
+        a2p75 = scipy.stats.binned_statistic_2d(a1lat,a1lon,a1var,statistic=percentile75,bins=[latbnd,lonbnd]).statistic
+
+
         odir = tankbaseDir + '/utsumi/PMM/validprof/map-orbit/%s.%s'%(rettype,expr)
         util.mk_dir(odir)
+
         avepth = odir + '/ave.%s.npy'%(var)
         stdpth = odir + '/std.%s.npy'%(var)
         numpth = odir + '/num.%s.npy'%(var)
+
+        medpth = odir + '/med.%s.npy'%(var)
+        p25pth = odir + '/p25.%s.npy'%(var)
+        p75pth = odir + '/p75.%s.npy'%(var)
+
         np.save(avepth, a2ave.astype('float32'))
         np.save(stdpth, a2std.astype('float32'))
+        np.save(medpth, a2med.astype('float32'))
+        np.save(p25pth, a2p25.astype('float32'))
+        np.save(p75pth, a2p75.astype('float32'))
         np.save(numpth, a2num.astype('int32'))
-        print rettype,a2ave.shape
+
         print avepth
 
         #-- Classified by self-precipitation type ----
@@ -448,16 +468,39 @@ for rettype in lrettype:
                 a2std = scipy.stats.binned_statistic_2d(a1lattmp,a1lontmp,a1vartmp,statistic='std',bins=[latbnd,lonbnd]).statistic
                 a2num = scipy.stats.binned_statistic_2d(a1lattmp,a1lontmp,a1vartmp,statistic='count',bins=[latbnd,lonbnd]).statistic
 
+                a2med = scipy.stats.binned_statistic_2d(a1lattmp,a1lontmp,a1vartmp,statistic='median',bins=[latbnd,lonbnd]).statistic
+                a2p25 = scipy.stats.binned_statistic_2d(a1lattmp,a1lontmp,a1vartmp,statistic=percentile25,bins=[latbnd,lonbnd]).statistic
+                a2p75 = scipy.stats.binned_statistic_2d(a1lattmp,a1lontmp,a1vartmp,statistic=percentile75,bins=[latbnd,lonbnd]).statistic
+
+
                 odir = tankbaseDir + '/utsumi/PMM/validprof/map-orbit/%s.%s'%(rettype,expr)
                 util.mk_dir(odir)
                 avepth = odir + '/ave.%s.by-%s-%s.npy'%(var,bywhat,ptype)
                 stdpth = odir + '/std.%s.by-%s-%s.npy'%(var,bywhat,ptype)
+                medpth = odir + '/med.%s.by-%s-%s.npy'%(var,bywhat,ptype)
+                p25pth = odir + '/p25.%s.by-%s-%s.npy'%(var,bywhat,ptype)
+                p75pth = odir + '/p75.%s.by-%s-%s.npy'%(var,bywhat,ptype)
                 numpth = odir + '/num.%s.by-%s-%s.npy'%(var,bywhat,ptype)
                 np.save(avepth, a2ave.astype('float32'))
                 np.save(stdpth, a2std.astype('float32'))
+                np.save(medpth, a2med.astype('float32'))
+                np.save(p25pth, a2p25.astype('float32'))
+                np.save(p75pth, a2p75.astype('float32'))
                 np.save(numpth, a2num.astype('int32'))
                 print rettype,a2ave.shape
                 print avepth
+
+
+    print ''
+    print 'p25'
+    print a2p25
+    print ''
+    print 'p75'
+    print a2p75
+
+
+
+
 
         #----------------------------------------
 
@@ -475,7 +518,8 @@ lkey = [(rettype,var,bywhat,ptype)
                     for rettype in lrettype
                     for var     in lvar
                     for bywhat  in ['','rad','pmw']
-                    for ptype   in ['','conv','stra']
+                    #for ptype   in ['','conv','stra']
+                    for ptype   in ['']
                     ]
 
 
@@ -598,14 +642,28 @@ for key in lkey:
         a2ave = np.load(srcdir + '/ave.%s.npy'%(var))
         a2std = np.load(srcdir + '/std.%s.npy'%(var))
         a2num = np.load(srcdir + '/num.%s.npy'%(var))
+        a2med = np.load(srcdir + '/med.%s.npy'%(var))
+        a2p25 = np.load(srcdir + '/p25.%s.npy'%(var))
+        a2p75 = np.load(srcdir + '/p75.%s.npy'%(var))
     else:
         a2ave = np.load(srcdir + '/ave.%s.by-%s-%s.npy'%(var,bywhat,ptype))
         a2std = np.load(srcdir + '/std.%s.by-%s-%s.npy'%(var,bywhat,ptype))
         a2num = np.load(srcdir + '/num.%s.by-%s-%s.npy'%(var,bywhat,ptype))
+        a2med = np.load(srcdir + '/med.%s.by-%s-%s.npy'%(var,bywhat,ptype))
+        a2p25 = np.load(srcdir + '/p25.%s.by-%s-%s.npy'%(var,bywhat,ptype))
+        a2p75 = np.load(srcdir + '/p75.%s.by-%s-%s.npy'%(var,bywhat,ptype))
+
 
 
     a2ave = ma.masked_invalid(a2ave)
     a2std = ma.masked_invalid(a2std)
+    a2med = ma.masked_invalid(a2med)
+    a2p25 = ma.masked_invalid(a2p25)
+    a2p75 = ma.masked_invalid(a2p75)
+
+
+
+
 
     if var[-3:]=='rad':
         datname='CMB'
@@ -630,7 +688,6 @@ for key in lkey:
 
 
     #-- STD ---
-    if ptype !='': continue
     if ptype =='':
         figPath = figDir + '/map.%s.%s.std.png'%(rettype,var)
         stitle = '%s %s STD'%(datname,dvarname[var])
@@ -641,6 +698,65 @@ for key in lkey:
     mycm = dcmstd[var]
     vmin,vmax = stdmin,stdmax
     draw_map(a2dat=a2std, figPath=figPath, bounds=bndstd, centers=cntstd)
+
+    #-- Median ---
+    if ptype=='':
+        figPath = figDir + '/map.%s.%s.med.png'%(rettype,var)
+        stitle = '%s %s'%(datname,dvarname[var])
+    else:
+        figPath = figDir + '/map.%s.%s.by-%s-%s.med.png'%(rettype,var,bywhat,ptype)
+        stitle = 'median %s %s (%s-by-%s)'%(datname,dvarname[var], str.upper(ptype),str.upper(bywhat))
+
+    mycm = dcmave[var]
+    vmin,vmax = avemin,avemax
+    draw_map(a2dat=a2med, figPath=figPath, bounds=bndave, centers=cntave, extend=extend)
+
+
+    #-- p75-p25 ---
+    if ptype =='':
+        figPath = figDir + '/map.%s.%s.q75-q25.png'%(rettype,var)
+        stitle = '%s %s Q75-Q25'%(datname,dvarname[var])
+    else:
+        figPath = figDir + '/map.%s.%s.by-%s-%s.q75-q25.png'%(rettype,var,bywhat,ptype)
+        stitle = '%s %s (%s-by-%s) Q75-Q25'%(datname,dvarname[var], str.upper(ptype),str.upper(bywhat))
+
+    mycm = dcmstd[var]
+    vmin,vmax = stdmin,stdmax
+    draw_map(a2dat=ma.masked_invalid(a2p75-a2p25), figPath=figPath, bounds=bndstd, centers=cntstd)
+
+
+    #-- p25 ---
+    if ptype =='':
+        figPath = figDir + '/map.%s.%s.q25.png'%(rettype,var)
+        stitle = '%s %s Q25'%(datname,dvarname[var])
+    else:
+        figPath = figDir + '/map.%s.%s.by-%s-%s.q25.png'%(rettype,var,bywhat,ptype)
+        stitle = '%s %s (%s-by-%s) Q25'%(datname,dvarname[var], str.upper(ptype),str.upper(bywhat))
+
+    mycm = dcmstd[var]
+    vmin,vmax = stdmin,stdmax
+    draw_map(a2dat=ma.masked_invalid(a2p25), figPath=figPath, bounds=bndstd, centers=cntstd)
+
+    #-- p75 ---
+    if ptype =='':
+        figPath = figDir + '/map.%s.%s.q75.png'%(rettype,var)
+        stitle = '%s %s Q75'%(datname,dvarname[var])
+    else:
+        figPath = figDir + '/map.%s.%s.by-%s-%s.q75.png'%(rettype,var,bywhat,ptype)
+        stitle = '%s %s (%s-by-%s) Q75'%(datname,dvarname[var], str.upper(ptype),str.upper(bywhat))
+
+    mycm = dcmstd[var]
+    vmin,vmax = stdmin,stdmax
+    draw_map(a2dat=ma.masked_invalid(a2p75), figPath=figPath, bounds=bndstd, centers=cntstd)
+
+
+    print a2med
+#
+
+
+
+
+#
 
 
 # %%

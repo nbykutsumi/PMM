@@ -10,8 +10,9 @@ import shutil
 
 #iDTime = datetime(2014,6,1)
 #eDTime = datetime(2014,11,30)
-iDTime = datetime(2018,1,1)
-eDTime = datetime(2018,1,31)
+iDTime = datetime(2018,2,1)   # MRMS: 2018/1/23 -. No NOAA20
+eDTime = datetime(2018,2,28)
+
 
 dDTime = timedelta(days=1)
 makeS2IDX= True
@@ -73,17 +74,18 @@ gpr_mhs_metopa = ["METOPA","MHS","2A-CLIM","gprof","V05"]
 gmi       = ["GPM","GMI","1C","1C","V05"]
 amsr2     = ["GCOMW1","AMSR2","1C","1C","V05"]
 ssmis_f16 = ["F16","SSMIS","1C","1C","V05"]
-ssmis_f17 = ["F17","SSMIS","1C","1C","V05"]
+ssmis_f17 = ["F17","SSMIS","1C","1C","V05"]   # 37V is missing since Apr 2016.
 ssmis_f18 = ["F18","SSMIS","1C","1C","V05"]
 atms_npp  = ["NPP","ATMS","1C","1C","V05"]
-atms_noaa20= ["NOAA20","ATMS","1C","1C","V05"]
+atms_noaa20= ["NOAA20","ATMS","1C","1C","V05"]   # MRMS does not have NOAA20 for eny year.
 
 mhs_metopa= ["METOPA","MHS","1C","1C","V05"]
 mhs_metopb= ["METOPB","MHS","1C","1C","V05"]
 mhs_noaa18= ["NOAA18","MHS","1C","1C","V05"]
 mhs_noaa19= ["NOAA19","MHS","1C","1C","V05"]
 
-lspec = [amsr2, ssmis_f16, ssmis_f17, ssmis_f18, atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
+#lspec = [amsr2, ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
+lspec = [ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
 #lspec = [ssmis_f16]
 
 dnscan = {'GMI':2, 'AMSR2':5, 'SSMIS':4, 'ATMS':4, 'MHS':1}
@@ -197,7 +199,8 @@ for spec in lspec:
             for line in lines:
                 _,_,Day,oid,iscan,escan = map(int,line.strip().split(','))
 
-                #if (sensor=='AMSR2')&(oid <= 30205): continue # test
+                #if (sensor=='AMSR2')&(oid < 30519): continue # test
+                if (sate=='F16')&(oid < 74033): continue # test
 
                 if (iDTime<=datetime(Year,Mon,Day))&(datetime(Year,Mon,Day)<=eDTime):
                     ltbPathTmp = sorted(glob.glob(tbbaseDir + '/%04d/%02d/%02d/*.%06d.????.HDF5'%(Year,Mon,Day,oid)))
@@ -623,6 +626,7 @@ for spec in lspec:
         os.rmdir(outDirTmp)
         print ''
 
+        #sys.exit()  # test 
     #os.remove(progcopy)
     #print 'remove progcopy',progcopy
 

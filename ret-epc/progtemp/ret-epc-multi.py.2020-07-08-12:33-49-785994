@@ -613,7 +613,7 @@ else:
 X,Y = meshgrid(range(nxout),range(nyout))
 print 'lidxset='
 print lidxset
-#sys.exit()   # test
+sys.exit()   # test
 for i,idx_db in enumerate(lidxset):
     print ''
     print '************************************'

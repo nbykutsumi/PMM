@@ -4,10 +4,12 @@ from PIL import Image
 import myfunc.util as util
 import socket
 
-lseason = ['JJA']
-lsurftype= ['ocean','vegetation','coast']
-lrettype = ['NS','MS','NScmb','MScmb','GPROF']
-expr = 'glb.minrec1000.maxrec10000'
+lobs = ['mrms','cmb']
+lsurftype= ['ocean','vegetation','coast','snow']
+lrettype = ['glb.v03.minrec1000.maxrec10000','gprof']
+lseason = ['ALL']
+dregion = {'mrms':'US', 'cmb':'GLB'}
+
 myhost = socket.gethostname()
 if myhost == 'shui':
     figDir   = '/home/utsumi/temp/ret'
@@ -21,30 +23,30 @@ else:
 
 iy =0   # top
 ey =-1
-ix =0
-ex =-1
+ix =40
+ex =-10
 
 for season in lseason:
-    i = -1
-    ddat = {}
-    for rettype in lrettype:
-        for surftype in lsurftype:
-            i = i+1
-            figPath = figDir + '/scatter.%s.%s.%s.%s.png'%(expr,rettype,surftype,season)
-            iimg    = Image.open(figPath)
-            a2array = asarray(iimg)[iy:ey, ix:ex]
-            ddat[i] = a2array    
+    for obs in lobs:
+        region = dregion[obs]
+        for rettype in lrettype:
+            i = -1
+            ddat = {}
+            for surftype in lsurftype:
+                i = i+1
+                figPath = figDir + '/scatter.%s.%s.%s.%s.%s.png'%(region,obs,rettype,surftype,season)
+                iimg    = Image.open(figPath)
+                if i==0:
+                    a2array = asarray(iimg)[iy:ey, 0:-1]
+                else:
+                    a2array = asarray(iimg)[iy:ey, ix:ex]
+
+                ddat[i] = a2array
 
 
-    a2line0 = concatenate([ddat[0],ddat[1],ddat[2]],axis=0)
-    a2line1 = concatenate([ddat[3],ddat[4],ddat[5]],axis=0)
-    a2line2 = concatenate([ddat[6],ddat[7],ddat[8]],axis=0)
-    a2line3 = concatenate([ddat[9],ddat[10],ddat[11]],axis=0)
-    a2line4 = concatenate([ddat[12],ddat[13],ddat[14]],axis=0)
-
-    a2oarray= concatenate([a2line0,a2line1,a2line2,a2line3,a2line4],axis=1)
-
-    oimg    = Image.fromarray(a2oarray)
-    outPath = figDir + '/joint.scatter.log.%s.png'%(season)
-    oimg.save(outPath)
-    print outPath
+            a2line0 = concatenate([ddat[0],ddat[1],ddat[2],ddat[3]],axis=1)
+            a2oarray= a2line0 
+            oimg    = Image.fromarray(a2oarray)
+            outPath = figDir + '/joint.scatter.%s.%s.%s.%s.png'%(region,obs,rettype,season)
+            oimg.save(outPath)
+            print outPath

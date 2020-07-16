@@ -25,8 +25,11 @@ elif myhost =="well":
 #GPM/TRMM.TMI/L2A12/07/2014/
 
 
-iDTime  = datetime(2018,1,1)
+iDTime  = datetime(2018,2,1)
 eDTime  = datetime(2018,12,31)
+#iDTime  = datetime(2018,10,20)
+#eDTime  = datetime(2018,12,31)
+
 dDTime  = timedelta(days=1)
 lDTime  = util.ret_lDTime(iDTime, eDTime, dDTime)
 
@@ -39,17 +42,17 @@ lDTime  = util.ret_lDTime(iDTime, eDTime, dDTime)
 #spec      = ["GPM","DPR","2A","radar","V06","A"]
 #spec      = ["GPM","DPRGMI","2B","radar","V06","A"]
 
-#gpr_gmi        = ["GPM","GMI","2A-CLIM","gprof","V05"] # input=GANAL
-#gpr_amsr2      = ["GCOMW1","AMSR2","2A-CLIM","gprof","V05"]
-#gpr_ssmis_f16  = ["F16","SSMIS","2A-CLIM","gprof","V05"]
-#gpr_ssmis_f17  = ["F17","SSMIS","2A-CLIM","gprof","V05"]
-#gpr_ssmis_f18  = ["F18","SSMIS","2A-CLIM","gprof","V05"]
-#gpr_atms_npp   = ["NPP","ATMS","2A-CLIM","gprof","V05"]
-#gpr_atms_noaa20= ["NOAA20","ATMS","2A-CLIM","gprof","V05"]
-#gpr_mhs_metopa = ["METOPA","MHS","2A-CLIM","gprof","V05"]
-#gpr_mhs_metopb = ["METOPB","MHS","2A-CLIM","gprof","V05"]
-#gpr_mhs_noaa18 = ["NOAA18","MHS","2A-CLIM","gprof","V05"]
-#gpr_mhs_noaa19 = ["NOAA19","MHS","2A-CLIM","gprof","V05"]
+gpr_gmi        = ["GPM","GMI","2A-CLIM","gprof","V05"] # input=GANAL
+gpr_amsr2      = ["GCOMW1","AMSR2","2A-CLIM","gprof","V05"]
+gpr_ssmis_f16  = ["F16","SSMIS","2A-CLIM","gprof","V05"]
+gpr_ssmis_f17  = ["F17","SSMIS","2A-CLIM","gprof","V05"]
+gpr_ssmis_f18  = ["F18","SSMIS","2A-CLIM","gprof","V05"]
+gpr_atms_npp   = ["NPP","ATMS","2A-CLIM","gprof","V05"]
+gpr_atms_noaa20= ["NOAA20","ATMS","2A-CLIM","gprof","V05"]
+gpr_mhs_metopa = ["METOPA","MHS","2A-CLIM","gprof","V05"]
+gpr_mhs_metopb = ["METOPB","MHS","2A-CLIM","gprof","V05"]
+gpr_mhs_noaa18 = ["NOAA18","MHS","2A-CLIM","gprof","V05"]
+gpr_mhs_noaa19 = ["NOAA19","MHS","2A-CLIM","gprof","V05"]
 
 
 gmi       = ["GPM","GMI","1C","1C","V05"]
@@ -65,8 +68,9 @@ mhs_metopb= ["METOPB","MHS","1C","1C","V05"]
 mhs_noaa18= ["NOAA18","MHS","1C","1C","V05"]
 mhs_noaa19= ["NOAA19","MHS","1C","1C","V05"]
 
-#lspec = [gmi, amsr2, ssmis_f16,ssmis_f17,ssmis_f18,atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
-lspec = [gmi, amsr2, ssmis_f16,ssmis_f17,ssmis_f18,atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
+#lspec = [gmi, amsr2, ssmis_f16,ssmis_f17,ssmis_f18,atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
+#lspec = [gmi, amsr2, ssmis_f16,ssmis_f18,atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
+lspec = [gpr_gmi, gpr_amsr2, gpr_ssmis_f16,gpr_ssmis_f18,gpr_atms_npp, gpr_mhs_metopa, gpr_mhs_metopb, gpr_mhs_noaa18, gpr_mhs_noaa19]
 
 #lspec = [gpr_gmi, gpr_amsr2, gpr_ssmis_f16, gpr_ssmis_f17, gpr_ssmis_f18, gpr_atms_npp, gpr_atms_noaa20, gpr_mhs_metopa, gpr_mhs_metopb, gpr_mhs_noaa18, gpr_mhs_noaa19]
 
@@ -99,6 +103,7 @@ for spec in lspec:
 
         #if (sate=='GPM')&(): continue # test
         #if (sate=='GCOMW1')&(DTime< datetime(2018,9,18)): continue # test
+        if (sate=='NOAA18')&(DTime< datetime(2018,4,20)): continue # test
         ##--- Skip missing or problematic data -----
         #ldataoutage=[
         # [2014,5,20]  # 1274-1277
