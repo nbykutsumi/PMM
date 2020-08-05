@@ -10,8 +10,8 @@ import shutil
 
 #iDTime = datetime(2014,6,1)
 #eDTime = datetime(2014,11,30)
-iDTime = datetime(2018,2,1)   # MRMS: 2018/1/23 -. No NOAA20
-eDTime = datetime(2018,2,28)
+iDTime = datetime(2018,3,1)   # MRMS: 2018/1/23 -. No NOAA20
+eDTime = datetime(2018,4,30)
 
 
 dDTime = timedelta(days=1)
@@ -66,11 +66,6 @@ if stoptype=='ret':
 elif stoptype=='cor':
     stopstamp = 'best01cr-HTQZ-ssn0'
 #----------------------------
-gpr_amsr2      = ["GCOMW1","AMSR2","2A-CLIM","gprof","V05"]
-gpr_ssmis_f16  = ["F16","SSMIS","2A-CLIM","gprof","V05"]
-gpr_atms_noaa20= ["NOAA20","ATMS","2A-CLIM","gprof","V05"]
-gpr_mhs_metopa = ["METOPA","MHS","2A-CLIM","gprof","V05"]
-
 gmi       = ["GPM","GMI","1C","1C","V05"]
 amsr2     = ["GCOMW1","AMSR2","1C","1C","V05"]
 ssmis_f16 = ["F16","SSMIS","1C","1C","V05"]
@@ -85,8 +80,8 @@ mhs_noaa18= ["NOAA18","MHS","1C","1C","V05"]
 mhs_noaa19= ["NOAA19","MHS","1C","1C","V05"]
 
 #lspec = [amsr2, ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
-lspec = [ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
-#lspec = [ssmis_f16]
+lspec = [amsr2, ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
+
 
 dnscan = {'GMI':2, 'AMSR2':5, 'SSMIS':4, 'ATMS':4, 'MHS':1}
 #** Constants ******
@@ -199,8 +194,8 @@ for spec in lspec:
             for line in lines:
                 _,_,Day,oid,iscan,escan = map(int,line.strip().split(','))
 
-                #if (sensor=='AMSR2')&(oid < 30519): continue # test
-                if (sate=='F16')&(oid < 74033): continue # test
+                if (sensor=='AMSR2')&(oid <= 31235): continue # test
+                if (sate=='F16')&(oid <= 74191): continue # test
 
                 if (iDTime<=datetime(Year,Mon,Day))&(datetime(Year,Mon,Day)<=eDTime):
                     ltbPathTmp = sorted(glob.glob(tbbaseDir + '/%04d/%02d/%02d/*.%06d.????.HDF5'%(Year,Mon,Day,oid)))
@@ -212,7 +207,7 @@ for spec in lspec:
         liescanAll = []
         for DTime in lDTime:
             Year,Mon,Day = DTime.timetuple()[:3]
-            ltbPathTmp = sorted(glob.glob(btbaseDir + '/%04d/%02d/%02d/1C.GPM.GMI.XCAL2016-C.*.??????.????.HDF5'%(Year,Mon,Day)))
+            ltbPathTmp = sorted(glob.glob(tbbaseDir + '/%04d/%02d/%02d/1C.GPM.GMI.XCAL2016-C.*.??????.????.HDF5'%(Year,Mon,Day)))
             ltbPathAll = ltbPathAll + ltbPathTmp
             liescanAll.append([-9999,-9999]) 
     #*******************
@@ -505,23 +500,11 @@ for spec in lspec:
             print oprog  
 
         #***** Set parameter dictionary *************
+        #------------
         dargv['dbtype']     = dbtype
         dargv['sate']       = sate
         dargv['sensor']     = sensor
-        dargv['coefDir']    = coefDir
-        dargv['dbDir']      = dbDir
-        dargv['relprofDir'] = relprofDir
-        dargv['outDir']     = outDirTmp
-
-        dargv['oid'] = oid
-        dargv['clat'] = -9999
-        dargv['clon'] = -9999
-        dargv['dlatlon'] = -9999
-        dargv['iscan'] = -9999
-        dargv['escan'] = -9999
-        dargv['dscan'] = -9999
-        #------------
-        dargv['nscan'] = nscan = {'GMI':2, 'AMSR2':5, 'SSMIS':4, 'ATMS':4, 'MHS':1}[sensor]   # number of scan classes (S1, S2, ..)
+        dargv['nscan'] = {'GMI':2, 'AMSR2':5, 'SSMIS':4, 'ATMS':4, 'MHS':1}[sensor]   # number of scan classes (S1, S2, ..)
         dargv['mainscan'] = {'GMI':1, 'AMSR2':1, 'SSMIS':1, 'ATMS':1, 'MHS':1, 'SAPHIR':1}[sensor]  # Precipitation variables are estimated at this scan class footprints
         dargv['NEM'] =  {'GMI':12, 'AMSR2':13, 'SSMIS':10, 'ATMS':6, 'MHS':4, 'SAPHIR':4}[sensor]
         dargv['NTBREG'] = {'GMI':13, 'AMSR2':10, 'SSMIS':11, 'ATMS':9, 'MHS':5, 'SAPHIR':6}[sensor]
@@ -559,7 +542,19 @@ for spec in lspec:
 
 
         #------------
-        oid = dargv['oid']
+        dargv['coefDir']    = coefDir
+        dargv['dbDir']      = dbDir
+        dargv['relprofDir'] = relprofDir
+        dargv['outDir']     = outDirTmp
+
+        dargv['oid'] = oid
+        dargv['clat'] = -9999
+        dargv['clon'] = -9999
+        dargv['dlatlon'] = -9999
+        dargv['iscan'] = -9999
+        dargv['escan'] = -9999
+        dargv['dscan'] = -9999
+
         dargv['srcPath'] = srcPathTmp
         dargv['s2xPath'] = s2xPathTmp
         dargv['s2yPath'] = s2yPathTmp

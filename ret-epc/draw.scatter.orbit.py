@@ -364,8 +364,8 @@ for season in lseason:
 
             #-- Figure density plot ----
             X,Y = np.meshgrid(bins,bins) 
-            #logvmin, logvmax = -1.2, 2
-            logvmin, logvmax = -1, 0.5  # test
+            logvmin, logvmax = -1.2, 2
+            #logvmin, logvmax = -1, 0.5  # test
 
             if rettype==lrettype[0]:
                 dvnummax[surftype] = np.percentile(H,99)

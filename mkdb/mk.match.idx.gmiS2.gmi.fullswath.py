@@ -7,10 +7,14 @@ import numpy as np
 import h5py
 
 
+#***************************
+# Change here
+#---------------------------
 #iDTime = datetime(2016,4,18)
 #eDTime = datetime(2016,4,18)
 iDTime = datetime(2018,1,1)
 eDTime = datetime(2018,1,1)
+#---------------------------
 
 def ret_lDTime(iDTime,eDTime,dDTime):
   total_steps = int( (eDTime - iDTime).total_seconds() / dDTime.total_seconds() + 1 )
@@ -28,11 +32,14 @@ ex0 = 220  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=22
 wx  = ex0-ix0 +1
 oid = -9999
 
-baseDirGMI = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/GPM.GMI/1C/V05'
+#*********************************
+# Change here
+#--------------------------------
+baseDirGMI = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/GPM.GMI/1C/V05'   # GMI 1C HDF file directory
 pmwPath    = ''  # Dont't change.
-obaseDir   = '/home/utsumi/mnt/lab_tank/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX'
+obaseDir   = '/home/utsumi/mnt/lab_tank/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.IDX'  # Output directory
+dydxDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.dydx'  # Input (dy & dx files) directory
 
-dydxDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/MATCH.GMI.V05A/S1.ABp000-220.GMI.S2.dydx'
 dyPath0  = dydxDir + '/dy.000.npy'
 dxPath0  = dydxDir + '/dx.000.npy'
 dyPath180= dydxDir + '/dy.180.npy'

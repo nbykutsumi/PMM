@@ -70,7 +70,10 @@ mhs_noaa19= ["NOAA19","MHS","1C","1C","V05"]
 
 #lspec = [gmi, amsr2, ssmis_f16,ssmis_f17,ssmis_f18,atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
 #lspec = [gmi, amsr2, ssmis_f16,ssmis_f18,atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
-lspec = [gpr_gmi, gpr_amsr2, gpr_ssmis_f16,gpr_ssmis_f18,gpr_atms_npp, gpr_mhs_metopa, gpr_mhs_metopb, gpr_mhs_noaa18, gpr_mhs_noaa19]
+#lspec = [gpr_gmi, gpr_amsr2, gpr_ssmis_f16,gpr_ssmis_f18,gpr_atms_npp, gpr_mhs_metopa, gpr_mhs_metopb, gpr_mhs_noaa18, gpr_mhs_noaa19]
+#lspec = [gpr_atms_npp, gpr_mhs_metopa, gpr_mhs_metopb, gpr_mhs_noaa18, gpr_mhs_noaa19]
+lspec = [gpr_mhs_noaa19]
+
 
 #lspec = [gpr_gmi, gpr_amsr2, gpr_ssmis_f16, gpr_ssmis_f17, gpr_ssmis_f18, gpr_atms_npp, gpr_atms_noaa20, gpr_mhs_metopa, gpr_mhs_metopb, gpr_mhs_noaa18, gpr_mhs_noaa19]
 
@@ -102,8 +105,8 @@ for spec in lspec:
 
 
         #if (sate=='GPM')&(): continue # test
-        #if (sate=='GCOMW1')&(DTime< datetime(2018,9,18)): continue # test
-        if (sate=='NOAA18')&(DTime< datetime(2018,4,20)): continue # test
+        #if (sate=='NPP')&(DTime< datetime(2018,11,24)): continue # test
+        if (sate=='NOAA19')&(DTime< datetime(2018,5,10)): continue # test
         ##--- Skip missing or problematic data -----
         #ldataoutage=[
         # [2014,5,20]  # 1274-1277
@@ -128,11 +131,13 @@ for spec in lspec:
         iDir = irootDir + "/%s/%04d/%02d/%02d/%s"%(ver,Year,Mon,Day,prj)
         #oDir = orootDir + "/%s.%s/%s/%s/%04d/%02d"%(sate,sensor,prdName,ver,Year,Mon) 
         oDir = orootDir + "/%s.%s/%s/%s/%04d/%02d/%02d"%(sate,sensor,prdName,ver,Year,Mon,Day) 
+        print iDir, ver
+        print spec
+
         #GPM/TRMM.TMI/L2A12/07/2014/
         mk_dir(oDir)
         #--- list --------------
         lPath = np.sort(ftp.nlst(iDir))
-        print iDir
         print lPath
         for sPath in lPath:
             oid = int(sPath.split('.')[-3])

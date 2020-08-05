@@ -20,8 +20,8 @@ radar = 'Ku'
 
 #iDTime = datetime(2017,9,30)
 #eDTime = datetime(2018,1,1)
-iDTime = datetime(2017,1,1)
-eDTime = datetime(2017,1,1)
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2015,5,31)
 
 
 #iDTime = datetime(2017,6,30)
@@ -55,15 +55,13 @@ verDPR = '06'
 subverDPR = 'A'
 fullverDPR = '%s%s'%(verDPR,subverDPR)
 
-baseDirGMI = '/work/hk01/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
-baseDirDPR = '/work/hk01/PMM/NASA/GPM.Ku/2A/V%s'%(verDPR)
-idxbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.IDX'%(fullverGMI, mwscan, ix0, ex0, radar, fullverDPR)
-
-outrootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
+baseDirGMI = '/work/hk02/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
+baseDirDPR = '/work/hk02/PMM/NASA/GPM.Ku/2A/V%s'%(verDPR)
+idxbaseDir = '/tank/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.IDX'%(fullverGMI, mwscan, ix0, ex0, radar, fullverDPR)
 
 #lvar = ['/NS/SLV/precipRate']
 #lvar = ['/NS/CSF/typePrecip']
-lvar = ['NS/PRE/heightStormTop']
+lvar = ['NS/PRE/heightStormTop','/NS/VER/heightZeroDeg']
 #lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/SLV/precipRate']
 #lvar = ['/NS/CSF/typePrecip','NS/PRE/heightStormTop','NS/CSF/flagAnvil','/NS/VER/heightZeroDeg']
 #lvar = ['/NS/Latitude','/NS/Longitude']
@@ -80,14 +78,15 @@ for DTime in lDTime:
 
     if len(lsrcPathDPR)==0:
         print 'No DPR file',Year,Mon,Day
-        print ssearchDPR
+        print ssearch
         sys.exit()
 
     for srcPathDPR in lsrcPathDPR:
         oid = srcPathDPR.split('.')[-3]
 
 
-        for irank in [1,2,3,4]:
+        #for irank in [1,2,3,4]:
+        for irank in [1]:
             idxDir      = idxbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
             idxPathX    = idxDir + '/Xpy.%d.%s.npy'%(irank,oid)
             idxPathY    = idxDir + '/Ypy.%d.%s.npy'%(irank,oid)
@@ -120,7 +119,7 @@ for DTime in lDTime:
 
 
                 varName    = var.split('/')[-1] 
-                outbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.%s'%(fullverGMI, mwscan, cx-w, cx+w, radar, fullverDPR, varName)
+                outbaseDir = '/tank/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.%s'%(fullverGMI, mwscan, cx-w, cx+w, radar, fullverDPR, varName)
                 outDir     = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
                 outPath    = outDir + '/%s.%d.%s.npy'%(varName, irank, oid)
 

@@ -1,0 +1,70 @@
+#*** Required python libraries *****
+numpy
+h5py
+
+#*** FILES *************************
+ret-epc-multi.2020.07.20.py   # retrieval program
+
+run-epc-simple.py  # Sample script that calls mk.match.idx.gmiS2.gmi.fullswath.py and retrieval code.
+
+JPLDB.py  # Interface module for JPL database (not used in the default setting)
+
+EPCDB.py  # interface module for EPC database
+
+epcfunc.py  # some functions
+
+1C.GPM.GMI.XCAL2016-C.20140601-S010534-E023807.001453.V05A.HDF5  # sample GMI 1C file
+
+Xpy.1.001453.npy  # sample file for S1 and S2 channels match-up
+Ypy.1.001453.npy  # sample file for S1 and S2 channels match-up
+
+f_match_fov.f90  # Fortran program to create Xpy and Ypy files. Called in mk.match.idx.gmiS2.gmi.fullswath.py
+
+f2py.make.py     # python code to compile fortran program
+
+mk.match.idx.gmiS2.gmi.fullswath.py  # Python program to create Xpy and Ypy files. f_match_fov.f90 is called in this program.
+
+dy.000.npy # Parameter file used by mk.match.idx.gmiS2.gmi.fullswath.py
+dx.000.npy  
+dy.180.npy
+dx.180.npy
+
+
+#*** Compile fortran program ***********************
+1. Edit f2py.make.py (Set a path to your fortran compiler)
+
+2. Compile f_match_fov.f90
+>> python f2py.make.py  f_match_fov.f90
+
+  f_match_fov.so is created
+
+
+#*** Make GMI S2 match-up location data & Retrieval ***
+1. Edit run-epc-simple.py
+
+#-- First half: Make GMI S2 match-up location data
+# Edit these paramters.
+dtmp['Year']    
+dtmp['Mon']     
+dtmp['Day']     
+dtmp['pmwPath']   # GMI L1C TB file
+dtmp['obaseDir']  # Directory where Xpy.1.??????.npy and Ypy.1.??????.npy will be saved.
+dydxDir           # Directory for dy.000.npy, dx.000.npy, dy.180.npy, dx.180.npy
+
+
+#-- Second half: Retrieval
+# Edit these paramters.
+dargv['oid']     # Orbit (granule) ID
+dargv['clat']    # center latitude. Set to -9999 for global
+dargv['clon']    # center longitude. Set to -9999 for global
+dargv['dlatlon'] # parameter for center location searching (degree). Set to -9999 for global
+dargv['dscan']   # dscan*2 = number of retrieved scans. Set to -9999 for global
+dargv['srcPath'] # L1C TB file
+dargv['s2xPath'] # Xpy.1.??????.npy file
+dargv['s2yPath'] # Ypy.1.??????.npy file
+dargv['outDir']  # Output directory
+
+
+2. run run-epc-simple.py
+>> python run-epc-simple.py
+

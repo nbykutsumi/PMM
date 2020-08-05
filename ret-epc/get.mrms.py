@@ -15,7 +15,7 @@ if myhost =="shui":
 elif myhost =="well":
     orootDir   = "/home/utsumi/mnt/lab_work/hk02/PMM/MRMS/level2"
 
-iYM = [2018,7]
+iYM = [2018,1]
 eYM = [2018,12]
 lYM = util.ret_lYM(iYM,eYM)
 
@@ -32,8 +32,9 @@ mhs_metopb= ["METOPB","MHS"]
 mhs_noaa18= ["NOAA18","MHS"]
 mhs_noaa19= ["NOAA19","MHS"]
 
-lspec = [gmi, amsr2, ssmis_f16,ssmis_f17,ssmis_f18,atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
+#lspec = [gmi, amsr2, ssmis_f16,ssmis_f17,ssmis_f18,atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
 #lspec = [amsr2, ssmis_f16,ssmis_f17,ssmis_f18,atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
+lspec = [gmi]
 
 lvar = ['PRECIPRATE','MASK','RQI']
 #----------------------------------
@@ -51,8 +52,8 @@ for (Year,Mon) in lYM:
         sensor    = spec[1]
 
         if (sensor=='GMI') &(Mon<=7):continue
-        if (sate=='GCOMW1')&(Mon<=7):continue
-        if (sate=='F16')   &(Mon<=7):continue
+        #if (sate=='GCOMW1')&(Mon<=7):continue
+        #if (sate=='F16')   &(Mon<=7):continue
         #if (sate=='F17')   &(Mon<=4):continue
         #if (sate=='F18')   &(Mon<=4):continue
         #if (sate=='NPP')   &(Mon<=3):continue

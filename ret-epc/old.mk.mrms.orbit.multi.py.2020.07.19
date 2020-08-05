@@ -12,15 +12,20 @@ from datetime import datetime, timedelta
 import os, sys, socket
 from bisect import bisect_left
 
-#iDTime = datetime(2018,3,1)
-#eDTime = datetime(2018,12,31)
+iDTime = datetime(2018,1,24)
+eDTime = datetime(2018,2,28)
 
-iDTime = datetime(2018,3,1)
-eDTime = datetime(2018,5,31)
+#iDTime = datetime(2018,2,1)
+#eDTime = datetime(2018,2,28)
 
 
 
 #----------------------------
+gpr_amsr2      = ["GCOMW1","AMSR2","2A-CLIM","gprof","V05"]
+gpr_ssmis_f16  = ["F16","SSMIS","2A-CLIM","gprof","V05"]
+gpr_atms_noaa20= ["NOAA20","ATMS","2A-CLIM","gprof","V05"]
+gpr_mhs_metopa = ["METOPA","MHS","2A-CLIM","gprof","V05"]
+
 gmi       = ["GPM","GMI","1C","1C","V05"]
 amsr2     = ["GCOMW1","AMSR2","1C","1C","V05"]
 ssmis_f16 = ["F16","SSMIS","1C","1C","V05"]
@@ -35,13 +40,14 @@ mhs_noaa18= ["NOAA18","MHS","1C","1C","V05"]
 mhs_noaa19= ["NOAA19","MHS","1C","1C","V05"]
 
 #lspec = [amsr2, ssmis_f16, ssmis_f17, ssmis_f18, atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
-lspec = [amsr2, ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19, gmi]
-#lspec = [ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19, gmi]
+#lspec = [amsr2, ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19, gmi]
+lspec = [ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19, gmi]
 #lspec = [mhs_noaa18]
-#lspec = [gmi]
+#lspec = [amsr2]
 
-#scantype='epc'
-scantype='gpr'
+dnscan = {'GMI':2, 'AMSR2':5, 'SSMIS':4, 'ATMS':4, 'MHS':1}
+
+#dmainscan = {'GMI':1, 'AMSR2':1, 'SSMIS':1, 'ATMS':1, 'MHS':1, 'SAPHIR':1}
 
 ny_mrms = 3500
 nx_mrms = 7000
@@ -75,10 +81,8 @@ for spec in lspec:
         workDir   = '/work'
         tankDir   = '/tank'
         tbbaseDir = '/work/hk02/PMM/NASA/%s.%s/1C/%s'%(sate,sensor,ver)
-
-    #*****************************************
-    # Make path list
     #-----------------------------------------
+
     iY,iM = iDTime.timetuple()[:2]
     eY,eM = eDTime.timetuple()[:2]
     lYM   = util.ret_lYM([iY,iM],[eY,eM])
@@ -91,18 +95,7 @@ for spec in lspec:
         for line in lines:
             _,_,Day,oid,iscan,escan = map(int,line.strip().split(','))
 
-            #if ('sate'=='AMSR2')&(datetime(2018,8,31) < datetime(Year,Mon,Day)): continue  # No NOAA18 data after 2018/10/21
-
-            if (sate=='GCOMW1')&(oid<31269): continue  # test
-            if (sate=='F16')&(Mon<3): continue  # test
-            if (sate=='F18')&(Mon<3): continue  # test
-            if (sate=='NPP')&(Mon<3): continue  # test
-            if (sate=='METOPA')&(Mon<3): continue  # test
-            if (sate=='METOPB')&(Mon<3): continue  # test
-            if (sate=='NOAA18')&(Mon<3): continue  # No NOAA18 data after 2018/10/21
-            if (sate=='NOAA19')&(Mon<3): continue  # No NOAA18 data after 2018/10/21
-            if (sate=='GPM')&(datetime(Year,Mon,Day)<datetime(2018,2,4)): continue  # test
-            #if (sate=='GPM')&(oid !=22370): continue  # test
+            if (sensor=='AMSR2')&(oid < 30388): continue # test
 
             if (iDTime<=datetime(Year,Mon,Day))&(datetime(Year,Mon,Day)<=eDTime):
                 ltbPathTmp = sorted(glob.glob(tbbaseDir + '/%04d/%02d/%02d/*.%06d.????.HDF5'%(Year,Mon,Day,oid)))
@@ -117,27 +110,22 @@ for spec in lspec:
         DTime = datetime(Year,Mon,Day)
         #if DTime != datetime(2015,1,9): continue  # test
 
+        if ((sate=='F16')&(oid<73654)): continue # test
         #if oid != 65343: continue  # test
 
         #*****************
         # Read L1C
         #*****************
-        if scantype=='epc':
-            mainscan = 1
-        elif scantype=='gpr':
-            mainscan={'GMI':1, 'AMSR2':5, 'SSMIS':1, 'ATMS':1, 'MHS':1, 'SAPHIR':1}[sensor]
-
-        scanname = 'S%d'%(mainscan)
         with h5py.File(tbPath,'r') as h:
-            a2latpmw = h[scanname+'/Latitude'][iscan:escan+1].astype('float64')
-            a2lonpmw = h[scanname+'/Longitude'][iscan:escan+1].astype('float64')
-            a1yyyy = h[scanname+'/ScanTime/Year'][iscan:escan+1]
-            a1mm   = h[scanname+'/ScanTime/Month'][iscan:escan+1]
-            a1dd   = h[scanname+'/ScanTime/DayOfMonth'][iscan:escan+1]
-            a1hh   = h[scanname+'/ScanTime/Hour'][iscan:escan+1]
-            a1mn   = h[scanname+'/ScanTime/Minute'][iscan:escan+1]
-            a1ss   = h[scanname+'/ScanTime/Second'][iscan:escan+1]
-            a2inc  = h[scanname+'/incidenceAngle'][iscan:escan+1, :, 0]
+            a2latpmw = h['S1/Latitude'][iscan:escan+1].astype('float64')
+            a2lonpmw = h['S1/Longitude'][iscan:escan+1].astype('float64')
+            a1yyyy = h['S1/ScanTime/Year'][iscan:escan+1]
+            a1mm   = h['S1/ScanTime/Month'][iscan:escan+1]
+            a1dd   = h['S1/ScanTime/DayOfMonth'][iscan:escan+1]
+            a1hh   = h['S1/ScanTime/Hour'][iscan:escan+1]
+            a1mn   = h['S1/ScanTime/Minute'][iscan:escan+1]
+            a1ss   = h['S1/ScanTime/Second'][iscan:escan+1]
+            a2inc  = h['S1/incidenceAngle'][iscan:escan+1, :, 0]
 
 
         a1dtime = [datetime(yyyy,mm,dd,hh,mn,ss) for (yyyy,mm,dd,hh,mn,ss) in zip(a1yyyy,a1mm,a1dd,a1hh,a1mn,a1ss)]
@@ -242,19 +230,11 @@ for spec in lspec:
             if (edtimegv < a1dtime[0]): continue
             print slabel, dtimegv
             print mrmsPath
+            with gzip.open(mrmsPath, 'rt') as f:
+                a2mrms=np.array(f.read().split()[12:], 'float64').reshape(ny_mrms,nx_mrms)
 
-            try:
-                with gzip.open(mrmsPath, 'rt') as f:
-                    a2mrms=np.array(f.read().split()[12:], 'float64').reshape(ny_mrms,nx_mrms)
-    
-                with gzip.open(rqiPath, 'rt') as f:
-                    a2rqi =np.array(f.read().split()[12:], 'float32').reshape(ny_mrms,nx_mrms)
-            except ValueError:
-                print ''
-                print 'ValueError'
-                print 'Skip'
-                print ''
-                continue
+            with gzip.open(rqiPath, 'rt') as f:
+                a2rqi =np.array(f.read().split()[12:], 'float32').reshape(ny_mrms,nx_mrms)
 
             ##--- test -------
             ##a1latmrms= np.arange(20+0.005, 55-0.005+0.001, 0.01)
@@ -308,8 +288,6 @@ for spec in lspec:
                 a2offsetx, a2offsety = np.meshgrid(range(-nrad,nrad+1), range(-nrad,nrad+1))
                 a3collectx = np.array([a2offsetx + x for x in a1x_mrms], 'int32')
                 a3collecty = np.array([a2offsety + y for y in a1y_mrms], 'int32')
-                #a3collectx = np.apply_along_axis(add, 1, a1x_mrms[:,None], a2offsetx).astype('int32')
-                #a3collecty = np.apply_along_axis(add, 1, a1y_mrms[:,None], a2offsety).astype('int32')
 
                 #- If center MRMS pixel is out of boundary then replace ---
                 a1xy_mrms_mask = a1x_mrms.mask + a1y_mrms.mask
@@ -371,7 +349,7 @@ for spec in lspec:
         #*****************
         # Save
         #*****************
-        outDir= '/home/utsumi/mnt/lab_tank/utsumi/PMM/MRMS/level2-pixel-match/%s.%s.%s/%04d/%02d/%02d'%(scantype, sensor, sate, Year, Mon, Day)
+        outDir= '/home/utsumi/mnt/lab_tank/utsumi/PMM/MRMS/level2-pixel-match/%s.%s/%04d/%02d/%02d'%(sensor, sate, Year, Mon, Day)
         util.mk_dir(outDir)
         ave_mrms_path= outDir + '/mrms.%06d.%05d-%05d.npy'%(oid,iscan,escan)
         goodfrac_path= outDir + '/goodfrac.%06d.%05d-%05d.npy'%(oid,iscan,escan)

@@ -334,8 +334,8 @@ elif (len(argvs)==2)&(argvs[1]=='test'):
     clat   = -9999
     clon   = -9999
     dlatlon= -9999
-    iscan  = 2000
-    escan  = 2050
+    iscan  = -9999
+    escan  = -9999
     dscan  = -9999
 
     srcPath   = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/GPM.GMI/1C/V05/2014/06/01/1C.GPM.GMI.XCAL2016-C.20140601-S010534-E023807.001453.V05A.HDF5'
@@ -348,8 +348,6 @@ elif (len(argvs)==2)&(argvs[1]=='test'):
     #cnvfrcinPath= dargv['cnvfrcinPath']
     rnrPath   = ''  # 2020/02/07 rain/no-rain index file
     outDir    = '/home/utsumi/temp/ret/test'
-
-
 
 
 else:
