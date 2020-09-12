@@ -79,7 +79,8 @@ for DTime in lDTime:
     if len(lsrcPathDPR)==0:
         print 'No DPR file',Year,Mon,Day
         print ssearch
-        sys.exit()
+        #sys.exit()
+        continue
 
     for srcPathDPR in lsrcPathDPR:
         oid = srcPathDPR.split('.')[-3]
@@ -90,9 +91,14 @@ for DTime in lDTime:
             idxDir      = idxbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
             idxPathX    = idxDir + '/Xpy.%d.%s.npy'%(irank,oid)
             idxPathY    = idxDir + '/Ypy.%d.%s.npy'%(irank,oid)
-    
-            X    = np.load(idxPathX)
-            Y    = np.load(idxPathY)
+   
+            try: 
+                X    = np.load(idxPathX)
+                Y    = np.load(idxPathY)
+            except IOError:
+                print 'No file for idxDir'
+                print 'oid=',oid
+                continue
     
             a2x  = X[:,cx-w-ix0:cx+w+1-ix0]
             a2y  = Y[:,cx-w-ix0:cx+w+1-ix0]

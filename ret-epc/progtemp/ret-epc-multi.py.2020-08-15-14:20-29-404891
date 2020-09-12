@@ -24,9 +24,9 @@ def read_table(srcPath, type=float):
     lout = []
     for line in lines:
         line = line.strip().split()
-        #line = map(type, line)
+        line = map(type, line)
         lout.append(line)
-    return array(lout).astype(type)
+    return array(lout)
 
 
 def read_nrain(idx_db):
@@ -436,8 +436,6 @@ a2coef   = a2coef[:,1:]
 rangePath = coefDir + '/PC_MIN_MAX_29.txt'
 a2pc_edge = read_table(rangePath)
 
-print a2pc_edge[:,0]
-sys.exit()
 # expand the lowest and highest ranges
 a2pc_edge[:,0]   = a2pc_edge[:,0] - 1.e6
 a2pc_edge[:,-1]  = a2pc_edge[:,-1]+ 1.e6

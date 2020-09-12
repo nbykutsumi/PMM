@@ -68,3 +68,23 @@ dargv['outDir']  # Output directory
 2. run run-epc-simple.py
 >> python run-epc-simple.py
 
+
+# The output files are in numpy array data
+# They can be read in python as follows
+
+In [1]: import numpy as np
+
+In [2]: a=np.load('nsurfNScmb.001453.y0992-1032.nrec10000.npy')
+
+In [3]: print a
+[[-9999. -9999. -9999. ... -9999. -9999. -9999.]
+ [-9999. -9999. -9999. ... -9999. -9999. -9999.]
+ [-9999. -9999. -9999. ... -9999. -9999. -9999.]
+ ...
+ [-9999. -9999. -9999. ... -9999. -9999. -9999.]
+ [-9999. -9999. -9999. ... -9999. -9999. -9999.]
+ [-9999. -9999. -9999. ... -9999. -9999. -9999.]]
+
+In [4]: print a.shape
+(41, 221)
+

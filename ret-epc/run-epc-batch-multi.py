@@ -10,8 +10,8 @@ import shutil
 
 #iDTime = datetime(2014,6,1)
 #eDTime = datetime(2014,11,30)
-iDTime = datetime(2018,3,1)   # MRMS: 2018/1/23 -. No NOAA20
-eDTime = datetime(2018,4,30)
+iDTime = datetime(2018,5,1)   # MRMS: 2018/1/23 -. No NOAA20
+eDTime = datetime(2018,12,31)
 
 
 dDTime = timedelta(days=1)
@@ -76,11 +76,12 @@ atms_noaa20= ["NOAA20","ATMS","1C","1C","V05"]   # MRMS does not have NOAA20 for
 
 mhs_metopa= ["METOPA","MHS","1C","1C","V05"]
 mhs_metopb= ["METOPB","MHS","1C","1C","V05"]
-mhs_noaa18= ["NOAA18","MHS","1C","1C","V05"]
+mhs_noaa18= ["NOAA18","MHS","1C","1C","V05"]  # Not available at arthurhou.pps after 2018/10/21
 mhs_noaa19= ["NOAA19","MHS","1C","1C","V05"]
 
-#lspec = [amsr2, ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
 lspec = [amsr2, ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
+#lspec = [amsr2, ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
+#lspec = [mhs_metopb, mhs_noaa18, mhs_noaa19]
 
 
 dnscan = {'GMI':2, 'AMSR2':5, 'SSMIS':4, 'ATMS':4, 'MHS':1}
@@ -138,7 +139,8 @@ for spec in lspec:
     myhost = socket.gethostname()
     if myhost =="well":
         #tbbaseDir  = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/GPM.GMI/1C/V05'
-        tbbaseDir  = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/%s.%s/1C/%s'%(sate,sensor,ver)
+        #tbbaseDir  = '/home/utsumi/mnt/lab_work/hk02/PMM/NASA/%s.%s/1C/%s'%(sate,sensor,ver)
+        tbbaseDir  = '/media/disk2/data/PMM/NASA/%s.%s/1C/%s'%(sate,sensor,ver)
         matchbaseDir= '/media/disk2/share/PMM/MATCH.%s.%s.%s'%(sensor,sate,ver)
         rnrbaseDir  = ''
         outbaseDir = '/home/utsumi/mnt/lab_tank/utsumi/PMM/retepc/%s/%s.%s'%(expr,sensor,sate)
@@ -194,8 +196,9 @@ for spec in lspec:
             for line in lines:
                 _,_,Day,oid,iscan,escan = map(int,line.strip().split(','))
 
-                if (sensor=='AMSR2')&(oid <= 31235): continue # test
-                if (sate=='F16')&(oid <= 74191): continue # test
+                #if (sensor=='AMSR2')&(oid <= 31235): continue # test
+                #if (sate=='F16')&(oid <= 74768): continue # test
+                #if (sate=='METOPB')&(oid <= 28746): continue # test
 
                 if (iDTime<=datetime(Year,Mon,Day))&(datetime(Year,Mon,Day)<=eDTime):
                     ltbPathTmp = sorted(glob.glob(tbbaseDir + '/%04d/%02d/%02d/*.%06d.????.HDF5'%(Year,Mon,Day,oid)))

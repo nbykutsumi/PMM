@@ -81,8 +81,7 @@ outrootDir = '/tank/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 #lvar = [['Ku','/NS/Latitude','/NS/Longitude']]
 #lvar = [['Ku','/NS/VER/heightZeroDeg']]
 #lvar = [[['Ku','NS/SLV/precipRateESurface']]
-#lvar = [['DPRGMI','NS/surfPrecipTotRate']]
-lvar = [['DPRGMI','NS/vfracConv']]
+lvar = [['DPRGMI','NS/surfPrecipTotRate']]
 
 
 
@@ -227,14 +226,9 @@ for radar,var in lvar:
             nygmi, nxgmi = a2x.shape
 
             #DatDPR = dpr.load_var_granule(srcPathDPR, var)
-            with h5py.File(srcPathDPR) as hdpr:
-
-                if var in ['NS/vfracConv']:
-                    DatPrecType = hdpr['/NS/Input/precipitationType'][:]
-                    DatDPR      = hdpr['/NS/surfPrecipTotRate'][:]
-
-                else:
-                    DatDPR = hdpr[var][:]
+            hdpr   = h5py.File(srcPathDPR)
+            DatDPR = hdpr[var][:]
+            hdpr.close() 
 
             datatype   = DatDPR.dtype
 
@@ -257,31 +251,13 @@ for radar,var in lvar:
                 datatype= 'int16'
 
 
-            elif var=='NS/vfracConv':
-                avarorgrad = DatPrecType
-                avar0= ma.masked_less(DatDPR,0).filled(0)
-                avar1= (avarorgrad/10000000).astype('int32')
-    
-                avar1= ma.masked_where(avar1 !=2, DatDPR).filled(0.0)
-    
-                avar0= sum_9grids_2d(avar0, a2y.flatten(), a2x.flatten(), miss=0).filled(0)
-                avar1= sum_9grids_2d(avar1, a2y.flatten(), a2x.flatten(), miss=0).filled(0)
-                avar = (ma.masked_where(avar0==0, avar1)/avar0).filled(0.0)
-                DatDPR = avar 
-
-
-            if len(DatDPR.shape)==1:
-                datout = DatDPR.reshape(nygmi,nxgmi)
-
-            elif   len(DatDPR.shape)==2:
+            if   len(DatDPR.shape)==2:
                 datout = ave_9grids_2d(DatDPR, a2y.flatten(), a2x.flatten(), imiss, omiss, omiss_nomatch)
                 datout = datout.reshape(nygmi,nxgmi)
  
             elif len(DatDPR.shape)==3:
                 datout = ave_9grids_3d(DatDPR, a2y.flatten(), a2x.flatten(), miss)
                 datout = datout.reshape(nygmi,nxgmi,-1)
-
-
 
             if varName in ['precipRate']:
                 datatype = 'int16'

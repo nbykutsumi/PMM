@@ -10,8 +10,8 @@ import sys, os, glob
 from datetime import datetime, timedelta
 import numpy as np
 
-iDTime = datetime(2014,9,16)
-eDTime = datetime(2014,9,16)
+iDTime = datetime(2014,8,25)
+eDTime = datetime(2014,8,25)
 
 dDTime = timedelta(days=1)
 lDTime = util.ret_lDTime(iDTime, eDTime, dDTime)
@@ -32,10 +32,10 @@ subverDPR = 'A'
 fullverGMI = '%s%s'%(verGMI,subverGMI)
 fullverDPR = '%s%s'%(verDPR,subverDPR)
 
-baseDirGMI = '/work/hk01/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
-#baseDirDPR = '/work/hk01/PMM/NASA/GPM.Ku/2A/V%s'%(verDPR)
-baseDirDPR = '/work/hk01/PMM/NASA/GPM.DPRGMI/2B/V%s'%(verDPR)
-obaseDir   = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.IDX'%(fullverGMI, mwscan, ix0, ex0, radar, fullverDPR)
+baseDirGMI = '/work/hk02/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
+#baseDirDPR = '/work/hk02/PMM/NASA/GPM.Ku/2A/V%s'%(verDPR)
+baseDirDPR = '/work/hk02/PMM/NASA/GPM.DPRGMI/2B/V%s'%(verDPR)
+obaseDir   = '/tank/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.%s.V%s.IDX'%(fullverGMI, mwscan, ix0, ex0, radar, fullverDPR)
 
 
 for DTime in lDTime:

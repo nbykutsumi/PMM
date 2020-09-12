@@ -17,43 +17,42 @@ dpr  = l2_dpr.L2_DPR()
 mwscan= 'S1'
 radar = 'Ku'
 
-#iDTime = datetime(2016,12,31)
-#eDTime = datetime(2017,1,5)
-#iDTime = datetime(2017,6,30)
-#eDTime = datetime(2017,8,1)
+#iDTime = datetime(2014,6,1)
+#eDTime = datetime(2015,5,31)
 
-#iDTime = datetime(2017,2,1)
-#eDTime = datetime(2017,6,1)
-
-iDTime = datetime(2017,1,1)
-eDTime = datetime(2017,12,31)
-
+iDTime = datetime(2014,10,21)
+eDTime = datetime(2015,5,31)
 
 
 
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
 #lDTime = [DTime for DTime in lDTime if not (datetime(2017,9,26)<=DTime)&(datetime(2017,9,29)]
 
-ix0 = 83   # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
-ex0 = 137  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
-cx  = 110  # GMI center angle bin (py-idx)
-cw  = 15    # extract this width around center
-w   = int(cw/2)
+#ix0 = 83   # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
+#ex0 = 137  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
+ix0 = 103  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
+ex0 = 117  # in python indexing. GMI angle bins= 0, 1, 2, ..., 220 : in total=221
+
+#cx  = 110  # GMI center angle bin (py-idx)
+#cw  = 15    # extract this width around center
+#w   = int(cw/2)
 
 
 verGMI = '05'
 subverGMI = 'A'
 fullverGMI = '%s%s'%(verGMI,subverGMI)
 
-baseDirGMI = '/work/hk01/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
-idxbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.S2.IDX'%(fullverGMI, mwscan, ix0, ex0)
+baseDirGMI = '/work/hk02/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
+#idxbaseDir = '/tank/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.S2.IDX'%(fullverGMI, mwscan, ix0, ex0)
+idxbaseDir = '/tank/utsumi/PMM/MATCH.GMI.V%s/%s.ABp000-220.GMI.S2.IDX'%(fullverGMI, mwscan)
 
-outrootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
+#outrootDir = '/work/hk02/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
+outrootDir = '/tank/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
 
-    baseDirGMI = '/work/hk01/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
+    baseDirGMI = '/work/hk02/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
     srcDirGMI  = baseDirGMI+ '/%04d/%02d/%02d'%(Year,Mon,Day)
     ssearchGMI = srcDirGMI + '/1C.GPM.GMI.*.HDF5'
 
@@ -62,7 +61,8 @@ for DTime in lDTime:
     if len(lsrcPathGMI)==0:
         print 'No GMI file',Year,Mon,Day
         print ssearchGMI
-        sys.exit()
+        #sys.exit()
+        continue
 
     for srcPathGMI in lsrcPathGMI:
         oid = srcPathGMI.split('.')[-3]
@@ -75,8 +75,11 @@ for DTime in lDTime:
         X    = np.load(idxPathX)
         Y    = np.load(idxPathY)
     
-        a2x  = X[:,cx-w-ix0:cx+w+1-ix0]
-        a2y  = Y[:,cx-w-ix0:cx+w+1-ix0]
+        #a2x  = X[:,cx-w-ix0:cx+w+1-ix0]
+        #a2y  = Y[:,cx-w-ix0:cx+w+1-ix0]
+        a2x  = X[:,ix0:ex0+1]
+        a2y  = Y[:,ix0:ex0+1]
+
 
         DatS2 = gmi.load_var_granule(srcPathGMI, 'S2/Tc')
 
@@ -85,7 +88,8 @@ for DTime in lDTime:
         datatype   = DatS2.dtype
         datout     = datout.astype(datatype)
 
-        outbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.TcS2'%(fullverGMI, mwscan, cx-w, cx+w)
+        #outbaseDir = '/tank/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.TcS2'%(fullverGMI, mwscan, cx-w, cx+w)
+        outbaseDir = '/tank/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.TcS2'%(fullverGMI, mwscan, ix0, ex0)
         outDir     = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
         outPath    = outDir + '/%s.%d.%s.npy'%('TcS2', irank, oid)
 

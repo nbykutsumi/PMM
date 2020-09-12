@@ -23,8 +23,8 @@ gprof  = l2a_gprof_hdf5.L2A_GPROF_HDF5()
 #iDTime = datetime(2016,12,31)
 #eDTime = datetime(2018,1,1)
 
-iDTime = datetime(2016,12,31)
-eDTime = datetime(2016,12,31)
+iDTime = datetime(2014,6,1)
+eDTime = datetime(2015,5,31)
 
 
 lDTime = util.ret_lDTime(iDTime,eDTime,timedelta(days=1))
@@ -38,12 +38,14 @@ subverGMI = 'A'
 fullverGMI = '%s%s'%(verGMI,subverGMI)
 mwscan = 'S1'
 
-outrootDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
+outrootDir = '/work/hk02/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
 #lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude'],['gmi','S1/SCstatus/SCorientation'],['gprof','S1/surfaceTypeIndex'],['gprof','S1/surfacePrecipitation'],['gmi','S1/Tc']
 #lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude'],['gprof','S1/surfaceTypeIndex'],['gprof','S1/surfacePrecipitation'],['gmi','S1/Tc']]
-#lvar = [['gmi','S1/Tc']]
-lvar = [['gmi','S1/SCstatus/SCorientation']]
+#lvar = [['gprof','S1/surfacePrecipitation']]
+#lvar = [['gprof','S1/surfaceTypeIndex']]
+lvar = [['gmi','S1/Tc']]
+#lvar = [['gmi','S1/SCstatus/SCorientation']]
 
 for DTime in lDTime:
     Year,Mon,Day = DTime.timetuple()[:3]
@@ -51,12 +53,12 @@ for DTime in lDTime:
     for prod,var in lvar:
 
         if   prod=='gmi':
-            baseDirGMI = '/work/hk01/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
+            baseDirGMI = '/work/hk02/PMM/NASA/GPM.GMI/1C/V%s'%(verGMI)
             srcDirGMI  = baseDirGMI+ '/%04d/%02d/%02d'%(Year,Mon,Day)
             ssearchGMI = srcDirGMI + '/1C.GPM.GMI.*.HDF5'
 
         elif prod=='gprof':
-            baseDirGMI = '/work/hk01/PMM/NASA/GPM.GMI/2A/V%s'%(verGMI)
+            baseDirGMI = '/work/hk02/PMM/NASA/GPM.GMI/2A/V%s'%(verGMI)
             srcDirGMI  = baseDirGMI+ '/%04d/%02d/%02d'%(Year,Mon,Day)
             ssearchGMI = srcDirGMI + '/2A.GPM.GMI.GPROF*.HDF5'
 
@@ -69,7 +71,8 @@ for DTime in lDTime:
         if len(lsrcPathGMI)==0:
             print 'No GMI file',Year,Mon,Day
             print ssearchGMI
-            sys.exit()
+            #sys.exit()
+            continue
     
         for srcPathGMI in lsrcPathGMI:
             oid = srcPathGMI.split('.')[-3]
@@ -100,10 +103,10 @@ for DTime in lDTime:
 
             varName    = var.split('/')[-1] 
             if len(datoutTmp.shape)==1:
-                outbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.GMI.%s'%(fullverGMI, mwscan, varName)
+                outbaseDir = '/tank/utsumi/PMM/MATCH.GMI.V%s/%s.GMI.%s'%(fullverGMI, mwscan, varName)
 
             else:
-                outbaseDir = '/work/hk01/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.%s'%(fullverGMI, mwscan, cx-w, cx+w, varName)
+                outbaseDir = '/tank/utsumi/PMM/MATCH.GMI.V%s/%s.ABp%03d-%03d.GMI.%s'%(fullverGMI, mwscan, cx-w, cx+w, varName)
 
 
             outDir     = outbaseDir + '/%04d/%02d/%02d'%(Year,Mon,Day)
