@@ -15,7 +15,7 @@ myhost = socket.gethostname()
 if myhost == 'shui':
     workbaseDir= '/work'
     tankbaseDur= '/tank'
-    listDir    = '/work/hk01/utsumi/PMM/US/obtlist'
+    listDir    = '/work/hk02/utsumi/PMM/US/obtlist'
     srcbaseDir = '/tank/utsumi/PMM/retepc'
     figDir   = '/home/utsumi/temp/ret'
 
@@ -256,7 +256,7 @@ def load_GMI_Tb13(Year,Mon,Day,oid):
     a1ygmi2 = a1ygmi2.filled(0) 
     #-- Read HDF -----
     #gmiDir = '/work/hk01/PMM/NASA/GPM.GMI/1C/V05/%04d/%02d/%02d'%(Year,Mon,Day)
-    gmiDir = workbaseDir + '/hk01/PMM/NASA/GPM.GMI/1C/V05/%04d/%02d/%02d'%(Year,Mon,Day)
+    gmiDir = workbaseDir + '/hk02/PMM/NASA/GPM.GMI/1C/V05/%04d/%02d/%02d'%(Year,Mon,Day)
     ssearch= gmiDir + '/1C.GPM.GMI.XCAL2016-C.*.%06d.????.HDF5'%(oid)
     gmiPath= glob.glob(ssearch)[0]
     with h5py.File(gmiPath, 'r') as h:
@@ -439,7 +439,8 @@ a1xdpr = np.load(xPath)[iyTmp:eyTmp+1,xpos-83]
 a1ydpr = np.load(yPath)[iyTmp:eyTmp+1,xpos-83]
 
 #-- Read DPRCMB (Ku) ----
-cmbDir  = workbaseDir + '/hk01/PMM/NASA/GPM.DPRGMI/2B/V06/%04d/%02d/%02d'%(Year,Mon,Day)
+cmbDir  = workbaseDir + '/hk02/PMM/NASA/GPM.DPRGMI/2B/V06/%04d/%02d/%02d'%(Year,Mon,Day)
+print cmbDir
 dprPath = glob.glob(cmbDir + '/2B.GPM.DPRGMI.*.%06d.V06A.HDF5'%(oid))[0]
 with h5py.File(dprPath, 'r') as h:
     a3cmbprwatNS = h['NS/precipTotWaterCont'][:]
@@ -452,7 +453,7 @@ a2cmbprwatNS = a3cmbprwatNS[a1ydpr,a1xdpr]
 a1cmbelev    = a2cmbelev[a1ydpr,a1xdpr]
 
 #-- Read GPROF -----------
-gprofDir = workbaseDir + '/hk01/PMM/NASA/GPM.GMI/2A/V05/%04d/%02d/%02d'%(Year,Mon,Day)
+gprofDir = workbaseDir + '/hk02/PMM/NASA/GPM.GMI/2A/V05/%04d/%02d/%02d'%(Year,Mon,Day)
 ssearch  = gprofDir + '/2A.GPM.GMI.GPROF*.%06d.????.HDF5'%(oid)
 gprofPath= glob.glob(ssearch)[0]
 a3prwatgprof = load_gprof_prwat(gprofPath)
@@ -462,7 +463,8 @@ a2prwatgprof = a3prwatgprof[iyTmp:eyTmp+1,xpos-83,-50:]
 #******************************************************
 # Precipitation water content profile
 #******************************************************
-fig   = plt.figure(figsize=(12,10))
+#fig   = plt.figure(figsize=(12,10))
+fig   = plt.figure(figsize=(12,7))
 ssize = 1
 
 nx    = a2prwatNS.shape[0]
@@ -470,11 +472,13 @@ nbin  = a2prwatNS.shape[1]
 aspect1 = 0.16*nx/nbin
 aspect2 = aspect1*5
 #prmin, prmax = 0, 2.0
-prmin, prmax = 0, 1.5
+#prmin, prmax = 0, 1.5
+prmin, prmax = 0.01, 1.5
 tick_locs22 = [0,8,16,24,32, 40, 48]
 tick_lbls22 = [0,2,4, 6, 8, 10, 12]
 
-for i in range(4):
+#for i in range(4):
+for i in range(3):
     nx,nh = a2prwatNS.shape
     a1y   = arange(nh)*0.25
     a1x   = a1latMy
@@ -484,14 +488,19 @@ for i in range(4):
     #h = 0.14
     #w = 0.7
 
+    #x0= 0.1
+    #h = 0.2
+    #w = 0.7
+
     x0= 0.1
-    h = 0.2
+    h = 0.25
     w = 0.7
 
+
     #--- Precip water content -------------- 
-    if i==3:
-        y0 = 0.02
-        y0 = 0.71
+    if i==2:
+        #y0 = 0.71
+        y0 = 0.65
         a2dat = ma.masked_less_equal(a2cmbprwatNS.T,0)
         vmin, vmax = prmin, prmax
         tick_locs, tick_lbls = tick_locs22, tick_lbls22
@@ -500,9 +509,9 @@ for i in range(4):
         cbarlbl='g/m3'
 
 
-    elif i==2:
-        y0 = 0.25
-        y0 = 0.48
+    elif i==1:
+        #y0 = 0.48
+        y0 = 0.35
         a2dat = ma.masked_less_equal(a2prwatNS.T,0)
         vmin, vmax = prmin, prmax
         tick_locs, tick_lbls = tick_locs22, tick_lbls22
@@ -511,20 +520,20 @@ for i in range(4):
         cbarlbl='g/m3'
 
 
-    elif i==1:
-        y0 = 0.48
-        y0 = 0.25
-        a2dat = ma.masked_less_equal(a2topprwatNS.T,0)
+    #elif i==1:
+    #    y0 = 0.48
+    #    y0 = 0.25
+    #    a2dat = ma.masked_less_equal(a2topprwatNS.T,0)
 
-        vmin, vmax = prmin, prmax
-        tick_locs, tick_lbls = tick_locs22, tick_lbls22
-        aspect= aspect1
-        stype = 'Top-Ranked Precip water(CMB/NS)'
-        cbarlbl='g/m3'
+    #    vmin, vmax = prmin, prmax
+    #    tick_locs, tick_lbls = tick_locs22, tick_lbls22
+    #    aspect= aspect1
+    #    stype = 'Top-Ranked Precip water(CMB/NS)'
+    #    cbarlbl='g/m3'
 
     elif i==0:
-        y0 = 0.71
-        y0 = 0.02
+        #y0 = 0.02
+        y0 = 0.05
         a2dat = ma.masked_less_equal(a2prwatgprof.T,0)
         vmin, vmax = prmin, prmax
         tick_locs, tick_lbls = tick_locs22, tick_lbls22
@@ -534,12 +543,10 @@ for i in range(4):
 
 
 
-
-
     a2dat = a2dat[::-1,:] # Tot to Bottom -> Bottom to Top
-
+    a2dat = ma.masked_less(a2dat, vmin)
     ax = fig.add_axes([x0, y0, w, h])
-    cax= fig.add_axes([x0+w+0.01, y0, 0.03, h*0.9])
+    cax= fig.add_axes([x0+w+0.01, y0, 0.02, h*0.9])
     im = ax.imshow(a2dat, interpolation='none', aspect=aspect, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower')
 
     ax.grid()
@@ -550,7 +557,8 @@ for i in range(4):
     ax.set_yticks(tick_locs)
     ax.set_yticklabels(tick_lbls)
 
-    cbar = plt.colorbar(im, cax=cax, orientation='vertical')
+    #cbar = plt.colorbar(im, cax=cax, orientation='vertical')
+    cbar = plt.colorbar(im, cax=cax, orientation='vertical', ticks=[vmin] + np.arange(0.2, vmax, 0.2).tolist())
     cbar.set_label(cbarlbl)
 
     #-- Surface elevation line ------

@@ -215,6 +215,7 @@ for (sensor,thwat) in [(sensor,thwat)
             axmin,axmax = a1bin.min(), a1bin.max()
             H,xedges,yedges = np.histogram2d(a1obs, a1ret, bins = [a1bin, a1bin])
             H = H.T
+
             #H = H * d1coef[satid][idx_db]
             X,Y = np.meshgrid(xedges, yedges)
             if rettype=='EPC':

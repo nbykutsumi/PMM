@@ -42,9 +42,10 @@ outrootDir = '/work/hk02/utsumi/PMM/MATCH.GMI.V%s'%(fullverGMI)
 
 #lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude'],['gmi','S1/SCstatus/SCorientation'],['gprof','S1/surfaceTypeIndex'],['gprof','S1/surfacePrecipitation'],['gmi','S1/Tc']
 #lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude'],['gprof','S1/surfaceTypeIndex'],['gprof','S1/surfacePrecipitation'],['gmi','S1/Tc']]
+lvar = [['gmi','S1/Latitude'],['gmi','S1/Longitude']]
 #lvar = [['gprof','S1/surfacePrecipitation']]
 #lvar = [['gprof','S1/surfaceTypeIndex']]
-lvar = [['gmi','S1/Tc']]
+#lvar = [['gmi','S1/Tc']]
 #lvar = [['gmi','S1/SCstatus/SCorientation']]
 
 for DTime in lDTime:
