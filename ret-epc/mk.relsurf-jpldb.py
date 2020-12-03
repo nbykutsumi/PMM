@@ -9,7 +9,8 @@ lidx_db = range(29*29*29)
 #lidx_db = lidx_db[:1000]
 #lidx_db = [5810]
 #lsensor = ['AMSR2','ATMS','SSMIS','MHS']
-lsensor = ['ATMS','SSMIS','MHS']
+#lsensor = ['ATMS','SSMIS','MHS']
+lsensor = ['GMI']
 
 #******************
 def mk_dir(sdir):

@@ -1,0 +1,47 @@
+MWI=GMI
+
+#***********************************************************************
+LIBS = -lADIT -lmfhdf -ldf -ljpeg -lz -w -DLinux -DLANGUAGE_FORTRAN  ## 131009
+
+LIBFLAGS = -L${HDF4_HOME}/lib -L${ADIT}/lib -L${DIR_JPEG}/lib -L${DIR_ZLIB}/lib
+INCFLAGS = -I${HDF4_HOME}/include -I${ADIT}/include -I${DIR_JPEG}/include -I${DIR_ZLIB}/include
+
+FLAGS= $(FFLAG) $(INCFLAGS) $(LIBFLAGS)
+
+#***********************************************************************
+PRG01 = readseq2
+PRG02 = symdhm
+
+OBJS = $(PRG01).o $(PRG02).o 
+
+TARGET = clean0 copy_include $(PRG01) clean
+
+OUT= $(PRG01).$(MWI).exe
+#***********************************************************************
+all    : $(TARGET)
+
+copy_include :
+	cp -f param_grid.$(MWI).inc param_grid.inc
+
+$(PRG01):\
+	$(OBJS)
+	@echo Making $@
+	$(F77) -o $(OUT) $(FLAGS) $(OBJS) $(LIBS)
+
+#***********************************************************************
+.F.o:
+	@echo Compiling $<
+	$(F77) -c $(LIBS) $(FLAGS) $(INCLUDES) $<
+	@echo " "
+#***********************************************************************
+clean0:
+	rm -f $(OUT) param_grid.inc
+clean:
+	rm -f *.o *.s *.L *.B param_grid.inc
+#***********************************************************************
+
+
+
+
+
+

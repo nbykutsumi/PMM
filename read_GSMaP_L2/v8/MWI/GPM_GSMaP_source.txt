@@ -1,0 +1,39 @@
+# ------------------------------------------ #
+#      Edit Here For Your Environment
+# ------------------------------------------ #
+# Edit TKIO,ADIT,HDF5_HOME,HDF4_HOME
+
+setenv TKIO		/export/trmm5/tool/x86_64/TKIO/tkio_3.92.9/tkio
+setenv ADIT 	 	/export/trmm5/tool/x86_64/TKIO/ADITv3.00
+setenv HDF5_HOME 	/export/trmm5/tool/x86_64/TKIO/hdf5-1.8.9
+setenv HDF4_HOME 	/export/trmm5/tool/x86_64/hdf-4.2.9_gcc
+
+# ------------------------------------------ #
+# Edit DIR_ZLIB,DIR_JPEG,DIR_SZIP
+
+setenv DIR_ZLIB         /export/trmm5/tool/x86_64/TKIO/zlib-1.2.8
+setenv DIR_JPEG         /export/trmm5/tool/x86_64/TKIO/jpeg-6b
+setenv DIR_SZIP         /export/trmm5/tool/x86_64/TKIO/szip-2.1
+
+# ------------------------------------------ #
+# Edit LD_LIBRARY_PATH
+
+#setenv LD_LIBRARY_PATH  ${TSDISTK}/lib:${HDF5_HOME}/lib:$LD_LIBRARY_PATH
+#setenv LD_LIBRARY_PATH  /opt/intel/composerxe-2011/lib/intel64/:${HDF5_HOME}/lib:$LD_LIBRARY_PATH
+setenv LD_LIBRARY_PATH  /opt/intel/composerxe/lib/intel64/:${HDF5_HOME}/lib:$LD_LIBRARY_PATH
+
+# ------------------------------------------ #
+setenv LEAP_DATA        ${ADIT}/etc/tai-utc.dat
+
+# ------------------------------------------ #
+setenv FC ifort
+setenv F77 ifort
+setenv F90 ifort
+setenv FFLAG 	'-assume byterecl -g'
+setenv FFLAGS   '-assume byterecl -g'
+
+setenv CC icc
+setenv CFLAGS	'-Wall -O0 -std=c99 -g'
+setenv LFLAGS   '-O0 -std=c99 -g'
+
+setenv PATH ./:$PATH

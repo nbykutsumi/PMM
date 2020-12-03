@@ -435,7 +435,14 @@ a2coef   = a2coef[:,1:]
 #-- Read EPC range files --
 rangePath = coefDir + '/PC_MIN_MAX_29.txt'
 a2pc_edge = read_table(rangePath)
-a2pc_edge = a2pc_edge[:,1:]    #   Added. 2020/11/11
+print '-----------------------------------------------'
+print ''
+print a2pc_edge[:,0]
+print 'shape=',a2pc_edge.shape
+a2pc_edge = a2pc_edge[1:,:]
+print 'shaoe=',a2pc_edge.shape
+print '-----------------------------------------------'
+sys.exit()
 # expand the lowest and highest ranges
 a2pc_edge[:,0]   = a2pc_edge[:,0] - 1.e6
 a2pc_edge[:,-1]  = a2pc_edge[:,-1]+ 1.e6

@@ -10,8 +10,9 @@ import shutil
 
 #iDTime = datetime(2014,6,1)
 #eDTime = datetime(2014,11,30)
-iDTime = datetime(2018,5,1)   # MRMS: 2018/1/23 -. No NOAA20
+iDTime = datetime(2018,1,1)   # MRMS: 2018/1/23 -. No NOAA20
 eDTime = datetime(2018,12,31)
+#eDTime = datetime(2018,10,31)
 
 
 dDTime = timedelta(days=1)
@@ -79,9 +80,12 @@ mhs_metopb= ["METOPB","MHS","1C","1C","V05"]
 mhs_noaa18= ["NOAA18","MHS","1C","1C","V05"]  # Not available at arthurhou.pps after 2018/10/21
 mhs_noaa19= ["NOAA19","MHS","1C","1C","V05"]
 
-lspec = [amsr2, ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
 #lspec = [amsr2, ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
-#lspec = [mhs_metopb, mhs_noaa18, mhs_noaa19]
+#lspec = [amsr2, ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
+#lspec = [mhs_noaa18, mhs_noaa19]
+#lspec = [mhs_noaa18]
+lspec = [mhs_noaa19]
+
 
 
 dnscan = {'GMI':2, 'AMSR2':5, 'SSMIS':4, 'ATMS':4, 'MHS':1}
@@ -196,9 +200,13 @@ for spec in lspec:
             for line in lines:
                 _,_,Day,oid,iscan,escan = map(int,line.strip().split(','))
 
+                if (sensor=='GMI')&(oid<=24473): continue
                 #if (sensor=='AMSR2')&(oid <= 31235): continue # test
                 #if (sate=='F16')&(oid <= 74768): continue # test
                 #if (sate=='METOPB')&(oid <= 28746): continue # test
+                if (sate=='NOAA18')&(oid <= 66711): continue # test
+                if (sate=='NOAA18')&(datetime(2018,10,22)<=datetime(Year,Mon,Day)): continue
+                if (sate=='NOAA19')&(oid <= 47550): continue # test
 
                 if (iDTime<=datetime(Year,Mon,Day))&(datetime(Year,Mon,Day)<=eDTime):
                     ltbPathTmp = sorted(glob.glob(tbbaseDir + '/%04d/%02d/%02d/*.%06d.????.HDF5'%(Year,Mon,Day,oid)))
