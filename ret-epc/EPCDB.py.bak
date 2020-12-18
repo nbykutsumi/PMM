@@ -189,11 +189,11 @@ class EPCDB(object):
                 data = np.load(srcPath,mmap_mode='r')
                 data = np.array(data[origin:origin+nrec])
             else:
-                print('check nrec and idx',nrec,idx)
+                print 'check nrec and idx',nrec,idx
 
         else:
             ' read nrain file and return'
-            print('No file',srcPath) 
+            print 'No file',srcPath 
             nrainPath = self.baseDir + '/nrain/db_%05d.bin.nrain.txt'%(self.idx_db)
             f=open(nrainPath,'r'); lines=f.readlines(); f.close()
             line = lines[0].split()

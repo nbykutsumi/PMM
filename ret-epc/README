@@ -3,7 +3,7 @@ numpy
 h5py
 
 #*** FILES *************************
-ret-epc-multi.2020.07.20.py   # retrieval program
+ret-epc-multi.py   # retrieval program
 
 run-epc-simple.py  # Sample script that calls mk.match.idx.gmiS2.gmi.fullswath.py and retrieval code.
 

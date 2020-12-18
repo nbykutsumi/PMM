@@ -12,7 +12,7 @@ class level2(object):
     """
 
     def __init__(self):
-        self.npix = 221  # fixed. GMI
+        self.npix = 180  # fixed. SSMIS
 
         dictvars    = odict((
                             ('pad1',                '4x'),

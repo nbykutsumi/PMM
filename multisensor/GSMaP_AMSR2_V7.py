@@ -15,7 +15,7 @@ class level2(object):
         self.npix = 486  # fixed. AMSR2
 
         dictvars    = odict((
-                            #('pad1',                '4x'),
+                            ('pad1',                '4x'),
                             ('lon',                 'f'),       #
                             ('lat',                 'f'),       #
                             ('dtime',               'i'),       #
@@ -23,10 +23,11 @@ class level2(object):
                             ('irflg',               'f'),       #
                             ('rainfg',              'f'),       #
                             #('snowprb',             'f'),       # 
-                            #('pad2',                '4x'),
+                            ('pad2',                '4x'),
+                            ('pad3',                '4x'),
         ))
 
-        self.vars, self.fmts  = zip(*dictvars.items())
+        self.vars, self.fmts  = list(zip(*list(dictvars.items())))
         self.dictvars = dictvars.copy()
         self.fmtsize  = struct.calcsize( '<'+ ''.join(self.fmts))   # bytes
 
@@ -62,6 +63,7 @@ class level2(object):
 
         lout = []
         for vname in lvname:
+            print(vname)
             vidx = vars.index(vname)
             atmp = sdat[:,vidx]
             atmp.dtype = fmts[vidx]
@@ -71,5 +73,6 @@ class level2(object):
             else:
                 lout.append(atmp.reshape(-1,npix))
 
+        print('ncount=',ncount)
         return lout
 # %%

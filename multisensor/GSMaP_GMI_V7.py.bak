@@ -26,7 +26,7 @@ class level2(object):
                             ('pad2',                '4x'),
         ))
 
-        self.vars, self.fmts  = list(zip(*list(dictvars.items())))
+        self.vars, self.fmts  = zip(*dictvars.items())
         self.dictvars = dictvars.copy()
         self.fmtsize  = struct.calcsize( '<'+ ''.join(self.fmts))   # bytes
 

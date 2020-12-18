@@ -102,19 +102,35 @@ c         write(*,*) 'date check ',iyy,imm,idd,izz,minute
       close(10)
 
 C------------------------------------------      
+c      nwrite=iscan
+c      write(*,*)'Scan No.(nwrite) : ',nwrite
+c
+c      do j=1,nwrite
+c         do i=1,NPIX
+c            if (sfcrain(i,j).gt.0.0) then
+c               write(*,*) lon(i,j),lat(i,j),
+c     &              sfcrain(i,j),ssnowprb(i,j)
+c            endif
+c         enddo
+c      enddo
+c
+c      call exit(0)
+
       nwrite=iscan
       write(*,*)'Scan No.(nwrite) : ',nwrite
 
       do j=1,nwrite
+c      do j=1,10
          do i=1,NPIX
             if (sfcrain(i,j).gt.0.0) then
-               write(*,*) lon(i,j),lat(i,j),
+               write(*,*) j-1,i-1,lon(i,j),lat(i,j),
      &              sfcrain(i,j),ssnowprb(i,j)
             endif
          enddo
       enddo
 
       call exit(0)
+
 
 C-------- (exit code) ---------------------
  103  write(*,*) " [E] 103: open error (input) "//input_seq

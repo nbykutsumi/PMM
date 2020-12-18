@@ -6,7 +6,7 @@ import sys
 def mk_epc(a3tb, a2coef):
     NEM = a2coef.shape[1]
     NTBREG = a3tb.shape[2]
-    print('NTBREG=',NTBREG)
+    print 'NTBREG=',NTBREG
     ny,nx,ntmp = a3tb.shape
     a3epc = np.zeros([ny,nx,NEM])
 
@@ -66,7 +66,7 @@ def mk_epc(a3tb, a2coef):
 def mk_epc_12pc(a3tb, a2coef):
     NEM = 12
     NTBREG = a3tb.shape[2]
-    print('NTBREG=',NTBREG)
+    print 'NTBREG=',NTBREG
     ny,nx,ntmp = a3tb.shape
     a3epc = np.zeros([ny,nx,NEM])
 
@@ -203,14 +203,14 @@ def extract_domain_2D(a2dat, a2lat, a2lon, clat, clon, dlatlon, dscan, returnidx
             a2olon  = a2lon[idx_first:idx_last+1,:]
 
         else:
-            print('No matching scans in the target domain are found.')
-            print('Exit')
+            print 'No matching scans in the target domain are found.'
+            print 'Exit'
             sys.exit()
 
-        print('Extract target domain')
-        print('Extracted array size=', a2odat.shape)
-        print('idx_c='         ,idx_c)
-        print('idx_first/last=',idx_first, idx_last)
+        print 'Extract target domain'
+        print 'Extracted array size=', a2odat.shape
+        print 'idx_c='         ,idx_c
+        print 'idx_first/last=',idx_first, idx_last
     else:
         pass
     if returnidx==False:

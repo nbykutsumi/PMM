@@ -558,7 +558,7 @@ for spec in lspec:
         dargv['relprofDir'] = relprofDir
         dargv['outDir']     = outDirTmp
 
-        dargv['oid'] = oid
+        dargv['oid'] = oid    # have to be list?
         dargv['clat'] = -9999
         dargv['clon'] = -9999
         dargv['dlatlon'] = -9999

@@ -12,7 +12,7 @@ class level2(object):
     """
 
     def __init__(self):
-        self.npix = 221  # fixed. GMI
+        self.npix = 486  # fixed. AMSR2
 
         dictvars    = odict((
                             ('pad1',                '4x'),
@@ -22,11 +22,11 @@ class level2(object):
                             ('itoil',               'f'),       #
                             ('irflg',               'f'),       #
                             ('rainfg',              'f'),       #
-                            ('snowprb',             'f'),       #
+                            #('snowprb',             'f'),       # 
                             ('pad2',                '4x'),
         ))
 
-        self.vars, self.fmts  = list(zip(*list(dictvars.items())))
+        self.vars, self.fmts  = zip(*dictvars.items())
         self.dictvars = dictvars.copy()
         self.fmtsize  = struct.calcsize( '<'+ ''.join(self.fmts))   # bytes
 

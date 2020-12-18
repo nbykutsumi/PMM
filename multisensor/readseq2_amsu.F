@@ -128,13 +128,23 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       close(mtin)
 
 C----------------------------------------
-      do j=1,size_B
+c      do j=1,size_B
+c        do i=1,AMSU_PIX
+c           if (RR(i,j).gt.0.0) then
+c              write(*,*) lonB(i,j),latB(i,j),RR(i,j)
+c           endif
+c        enddo
+c      enddo
+
+      do j=1,2
         do i=1,AMSU_PIX
-           if (RR(i,j).gt.0.0) then
+           !if (RR(i,j).gt.0.0) then
               write(*,*) lonB(i,j),latB(i,j),RR(i,j)
-           endif
+           !endif
         enddo
       enddo
+
+
 
 C-------- (exit code) ---------------------
       call exit(0)

@@ -25,6 +25,7 @@ C----------- rain_spc variables
       real sfctype2(NPIX, MAX_SCANS)
       real sfcrain(NPIX, MAX_SCANS)
 
+      integer itmp    ! test
       integer i, j, k
       integer ict, ipix
       integer iscan, icount, nwrite, ncount
@@ -108,13 +109,30 @@ C----------------------------------------
       nwrite=iscan
       write(*,*) 'iscan ', nwrite
 
+c      i=1
+c      j=1
+c      write(*,*) lon(i,j),lat(i,j),sfcrain(i,j)
+c      do j=1,nwrite
+c         do i=1,NPIX
+c            if (sfcrain(i,j).gt.0.0) then
+c               write(*,*) lon(i,j),lat(i,j),sfcrain(i,j)
+c            endif
+c         enddo
+c      enddo
+
       do j=1,nwrite
          do i=1,NPIX
+            itmp = itmp+1
             if (sfcrain(i,j).gt.0.0) then
-               write(*,*) lon(i,j),lat(i,j),sfcrain(i,j)
+               !write(*,*) lon(i,j),lat(i,j),sfcrain(i,j)
+               !write(*,*) j-1,i-1,lon(i,j),lat(i,j),sfcrain(i,j)
+               write(*,*) j-1,i-1,lon(i,j),lat(i,j),sfctype2(i,j)
+
             endif
          enddo
       enddo
+
+
 
       call exit(0)
 

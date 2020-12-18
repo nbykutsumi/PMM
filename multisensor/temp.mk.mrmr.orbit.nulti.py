@@ -11,14 +11,18 @@ from collections import deque
 from datetime import datetime, timedelta
 import os, sys, socket
 from bisect import bisect_left
-
+import time
 #iDTime = datetime(2018,3,1)
 #eDTime = datetime(2018,12,31)
 
-iDTime = datetime(2018,3,1)
+iDTime = datetime(2018,4,1)
 eDTime = datetime(2018,12,31)
 
+#iDTime = datetime(2018,1,23)
+#eDTime = datetime(2018,2,28)
 
+
+tstart = time.time()
 
 #----------------------------
 gmi       = ["GPM","GMI","1C","1C","V05"]
@@ -34,8 +38,8 @@ mhs_metopb= ["METOPB","MHS","1C","1C","V05"]
 mhs_noaa18= ["NOAA18","MHS","1C","1C","V05"]   # Not available at arthurhou.pps after 2018/10/21
 mhs_noaa19= ["NOAA19","MHS","1C","1C","V05"]
 
-#lspec = [amsr2, ssmis_f16, ssmis_f17, ssmis_f18, atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19]
-lspec = [ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19, gmi]
+#lspec = [amsr2, ssmis_f16, ssmis_f17, ssmis_f18, atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19, gmi]
+lspec = [mhs_noaa18, mhs_noaa19,ssmis_f18,  gmi]
 #lspec = [ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19, gmi]
 #lspec = [mhs_noaa18]
 #lspec = [gmi]
@@ -57,8 +61,8 @@ def calc_km(lat1,lon1,lat2,lon2):
 # Start sate,sensor loop
 #-----------------------------------------
 for spec in lspec:
-    print 'spec=',spec
-    print ''
+    print('spec=',spec)
+    print('')
     sate      = spec[0]
     sensor    = spec[1]
     prdName   = spec[2]
@@ -88,11 +92,15 @@ for spec in lspec:
     ltbPathAll = []
     liescanAll = []
     for (Year,Mon) in lYM:
+
+        if (sate=='NOAA18')&(datetime(Year,Mon,1,0)>=datetime(2018,10,21)):continue
+
         listPath = tankDir + '/utsumi/PMM/US/obtlist/overpass.%s.%s.%04d.%02d.csv'%(sensor,sate,Year,Mon)
         f=open(listPath,'r'); lines=f.readlines(); f.close()
         for line in lines:
-            _,_,Day,oid,iscan,escan = map(int,line.strip().split(','))
+            _,_,Day,oid,iscan,escan = list(map(int,line.strip().split(',')))
 
+            #print(line)
             #if ('sate'=='AMSR2')&(datetime(2018,8,31) < datetime(Year,Mon,Day)): continue  # No NOAA18 data after 2018/10/21
 
             #if (sate=='GCOMW1'): continue  # test
@@ -110,6 +118,8 @@ for spec in lspec:
                 ltbPathTmp = sorted(glob.glob(tbbaseDir + '/%04d/%02d/%02d/*.%06d.????.HDF5'%(Year,Mon,Day,oid)))
                 ltbPathAll = ltbPathAll + ltbPathTmp
                 liescanAll.append([Year,Mon,Day,oid,iscan,escan])
+
+                #print(tbbaseDir + '/%04d/%02d/%02d/*.%06d.????.HDF5'%(Year,Mon,Day,oid))
     #*****************
     # Start oid loop
     #*****************
@@ -117,8 +127,10 @@ for spec in lspec:
 
         Year,Mon,Day,oid,iscan,escan = iescan
         DTime = datetime(Year,Mon,Day)
-        if (sate=='F18')&(DTime <datetime(2018,6,13)):continue  #
-        if (sate=='F18')&(DTime >datetime(2018,10,21)):continue  # No NOAA18 data after 2018/10/21
+        #if (sate=='F18')&(DTime <datetime(2018,10,21)):continue  # SSMIS F18
+        #if (sate=='NOAA18')&(DTime >datetime(2018,10,21)):continue  # No NOAA18 data after 2018/10/21
+        if (sate=='NOAA18')&(DTime <datetime(2018,6,19)):continue  # No NOAA18 data after 2018/10/21
+        #if (sate=='METOPB')&(DTime <datetime(2018,11,23)):continue
 
         #if oid != 65343: continue  # test
 
@@ -203,7 +215,7 @@ for spec in lspec:
         ssearch = mrmsDir + '/PRECIPRATE.GC.????????.??????.%05d.dat.gz'%(oid)
         lmrmsPath = sort(glob.glob(ssearch))
         if len(lmrmsPath)==0:
-            print 'No MRMS',Year,Mon,Day,oid
+            print('No MRMS',Year,Mon,Day,oid)
 
         #*****************
         # Initialize output    
@@ -252,8 +264,8 @@ for spec in lspec:
 
             if (idtimegv > a1dtime[-1]): continue
             if (edtimegv < a1dtime[0]): continue
-            print slabel, dtimegv
-            print mrmsPath
+            print(slabel, dtimegv)
+            print(mrmsPath)
 
             try:
                 with gzip.open(mrmsPath, 'rt') as f:
@@ -266,10 +278,10 @@ for spec in lspec:
                     a2type =np.array(f.read().split()[12:], 'float32').reshape(ny_mrms,nx_mrms)
 
             except:
-                print ''
-                print 'Error'
-                print 'Skip'
-                print ''
+                print('')
+                print('Error')
+                print('Skip')
+                print('')
                 continue
 
 
@@ -330,165 +342,115 @@ for spec in lspec:
             nxpmw_tmp = nxpmw
 
             #print 'iypart,eypart=',iypart,eypart
-            #*****************
-            # Process each angle bin
-            #*****************
-            for ix in range(nxpmw):
-                a1x_mrms = a2x_mrms_tmp[:,ix]  # Keeps masks. Should be handled later.
-                a1y_mrms = a2y_mrms_tmp[:,ix]
+            ##*****************
+            ## Process each angle bin
+            ##*****************
+            #for ix in range(nxpmw):
+            #    a1x_mrms = a2x_mrms_tmp[:,ix]  # Keeps masks. Should be handled later.
+            #    a1y_mrms = a2y_mrms_tmp[:,ix]
 
 
-                nrad = a1nrad[ix]
+            #    nrad = a1nrad[ix]
 
-                a2offsetx, a2offsety = np.meshgrid(range(-nrad,nrad+1), range(-nrad,nrad+1))
-                a3collectx = np.array([a2offsetx + x for x in a1x_mrms], 'int32')
-                a3collecty = np.array([a2offsety + y for y in a1y_mrms], 'int32')
-                #a3collectx = np.apply_along_axis(add, 1, a1x_mrms[:,None], a2offsetx).astype('int32')
-                #a3collecty = np.apply_along_axis(add, 1, a1y_mrms[:,None], a2offsety).astype('int32')
+            #    a2offsetx, a2offsety = np.meshgrid(list(range(-nrad,nrad+1)), list(range(-nrad,nrad+1)))
+            #    a3collectx = np.array([a2offsetx + x for x in a1x_mrms], 'int32')
+            #    a3collecty = np.array([a2offsety + y for y in a1y_mrms], 'int32')
+            #    #a3collectx = np.apply_along_axis(add, 1, a1x_mrms[:,None], a2offsetx).astype('int32')
+            #    #a3collecty = np.apply_along_axis(add, 1, a1y_mrms[:,None], a2offsety).astype('int32')
 
-                #- If center MRMS pixel is out of boundary then replace ---
-                a1xy_mrms_mask = a1x_mrms.mask + a1y_mrms.mask
-                a3collectx[a1xy_mrms_mask,:,:] = -9999
-                a3collecty[a1xy_mrms_mask,:,:] = -9999
-                #----------------------------------------------------------
-                a1collectx = a3collectx.flatten()
-                a1collecty = a3collecty.flatten()
+            #    #- If center MRMS pixel is out of boundary then replace ---
+            #    a1xy_mrms_mask = a1x_mrms.mask + a1y_mrms.mask
+            #    a3collectx[a1xy_mrms_mask,:,:] = -9999
+            #    a3collecty[a1xy_mrms_mask,:,:] = -9999
+            #    #----------------------------------------------------------
+            #    a1collectx = a3collectx.flatten()
+            #    a1collecty = a3collecty.flatten()
 
-                #- If MRMS pixel location is out of boundary, then mask and replace --
-                a3collectxy_mask = ma.masked_outside(a3collectx, 0, nx_mrms-1).mask + ma.masked_outside(a3collecty, 0, ny_mrms-1).mask   # masks are kept with flatten
-                a1collectxy_mask = ma.masked_outside(a1collectx, 0, nx_mrms-1).mask + ma.masked_outside(a1collecty, 0, ny_mrms-1).mask   # masks are kept with flatten
+            #    #- If MRMS pixel location is out of boundary, then mask and replace --
+            #    a3collectxy_mask = ma.masked_outside(a3collectx, 0, nx_mrms-1).mask + ma.masked_outside(a3collecty, 0, ny_mrms-1).mask   # masks are kept with flatten
+            #    a1collectxy_mask = ma.masked_outside(a1collectx, 0, nx_mrms-1).mask + ma.masked_outside(a1collecty, 0, ny_mrms-1).mask   # masks are kept with flatten
 
-                # temporarily replace with zero
-                a1collectx[a1collectxy_mask] = 0 
-                a1collecty[a1collectxy_mask] = 0
+            #    # temporarily replace with zero
+            #    a1collectx[a1collectxy_mask] = 0 
+            #    a1collecty[a1collectxy_mask] = 0
 
-                #- Extract MRMS data ----------------
-                a1collect_prec = a2mrms[a1collecty, a1collectx]
-                a1collect_rqi  = a2rqi [a1collecty, a1collectx]
-                a1collect_type = a2type[a1collecty, a1collectx]
+            #    #- Extract MRMS data ----------------
+            #    a1collect_prec = a2mrms[a1collecty, a1collectx]
+            #    a1collect_rqi  = a2rqi [a1collecty, a1collectx]
+            #    a1collect_type = a2type[a1collecty, a1collectx]
 
-                a3collect_prec = a1collect_prec.reshape(-1,nrad*2+1, nrad*2+1) 
-                a3collect_rqi  = a1collect_rqi .reshape(-1,nrad*2+1, nrad*2+1) 
-                a3collect_type = a1collect_type.reshape(-1,nrad*2+1, nrad*2+1) 
+            #    a3collect_prec = a1collect_prec.reshape(-1,nrad*2+1, nrad*2+1) 
+            #    a3collect_rqi  = a1collect_rqi .reshape(-1,nrad*2+1, nrad*2+1) 
+            #    a3collect_type = a1collect_type.reshape(-1,nrad*2+1, nrad*2+1) 
 
-                #- Mask of invalid MRMS data -----------
-                a3collect_mask = ma.masked_less(a3collect_rqi, 0.8).mask + ma.masked_less(a3collect_prec, 0).mask 
+            #    #- Mask of invalid MRMS data -----------
+            #    a3collect_mask = ma.masked_less(a3collect_rqi, 0.8).mask + ma.masked_less(a3collect_prec, 0).mask 
 
-                #- Add mask of invalid pixel location --
-                a3collect_mask = a3collect_mask + a3collectxy_mask
+            #    #- Add mask of invalid pixel location --
+            #    a3collect_mask = a3collect_mask + a3collectxy_mask
 
-                if type(a3collect_mask) == np.bool_:
-                    a3collect_mask = np.full(a3collect_prec.shape, a3collect_mask)
+            #    if type(a3collect_mask) == np.bool_:
+            #        a3collect_mask = np.full(a3collect_prec.shape, a3collect_mask)
 
-                a1goodfrac = ((nrad*2+1)**2 - a3collect_mask.sum(axis=(1,2))) / float( (nrad*2+1)**2)
+            #    a1goodfrac = ((nrad*2+1)**2 - a3collect_mask.sum(axis=(1,2))) / float( (nrad*2+1)**2)
 
-                a3collect_prec = ma.masked_where(a3collect_mask, a3collect_prec)
-                a3collect_type = ma.masked_where(a3collect_mask, a3collect_type)
+            #    a3collect_prec = ma.masked_where(a3collect_mask, a3collect_prec)
+            #    a3collect_type = ma.masked_where(a3collect_mask, a3collect_type)
 
-                #a2ave_mrms[iypart:eypart,ix] = ma.masked_where(a3collect_mask, a3collect_prec).mean(axis=(1,2)).filled(-9999.)
-                a2ave_mrms[iypart:eypart,ix] = a3collect_prec.mean(axis=(1,2)).filled(-9999.)
-                a2goodfrac[iypart:eypart,ix] = a1goodfrac
+            #    #a2ave_mrms[iypart:eypart,ix] = ma.masked_where(a3collect_mask, a3collect_prec).mean(axis=(1,2)).filled(-9999.)
+            #    a2ave_mrms[iypart:eypart,ix] = a3collect_prec.mean(axis=(1,2)).filled(-9999.)
+            #    a2goodfrac[iypart:eypart,ix] = a1goodfrac
 
-                #-- precipitation type info ---
-                a1sum_mrms = a3collect_prec.sum(axis=(1,2))
+            #    #-- precipitation type info ---
+            #    a1sum_mrms = a3collect_prec.sum(axis=(1,2))
 
-                a2num_mrms[iypart:eypart,ix] = (2*nrad+1)*(2*nrad+1)
+            #    a2num_mrms[iypart:eypart,ix] = (2*nrad+1)*(2*nrad+1)
 
-                for ptype in lptype: 
-                    a3collect_type_mask = ma.masked_not_equal(a3collect_type, ptype).mask
+            #    for ptype in lptype: 
+            #        a3collect_type_mask = ma.masked_not_equal(a3collect_type, ptype).mask
 
-                    if a3collect_type_mask is np.True_:
-                        d2num_type[ptype][iypart:eypart,ix] = 0
-                        d2vfc_type[ptype][iypart:eypart,ix] = 0.
+            #        if a3collect_type_mask is np.True_:
+            #            d2num_type[ptype][iypart:eypart,ix] = 0
+            #            d2vfc_type[ptype][iypart:eypart,ix] = 0.
 
-                    elif a3collect_type_mask is np.False_:
-                        d2num_type[ptype][iypart:eypart,ix] = (2*nrad+1)*(2*nrad+1)
-                        d2vfc_type[ptype][iypart:eypart,ix] = 1.0
+            #        elif a3collect_type_mask is np.False_:
+            #            d2num_type[ptype][iypart:eypart,ix] = (2*nrad+1)*(2*nrad+1)
+            #            d2vfc_type[ptype][iypart:eypart,ix] = 1.0
 
-                    else:
-                        d2num_type[ptype][iypart:eypart,ix] = (~a3collect_type_mask).sum(axis=(1,2))
+            #        else:
+            #            d2num_type[ptype][iypart:eypart,ix] = (~a3collect_type_mask).sum(axis=(1,2))
 
-                        if ptype !=0:
-                            d2vfc_type[ptype][iypart:eypart,ix] = ma.masked_invalid( ma.masked_where(a3collect_type_mask, a3collect_prec).sum(axis=(1,2)) / a1sum_mrms ).filled(-9999.)
+            #            if ptype !=0:
+            #                d2vfc_type[ptype][iypart:eypart,ix] = ma.masked_invalid( ma.masked_where(a3collect_type_mask, a3collect_prec).sum(axis=(1,2)) / a1sum_mrms ).filled(-9999.)
 
+        #a2goodfrac = ma.masked_where(a2ave_mrms<0, a2goodfrac).filled(-9999.)
+        tnow = time.time()
+        elapsed_time = tnow - tstart 
+        print(Year,Mon,Day,oid,elapsed_time)
+        ##*****************
+        ## Save
+        ##*****************
+        #outDir= tankDir + '/utsumi/PMM/MRMS/level2-pixel-match/%s.%s.%s/%04d/%02d/%02d'%(scantype, sensor, sate, Year, Mon, Day)
+        #util.mk_dir(outDir)
+        #ave_mrms_path= outDir + '/mrms.%06d.%05d-%05d.npy'%(oid,iscan,escan)
+        #goodfrac_path= outDir + '/goodfrac.%06d.%05d-%05d.npy'%(oid,iscan,escan)
+        #np.save(ave_mrms_path, a2ave_mrms.astype('float32'))
+        #np.save(goodfrac_path, a2goodfrac.astype('float32'))
 
-                ##-- test ----
-                #for ytmp in range(iypart,eypart+1):
-                #    xtmp  = ix
-                #    ptype = 1
-                #    if d2num_type[ptype][ytmp,xtmp] >0:
-                #        print 'num_type'
-                #        print d2num_type[ptype][ytmp,xtmp]
-                #        print 'collect_type'
-                #        print a3collect_type[ytmp-iypart]
-                #        print ''
-                #        print 'vfc_type'
-                #        print d2vfc_type[ptype][ytmp,xtmp]
-                #        print 'mrms_prec'
-                #        print a3collect_prec[ytmp-iypart]
-                #        print ''
-                #        print 'mrms'
-                #        print a2ave_mrms[ytmp,ix]
+        #num_mrms_path = outDir + '/num-all.%06d.%05d-%05d.npy'%(oid,iscan,escan)
+        #np.save(num_mrms_path, a2num_mrms.astype('int16'))
 
-                #        #sys.exit()
-                #        #"print ''
-                #        #"ymrms,xmrms= a1y_mrms[ytmp-iypart], a1x_mrms[ytmp-iypart]
-                #        #"print a2mrms[ymrms-nrad:ymrms+nrad+1,xmrms-nrad:xmrms+nrad+1]
-                #        #"print ''
-                #        #"print ma.masked_where(a3collect_mask, a3collect_prec).mean(axis=(1,2)).filled(-9999.)[ytmp-iypart]
-                #        #"print a3collect_prec[ytmp-iypart].shape
-                #        #"print 'nrad=',nrad
-                #        #"print 'pixres_nadir',pixres_nadir
-                #        #"print 'pixres=',pixres
-                #        #"print 'inc=',a2inc[0,ix]
-                #        #"print 'pixara=', a1pixara[ix]
+        #for ptype in lptype:
+        #    ave_type_path= outDir + '/pr-%02d.%06d.%05d-%05d.npy'%(ptype, oid,iscan,escan)
+        #    num_type_path= outDir + '/num-%02d.%06d.%05d-%05d.npy'%(ptype, oid,iscan,escan)
+
+        #    np.save(num_type_path, d2num_type[ptype].astype('int16'))
+        #    
+        #    if ptype !=0:
+        #        np.save(ave_type_path, d2vfc_type[ptype].astype('float32'))
 
 
-
-
-                ##-- test ----
-                #ytmp, xtmp = 181, 5
-                #if (ytmp >=iypart)&(ytmp < eypart):
-                #    if xtmp == ix:
-                #        print a2ave_mrms[ytmp,xtmp]
-                #        print a3collect_prec[ytmp-iypart]
-                #        print ''
-                #        ymrms,xmrms= a1y_mrms[ytmp-iypart], a1x_mrms[ytmp-iypart]
-                #        print a2mrms[ymrms-nrad:ymrms+nrad+1,xmrms-nrad:xmrms+nrad+1]
-                #        print ''
-                #        print ma.masked_where(a3collect_mask, a3collect_prec).mean(axis=(1,2)).filled(-9999.)[ytmp-iypart]
-                #        print a3collect_prec[ytmp-iypart].shape
-                #        print 'nrad=',nrad
-                #        print 'pixres_nadir',pixres_nadir
-                #        print 'pixres=',pixres
-                #        print 'inc=',a2inc[0,ix]
-                #        print 'pixara=', a1pixara[ix]
-
-        a2goodfrac = ma.masked_where(a2ave_mrms<0, a2goodfrac).filled(-9999.)
-        #*****************
-        # Save
-        #*****************
-        outDir= tankDir + '/utsumi/PMM/MRMS/level2-pixel-match/%s.%s.%s/%04d/%02d/%02d'%(scantype, sensor, sate, Year, Mon, Day)
-        util.mk_dir(outDir)
-        ave_mrms_path= outDir + '/mrms.%06d.%05d-%05d.npy'%(oid,iscan,escan)
-        goodfrac_path= outDir + '/goodfrac.%06d.%05d-%05d.npy'%(oid,iscan,escan)
-        np.save(ave_mrms_path, a2ave_mrms.astype('float32'))
-        np.save(goodfrac_path, a2goodfrac.astype('float32'))
-
-        num_mrms_path = outDir + '/num-all.%06d.%05d-%05d.npy'%(oid,iscan,escan)
-        np.save(num_mrms_path, a2num_mrms.astype('int16'))
-
-        for ptype in lptype:
-            ave_type_path= outDir + '/pr-%02d.%06d.%05d-%05d.npy'%(ptype, oid,iscan,escan)
-            num_type_path= outDir + '/num-%02d.%06d.%05d-%05d.npy'%(ptype, oid,iscan,escan)
-
-            np.save(num_type_path, d2num_type[ptype].astype('int16'))
-            
-            if ptype !=0:
-                np.save(ave_type_path, d2vfc_type[ptype].astype('float32'))
-
-
-        print ave_mrms_path
+        #print(ave_mrms_path)
    
      
 
