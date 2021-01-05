@@ -15,7 +15,7 @@ from bisect import bisect_left
 #iDTime = datetime(2018,3,1)
 #eDTime = datetime(2018,12,31)
 
-iDTime = datetime(2018,3,1)
+iDTime = datetime(2018,1,24)
 eDTime = datetime(2018,12,31)
 
 #iDTime = datetime(2018,1,23)
@@ -39,13 +39,14 @@ mhs_noaa18= ["NOAA18","MHS","1C","1C","V05"]   # Not available at arthurhou.pps 
 mhs_noaa19= ["NOAA19","MHS","1C","1C","V05"]
 
 #lspec = [amsr2, ssmis_f16, ssmis_f17, ssmis_f18, atms_npp, atms_noaa20, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19, gmi]
-lspec = [mhs_noaa19,ssmis_f18,  gmi]
+lspec = [mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19, gmi]
+#lspec = [gmi]
 #lspec = [ssmis_f16, ssmis_f18, atms_npp, mhs_metopa, mhs_metopb, mhs_noaa18, mhs_noaa19, gmi]
 #lspec = [mhs_noaa18]
 #lspec = [gmi]
 
-scantype='epc'
-#scantype='gpr'
+#scantype='epc'
+scantype='gpr'
 
 ny_mrms = 3500
 nx_mrms = 7000
@@ -126,10 +127,15 @@ for spec in lspec:
         DTime = datetime(Year,Mon,Day)
 
         #--- test ----------
-        #if (sate=='F18')&(DTime <datetime(2018,10,21)):continue  # SSMIS F18
-        #if (sate=='NOAA18')&(DTime >datetime(2018,10,21)):continue  # No NOAA18 data after 2018/10/21
-        if (sate=='NOAA19')&(DTime <datetime(2018,6,18)):continue  # No NOAA18 data after 2018/10/21
+        #if (sate=='GCOMW1')&(DTime <datetime(2018,7,21)):continue  #
+        #if (sate=='F18')&(DTime <datetime(2018,7,13)):continue  # SSMIS F18
+        #if (sate=='NPP')&(DTime <datetime(2018,6,10)):continue  # SSMIS F18
+        #if (sate=='NPP')&(oid <34296):continue  # SSMIS F18
+        if (sate=='NOAA18')&(DTime >datetime(2018,10,21)):continue  # No NOAA18 data after 2018/10/21
+        #if (sate=='NOAA19')&(DTime <datetime(2018,6,18)):continue  #
+        if (sate=='METOPA')&(oid<62004):continue
         #if (sate=='METOPB')&(DTime <datetime(2018,11,23)):continue
+        #if (sate=='GPM')&(DTime <datetime(2018,2,13)):continue
 
         #if oid != 65343: continue  # test
 

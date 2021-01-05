@@ -1,6 +1,6 @@
 import glob
 
-ssearch = '/home/utsumi/mnt/lab_tank/utsumi/PMM/MRMS/level2-pixel-match/*/*/*/30/num-all*'
+ssearch = '/home/utsumi/mnt/lab_tank/utsumi/PMM/MRMS/level2-pixel-match/gpr.*/*/*/30/num-all*'
 print(ssearch)
 lpath = sorted(glob.glob(ssearch))
 for spath in lpath:
